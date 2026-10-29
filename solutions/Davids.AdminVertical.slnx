@@ -1,0 +1,25 @@
+<Solution>
+  <Folder Name="/Infrastructure/">
+    <Project Path="../src/Davids.AppHost/Davids.AppHost.csproj" />
+    <Project Path="../src/Davids.Bootstrap/Davids.Bootstrap.csproj" />
+  </Folder>
+  <Folder Name="/Shared/">
+    <Project Path="../../Davids.Shared/src/Davids.ServiceDefaults/Davids.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/API-Gateway/">
+    <Project Path="../../Davids.APIGateway/src/Davids.APIGateway.Infrastructure/Davids.APIGateway.Infrastructure.csproj" />
+    <Project Path="../../Davids.APIGateway/src/Davids.APIGateway.Api/Davids.APIGateway.Api.csproj" />
+    <Project Path="../../Davids.APIGateway/tests/Davids.APIGateway.Tests/Davids.APIGateway.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Admin-Identity/">
+    <Project Path="../../Davids.Services.AdminIdentity/src/Davids.Services.AdminIdentity.Core/Davids.Services.AdminIdentity.Core.csproj" />
+    <Project Path="../../Davids.Services.AdminIdentity/src/Davids.Services.AdminIdentity.Application/Davids.Services.AdminIdentity.Application.csproj" />
+    <Project Path="../../Davids.Services.AdminIdentity/src/Davids.Services.AdminIdentity.Infrastructure/Davids.Services.AdminIdentity.Infrastructure.csproj" />
+    <Project Path="../../Davids.Services.AdminIdentity/src/Davids.Services.AdminIdentity.Api/Davids.Services.AdminIdentity.Api.csproj" />
+    <Project Path="../../Davids.Services.AdminIdentity/tests/Davids.Services.AdminIdentity.Tests/Davids.Services.AdminIdentity.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Frontend/">
+    <Project Path="../../Davids.Frontend.Admin/src/Davids.Frontend.Admin/Davids.Frontend.Admin.csproj" />
+    <Project Path="../../Davids.Frontend.Admin/tests/Davids.Frontend.Admin.Tests/Davids.Frontend.Admin.Tests.csproj" />
+  </Folder>
+</Solution>

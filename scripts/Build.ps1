@@ -9,7 +9,7 @@ if ($env:OS -eq 'Windows_NT') {
 $env:MSBUILDDISABLENODEREUSE = '1'
 Push-Location $repoRoot
 try {
-    $solution = 'Davids.sln'
+    $solution = 'Davids.slnx'
     if (-not (Test-Path $solution)) { throw "Missing $solution. Run ./scripts/Get-Projects.ps1 first." }
     & $dotnet build $solution --no-restore -c Release -m:2 -nr:false --tl:off
     if ($LASTEXITCODE) { throw 'Build failed.' }

@@ -36,7 +36,7 @@ jobs:
         run: |
           python3 -m pip install --quiet semgrep==1.182.0
           semgrep scan --validate --config security/pull-request-ci/semgrep/davids-security.yml --metrics=off
-          semgrep scan --no-git-ignore --exclude=bin --exclude=obj --exclude=.git --exclude=.vs --exclude=TestResults --config security/pull-request-ci/semgrep/davids-security.yml . --error --metrics=off --sarif -o semgrep.sarif
+          semgrep scan --no-git-ignore --exclude=artifacts --exclude=bin --exclude=obj --exclude=.git --exclude=.vs --exclude=TestResults --config security/pull-request-ci/semgrep/davids-security.yml . --error --metrics=off --sarif -o semgrep.sarif
 
       - name: Upload Semgrep SARIF
         if: always()
@@ -102,23 +102,23 @@ jobs:
         working-directory: ./Davids
         run: |
           foreach ($sln in @(
-            '../Davids.Shared/Davids.Shared.sln',
-            '../Davids.Services.Identity/Davids.Services.Identity.sln',
-            '../Davids.Services.AdminIdentity/Davids.Services.AdminIdentity.sln',
-            '../Davids.Services.Customers/Davids.Services.Customers.sln',
-            '../Davids.APIGateway/Davids.APIGateway.sln',
-            '../Davids.Frontend.Admin/Davids.Frontend.Admin.sln',
+            '../Davids.Shared/Davids.Shared.slnx',
+            '../Davids.Services.Identity/Davids.Services.Identity.slnx',
+            '../Davids.Services.AdminIdentity/Davids.Services.AdminIdentity.slnx',
+            '../Davids.Services.Customers/Davids.Services.Customers.slnx',
+            '../Davids.APIGateway/Davids.APIGateway.slnx',
+            '../Davids.Frontend.Admin/Davids.Frontend.Admin.slnx',
             'src/Davids.Bootstrap/Davids.Bootstrap.csproj'
           )) {
             dotnet restore $sln --locked-mode -m:1 -nr:false --tl:off
             if ($LASTEXITCODE) { throw "Locked restore failed for $sln" }
           }
-          dotnet restore Davids.sln -m:1 -nr:false --tl:off
-          if ($LASTEXITCODE) { throw 'Restore failed for Davids.sln' }
-          dotnet build Davids.sln --no-restore -c Release -warnaserror -m:2 -nr:false --tl:off
-          if ($LASTEXITCODE) { throw 'Build failed for Davids.sln' }
-          dotnet test Davids.sln --no-build -c Release -m:2 -nr:false --tl:off
-          if ($LASTEXITCODE) { throw 'Tests failed for Davids.sln' }
+          dotnet restore Davids.slnx -m:1 -nr:false --tl:off
+          if ($LASTEXITCODE) { throw 'Restore failed for Davids.slnx' }
+          dotnet build Davids.slnx --no-restore -c Release -warnaserror -m:2 -nr:false --tl:off
+          if ($LASTEXITCODE) { throw 'Build failed for Davids.slnx' }
+          dotnet test Davids.slnx --no-build -c Release -m:2 -nr:false --tl:off
+          if ($LASTEXITCODE) { throw 'Tests failed for Davids.slnx' }
           ./scripts/security/local-dev-commit/Verify-Dependencies.ps1
 
   iac-and-istio-mesh:
@@ -138,7 +138,7 @@ jobs:
           framework: kubernetes,dockerfile,github_actions
           quiet: true
           compact: true
-          skip_path: kyverno-tests
+          skip_path: artifacts,bin,obj,TestResults,kyverno-tests
           output_format: cli,sarif
           output_file_path: console,checkov.sarif
 
@@ -190,11 +190,13 @@ jobs:
           severity-cutoff: high
           output-format: sarif
 
+      # Exclude centralized MSBuild artifacts/ so Trivy scans source lockfiles & IaC only
       - name: Scan lockfiles & manifests with SHA-pinned Trivy
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: fs
           scan-ref: .
+          skip-dirs: "**/artifacts,**/bin,**/obj,**/TestResults,**/kyverno-tests"
           scanners: vuln,misconfig
           severity: CRITICAL,HIGH
           exit-code: "1"

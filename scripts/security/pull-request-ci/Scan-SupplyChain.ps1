@@ -139,13 +139,13 @@ foreach ($repoName in $repos) {
     Push-Location $dir
     try {
         Write-Host "Scanning $repoName lockfiles with Grype..."
-        & $grype 'dir:.' --fail-on high -q
+        & $grype 'dir:.' --exclude './**/artifacts/**' --exclude './**/bin/**' --exclude './**/obj/**' --exclude './**/TestResults/**' --fail-on high -q
         if ($LASTEXITCODE) {
             throw "Grype reported HIGH/CRITICAL vulnerability findings in $repoName."
         }
 
         Write-Host "Scanning $repoName lockfiles & configs with Trivy..."
-        & $trivy fs . --scanners vuln,misconfig --severity HIGH,CRITICAL --exit-code 1 --quiet
+        & $trivy fs . --skip-dirs '**/artifacts,**/bin,**/obj,**/TestResults,**/kyverno-tests' --scanners vuln,misconfig --severity HIGH,CRITICAL --exit-code 1 --quiet
         if ($LASTEXITCODE) {
             throw "Trivy reported HIGH/CRITICAL vulnerability or misconfiguration findings in $repoName."
         }

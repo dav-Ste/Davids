@@ -42,6 +42,7 @@ foreach ($repoName in $repos) {
         try {
             & $semgrepCmd.Source scan `
                 --no-git-ignore `
+                --exclude=artifacts `
                 --exclude=bin `
                 --exclude=obj `
                 --exclude=.git `
@@ -65,6 +66,7 @@ foreach ($repoName in $repos) {
             $semgrepImage `
             semgrep scan `
             --no-git-ignore `
+            --exclude=artifacts `
             --exclude=bin `
             --exclude=obj `
             --exclude=.git `

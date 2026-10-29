@@ -82,11 +82,11 @@ jobs:
           build-mode: ${{ matrix.build-mode }}
           config-file: ./Davids/security/pull-request-ci/codeql/codeql-config.yml
 
-      - name: Build Davids.sln for CodeQL extraction
+      - name: Build Davids.slnx for CodeQL extraction
         if: matrix.language == 'csharp'
         run: |
-          dotnet restore ./Davids/Davids.sln -m:1 -nr:false --tl:off
-          dotnet build ./Davids/Davids.sln --no-restore -c Release -warnaserror -m:2 -nr:false --tl:off
+          dotnet restore ./Davids/Davids.slnx -m:1 -nr:false --tl:off
+          dotnet build ./Davids/Davids.slnx --no-restore -c Release -warnaserror -m:2 -nr:false --tl:off
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1

@@ -1,0 +1,28 @@
+<Solution>
+  <Folder Name="/Infrastructure/">
+    <Project Path="../src/Davids.AppHost/Davids.AppHost.csproj" />
+    <Project Path="../src/Davids.Bootstrap/Davids.Bootstrap.csproj" />
+  </Folder>
+  <Folder Name="/Shared/">
+    <Project Path="../../Davids.Shared/src/Davids.ServiceDefaults/Davids.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/API-Gateway/">
+    <Project Path="../../Davids.APIGateway/src/Davids.APIGateway.Infrastructure/Davids.APIGateway.Infrastructure.csproj" />
+    <Project Path="../../Davids.APIGateway/src/Davids.APIGateway.Api/Davids.APIGateway.Api.csproj" />
+    <Project Path="../../Davids.APIGateway/tests/Davids.APIGateway.Tests/Davids.APIGateway.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Identity/">
+    <Project Path="../../Davids.Services.Identity/src/Davids.Services.Identity.Core/Davids.Services.Identity.Core.csproj" />
+    <Project Path="../../Davids.Services.Identity/src/Davids.Services.Identity.Application/Davids.Services.Identity.Application.csproj" />
+    <Project Path="../../Davids.Services.Identity/src/Davids.Services.Identity.Infrastructure/Davids.Services.Identity.Infrastructure.csproj" />
+    <Project Path="../../Davids.Services.Identity/src/Davids.Services.Identity.Api/Davids.Services.Identity.Api.csproj" />
+    <Project Path="../../Davids.Services.Identity/tests/Davids.Services.Identity.Tests/Davids.Services.Identity.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Customers/">
+    <Project Path="../../Davids.Services.Customers/src/Davids.Services.Customers.Core/Davids.Services.Customers.Core.csproj" />
+    <Project Path="../../Davids.Services.Customers/src/Davids.Services.Customers.Application/Davids.Services.Customers.Application.csproj" />
+    <Project Path="../../Davids.Services.Customers/src/Davids.Services.Customers.Infrastructure/Davids.Services.Customers.Infrastructure.csproj" />
+    <Project Path="../../Davids.Services.Customers/src/Davids.Services.Customers.Api/Davids.Services.Customers.Api.csproj" />
+    <Project Path="../../Davids.Services.Customers/tests/Davids.Services.Customers.Tests/Davids.Services.Customers.Tests.csproj" />
+  </Folder>
+</Solution>

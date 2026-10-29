@@ -11,6 +11,7 @@ namespace Davids.AppHost.Tests;
 public sealed class ResourceGraphTests
 {
     [Fact]
+    [Trait("Category", "Unit")]
     public void CompiledAppHostAssemblyEmbedsConcreteDcpAndDashboardPaths()
     {
         var metadata = typeof(Projects.Davids_AppHost).Assembly
@@ -27,6 +28,7 @@ public sealed class ResourceGraphTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task AllSecretParametersHaveGeneratedDefaultsAndNeverStartUnresolved()
     {
         await using var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Davids_AppHost>(
@@ -62,6 +64,7 @@ public sealed class ResourceGraphTests
         }
     }
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task FullProfileBuildsAllExpectedResourcesWithoutStartingContainers()
     {
         await using var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Davids_AppHost>(
@@ -110,6 +113,7 @@ public sealed class ResourceGraphTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task OptionalInfrastructureCanBeDisabled()
     {
         await using var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Davids_AppHost>(
@@ -130,6 +134,7 @@ public sealed class ResourceGraphTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task SelfHostedOidcWiringEnforcesZeroSharedSigningSecretsAndIsolatedVaultPaths()
     {
         await using var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Davids_AppHost>(
@@ -197,6 +202,7 @@ public sealed class ResourceGraphTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public async Task GrafanaCanPointAtExternalClusterPrometheusAndJaegerInstances()
     {
         const string clusterPrometheus = "http://prometheus.istio-system.svc.cluster.local:9090";
@@ -230,10 +236,11 @@ public sealed class ResourceGraphTests
     }
 
     [Fact]
+    [Trait("Category", "Unit")]
     public void LocalSecurityGatesAreEnforcedAcrossAllRepositories()
     {
         var current = new DirectoryInfo(AppContext.BaseDirectory);
-        while (current is not null && !File.Exists(Path.Combine(current.FullName, "Davids.sln")))
+        while (current is not null && !File.Exists(Path.Combine(current.FullName, "Davids.slnx")))
         {
             current = current.Parent;
         }
@@ -252,6 +259,30 @@ public sealed class ResourceGraphTests
             "Davids.Frontend.Admin"
         };
 
+        var commonPropsPath = Path.Combine(workspaceRoot, "Davids.Shared", "eng", "Davids.Common.props");
+        Assert.True(File.Exists(commonPropsPath), $"Missing centralized MSBuild props at {commonPropsPath}.");
+        var commonPropsXml = File.ReadAllText(commonPropsPath);
+        Assert.Contains("<Nullable>enable</Nullable>", commonPropsXml, StringComparison.Ordinal);
+        Assert.Contains("<UseArtifactsOutput>true</UseArtifactsOutput>", commonPropsXml, StringComparison.Ordinal);
+        Assert.Contains("<TreatWarningsAsErrors>true</TreatWarningsAsErrors>", commonPropsXml, StringComparison.Ordinal);
+        Assert.Contains("<NuGetAudit>true</NuGetAudit>", commonPropsXml, StringComparison.Ordinal);
+        Assert.Contains("<NuGetAuditMode>all</NuGetAuditMode>", commonPropsXml, StringComparison.Ordinal);
+        Assert.Contains("<NuGetAuditLevel>low</NuGetAuditLevel>", commonPropsXml, StringComparison.Ordinal);
+        foreach (var code in new[] { "NU1900", "NU1901", "NU1902", "NU1903", "NU1904" })
+        {
+            Assert.Contains(code, commonPropsXml, StringComparison.Ordinal);
+        }
+        Assert.Contains("<EnableNETAnalyzers>true</EnableNETAnalyzers>", commonPropsXml, StringComparison.Ordinal);
+        Assert.Contains("<AnalysisModeSecurity>All</AnalysisModeSecurity>", commonPropsXml, StringComparison.Ordinal);
+        Assert.Contains("<UseSharedPackageReference Condition=\"'$(UseSharedPackageReference)' == ''\">false</UseSharedPackageReference>", commonPropsXml, StringComparison.Ordinal);
+        Assert.Contains(">true</RestorePackagesWithLockFile>", commonPropsXml, StringComparison.Ordinal);
+
+        var serviceDefaultsCsprojPath = Path.Combine(workspaceRoot, "Davids.Shared", "src", "Davids.ServiceDefaults", "Davids.ServiceDefaults.csproj");
+        var serviceDefaultsCsprojXml = File.ReadAllText(serviceDefaultsCsprojPath);
+        Assert.Contains("<PackageId>Davids.ServiceDefaults</PackageId>", serviceDefaultsCsprojXml, StringComparison.Ordinal);
+        Assert.Contains("<IsPackable>true</IsPackable>", serviceDefaultsCsprojXml, StringComparison.Ordinal);
+        Assert.True(File.Exists(Path.Combine(workspaceRoot, "Davids.Shared", "scripts", "Pack-SharedPackages.ps1")), "Missing Davids.Shared/scripts/Pack-SharedPackages.ps1.");
+
         foreach (var repo in repositories)
         {
             var repoPath = Path.Combine(workspaceRoot, repo);
@@ -260,16 +291,56 @@ public sealed class ResourceGraphTests
             var propsPath = Path.Combine(repoPath, "Directory.Build.props");
             Assert.True(File.Exists(propsPath), $"Missing Directory.Build.props in {repo}.");
             var propsXml = File.ReadAllText(propsPath);
-            Assert.Contains("<TreatWarningsAsErrors>true</TreatWarningsAsErrors>", propsXml, StringComparison.Ordinal);
-            Assert.Contains("<NuGetAudit>true</NuGetAudit>", propsXml, StringComparison.Ordinal);
-            Assert.Contains("<NuGetAuditMode>all</NuGetAuditMode>", propsXml, StringComparison.Ordinal);
-            Assert.Contains("<NuGetAuditLevel>low</NuGetAuditLevel>", propsXml, StringComparison.Ordinal);
-            foreach (var code in new[] { "NU1900", "NU1901", "NU1902", "NU1903", "NU1904" })
+            Assert.Contains("eng/Davids.Common.props", propsXml, StringComparison.Ordinal);
+            if (repo != "Davids.Shared")
             {
-                Assert.Contains(code, propsXml, StringComparison.Ordinal);
+                Assert.Contains("!Exists('$(_DavidsCommonPropsPath)')", propsXml, StringComparison.Ordinal);
+                Assert.Contains("<Nullable>enable</Nullable>", propsXml, StringComparison.Ordinal);
+                Assert.Contains("UseSharedPackageReference", propsXml, StringComparison.Ordinal);
             }
-            Assert.Contains("<EnableNETAnalyzers>true</EnableNETAnalyzers>", propsXml, StringComparison.Ordinal);
-            Assert.Contains("<AnalysisModeSecurity>All</AnalysisModeSecurity>", propsXml, StringComparison.Ordinal);
+
+            if (repo is not ("Davids" or "Davids.Shared"))
+            {
+                var packagesPropsText = File.ReadAllText(Path.Combine(repoPath, "Directory.Packages.props"));
+                Assert.Contains("Include=\"Davids.ServiceDefaults\" Version=\"$(DavidsServiceDefaultsVersion)\"", packagesPropsText, StringComparison.Ordinal);
+
+                var apiCsprojText = Directory.EnumerateFiles(Path.Combine(repoPath, "src"), "*.csproj", SearchOption.AllDirectories)
+                    .Select(File.ReadAllText)
+                    .FirstOrDefault(t => t.Contains("Davids.ServiceDefaults", StringComparison.Ordinal));
+                Assert.False(string.IsNullOrEmpty(apiCsprojText), $"Expected conditional Davids.ServiceDefaults reference in {repo}/src.");
+                Assert.Contains("Condition=\"'$(UseSharedPackageReference)' != 'true'\"", apiCsprojText, StringComparison.Ordinal);
+                Assert.Contains("<PackageReference Include=\"Davids.ServiceDefaults\" Condition=\"'$(UseSharedPackageReference)' == 'true'\" />", apiCsprojText, StringComparison.Ordinal);
+            }
+
+            var gitignorePath = Path.Combine(repoPath, ".gitignore");
+            Assert.True(File.Exists(gitignorePath), $"Missing .gitignore in {repo}.");
+            Assert.Contains("artifacts/", File.ReadAllText(gitignorePath), StringComparison.Ordinal);
+
+            var dockerignorePath = Path.Combine(repoPath, ".dockerignore");
+            Assert.True(File.Exists(dockerignorePath), $"Missing .dockerignore in {repo}.");
+            Assert.Contains("artifacts/", File.ReadAllText(dockerignorePath), StringComparison.Ordinal);
+
+            // Verify Central Package Management trims unused PackageVersion entries down to direct references + explicit transitive security pins.
+            var packagesPropsPath = Path.Combine(repoPath, "Directory.Packages.props");
+            Assert.True(File.Exists(packagesPropsPath), $"Missing Directory.Packages.props in {repo}.");
+            var packagesDoc = System.Xml.Linq.XDocument.Load(packagesPropsPath);
+            var directRefs = Directory.EnumerateFiles(repoPath, "*.csproj", SearchOption.AllDirectories)
+                .SelectMany(csproj => System.Xml.Linq.XDocument.Load(csproj).Descendants()
+                    .Where(e => e.Name.LocalName == "PackageReference")
+                    .Select(e => e.Attribute("Include")?.Value ?? e.Attribute("Update")?.Value))
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var pv in packagesDoc.Descendants().Where(e => e.Name.LocalName == "PackageVersion"))
+            {
+                var pkgId = pv.Attribute("Include")?.Value;
+                Assert.False(string.IsNullOrWhiteSpace(pkgId), $"Empty PackageVersion Include in {packagesPropsPath}.");
+                var groupLabel = pv.Parent?.Attribute("Label")?.Value ?? string.Empty;
+                var isTransitiveSecurityPin = string.Equals(groupLabel, "Transitive Security Pins", StringComparison.Ordinal);
+                Assert.True(
+                    directRefs.Contains(pkgId!) || isTransitiveSecurityPin,
+                    $"Unused PackageVersion '{pkgId}' in {repo}/Directory.Packages.props (not referenced by any .csproj in {repo}).");
+            }
 
             var gitleaksPath = Path.Combine(repoPath, ".gitleaks.toml");
             Assert.True(File.Exists(gitleaksPath), $"Missing .gitleaks.toml in {repo}.");
@@ -277,6 +348,7 @@ public sealed class ResourceGraphTests
             Assert.Contains("useDefault = true", gitleaksToml, StringComparison.Ordinal);
             Assert.Contains("davids-hashicorp-vault-token", gitleaksToml, StringComparison.Ordinal);
             Assert.Contains("davids-oidc-or-dataprotection-secret", gitleaksToml, StringComparison.Ordinal);
+            Assert.Contains("artifacts|", gitleaksToml, StringComparison.Ordinal);
             Assert.Contains(@"[\\/]", gitleaksToml, StringComparison.Ordinal);
             Assert.DoesNotContain("(^|/)", gitleaksToml, StringComparison.Ordinal);
 
@@ -289,7 +361,8 @@ public sealed class ResourceGraphTests
 
             foreach (var file in Directory.EnumerateFiles(repoPath, "*", SearchOption.AllDirectories))
             {
-                if (file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
+                if (file.Contains($"{Path.DirectorySeparatorChar}artifacts{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
+                    file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
                     file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
                     file.Contains($"{Path.DirectorySeparatorChar}.git{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
                 {
@@ -316,6 +389,35 @@ public sealed class ResourceGraphTests
         Assert.True(File.Exists(Path.Combine(workspaceRoot, "Davids", "security", "local-dev-commit", "gitleaks.toml")));
         Assert.True(File.Exists(Path.Combine(workspaceRoot, "Davids", "security", "local-dev-commit", "pre-commit")));
 
+        // Verify modern .NET 10 .slnx solutions across all 7 repositories + 3 focused vertical .slnx slices (zero legacy .sln files).
+        var expectedSlnxPaths = repositories
+            .Select(r => Path.Combine(workspaceRoot, r, $"{r}.slnx"))
+            .Concat(new[]
+            {
+                Path.Combine(workspaceRoot, "Davids", "solutions", "Davids.Orchestration.slnx"),
+                Path.Combine(workspaceRoot, "Davids", "solutions", "Davids.AdminVertical.slnx"),
+                Path.Combine(workspaceRoot, "Davids", "solutions", "Davids.CustomerVertical.slnx")
+            });
+
+        foreach (var repo in repositories)
+        {
+            Assert.Empty(Directory.GetFiles(Path.Combine(workspaceRoot, repo), "*.sln", SearchOption.AllDirectories));
+        }
+
+        foreach (var slnxPath in expectedSlnxPaths)
+        {
+            Assert.True(File.Exists(slnxPath), $"Missing .slnx solution file: {slnxPath}");
+            var slnxDir = Path.GetDirectoryName(slnxPath)!;
+            var xml = System.Xml.Linq.XDocument.Load(slnxPath);
+            foreach (var elem in xml.Descendants().Where(e => e.Name.LocalName is "Project" or "File"))
+            {
+                var relPath = elem.Attribute("Path")?.Value;
+                Assert.False(string.IsNullOrWhiteSpace(relPath), $"Empty Path attribute in {slnxPath}");
+                var fullRefPath = Path.GetFullPath(Path.Combine(slnxDir, relPath!.Replace('/', Path.DirectorySeparatorChar)));
+                Assert.True(File.Exists(fullRefPath), $"Broken reference '{relPath}' inside {slnxPath} (resolved to '{fullRefPath}').");
+            }
+        }
+
         foreach (var script in new[]
         {
             "Install-GitHooks.ps1",
@@ -329,10 +431,11 @@ public sealed class ResourceGraphTests
     }
 
     [Fact]
+    [Trait("Category", "Unit")]
     public void PullRequestCiSecurityGatesAreEnforcedAcrossAllRepositories()
     {
         var current = new DirectoryInfo(AppContext.BaseDirectory);
-        while (current is not null && !File.Exists(Path.Combine(current.FullName, "Davids.sln")))
+        while (current is not null && !File.Exists(Path.Combine(current.FullName, "Davids.slnx")))
         {
             current = current.Parent;
         }
@@ -363,7 +466,9 @@ public sealed class ResourceGraphTests
                 ? Path.Combine(repoPath, "security", "pull-request-ci", "codeql", "codeql-config.yml")
                 : Path.Combine(repoPath, ".github", "codeql", "codeql-config.yml");
             Assert.True(File.Exists(codeqlConfig), $"Missing CodeQL config in {repo}.");
-            Assert.Contains("security-extended", File.ReadAllText(codeqlConfig), StringComparison.Ordinal);
+            var codeqlConfigText = File.ReadAllText(codeqlConfig);
+            Assert.Contains("security-extended", codeqlConfigText, StringComparison.Ordinal);
+            Assert.Contains("**/artifacts/**", codeqlConfigText, StringComparison.Ordinal);
 
             var codeqlWorkflowPath = Path.Combine(repoPath, ".github", "workflows", "codeql.yml");
             Assert.True(File.Exists(codeqlWorkflowPath), $"Missing CodeQL workflow in {repo}.");
@@ -402,9 +507,12 @@ public sealed class ResourceGraphTests
             Assert.True(File.Exists(prGatePath), $"Missing pull-request-ci.yml in {repo}.");
             var prGate = File.ReadAllText(prGatePath);
             Assert.Contains("semgrep", prGate, StringComparison.Ordinal);
+            Assert.Contains("--exclude=artifacts", prGate, StringComparison.Ordinal);
             Assert.Contains("bridgecrewio/checkov-action@", prGate, StringComparison.Ordinal);
+            Assert.Contains("skip_path: artifacts,", prGate, StringComparison.Ordinal);
             Assert.Contains("anchore/scan-action@", prGate, StringComparison.Ordinal);
             Assert.Contains("aquasecurity/trivy-action@", prGate, StringComparison.Ordinal);
+            Assert.Contains("skip-dirs: \"**/artifacts,", prGate, StringComparison.Ordinal);
             if (repo == "Davids")
             {
                 Assert.Contains("istioctl", prGate, StringComparison.Ordinal);
@@ -446,15 +554,20 @@ public sealed class ResourceGraphTests
                 }
             }
 
-            // 5. Deployable service repositories must have hardened non-root Dockerfiles.
+            // 5. Deployable service repositories must have hardened non-root Dockerfiles aligned with UseArtifactsOutput.
             if (repo is not ("Davids" or "Davids.Shared"))
             {
                 var dockerfilePath = Path.Combine(repoPath, "Dockerfile");
                 Assert.True(File.Exists(dockerfilePath), $"Missing hardened Dockerfile in {repo}.");
                 var dockerfile = File.ReadAllText(dockerfilePath);
                 Assert.Contains("--locked-mode", dockerfile, StringComparison.Ordinal);
+                Assert.Contains("artifacts/publish/", dockerfile, StringComparison.Ordinal);
                 Assert.Contains("USER 10001:10001", dockerfile, StringComparison.Ordinal);
                 Assert.Contains("HEALTHCHECK", dockerfile, StringComparison.Ordinal);
+
+                var dockerfileIgnorePath = Path.Combine(repoPath, "Dockerfile.dockerignore");
+                Assert.True(File.Exists(dockerfileIgnorePath), $"Missing Dockerfile.dockerignore in {repo}.");
+                Assert.Contains("artifacts/", File.ReadAllText(dockerfileIgnorePath), StringComparison.Ordinal);
             }
         }
 
@@ -489,10 +602,23 @@ public sealed class ResourceGraphTests
         }
     }
 
+    private static string ResolveWorkspaceRoot()
+    {
+        var current = new DirectoryInfo(AppContext.BaseDirectory);
+        while (current is not null && !File.Exists(Path.Combine(current.FullName, "Davids.slnx")))
+        {
+            current = current.Parent;
+        }
+
+        Assert.NotNull(current);
+        return current!.Parent!.FullName;
+    }
+
     [Fact]
+    [Trait("Category", "Unit")]
     public void StagingAndNightlyDastSecurityGatesAreConfiguredAndPinned()
     {
-        var workspaceRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", ".."));
+        var workspaceRoot = ResolveWorkspaceRoot();
         var davidsRoot = Path.Combine(workspaceRoot, "Davids");
         var stagingDir = Path.Combine(davidsRoot, "security", "staging-nightly");
 
@@ -587,9 +713,10 @@ public sealed class ResourceGraphTests
     }
 
     [Fact]
+    [Trait("Category", "Unit")]
     public void QuarterlyReleaseSecurityGatesAreConfiguredWithFreeZeroDollarToolchainAndImmutablePins()
     {
-        var workspaceRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", ".."));
+        var workspaceRoot = ResolveWorkspaceRoot();
         var davidsRoot = Path.Combine(workspaceRoot, "Davids");
         var releaseDir = Path.Combine(davidsRoot, "security", "quarterly-release");
 
@@ -703,10 +830,11 @@ public sealed class ResourceGraphTests
     }
 
     [Fact]
+    [Trait("Category", "Unit")]
     public void ProductionClusterRuntimeMeshSupplyChainAndAlertingAssetsAreProvisioned()
     {
         var current = new DirectoryInfo(AppContext.BaseDirectory);
-        while (current is not null && !File.Exists(Path.Combine(current.FullName, "Davids.sln")))
+        while (current is not null && !File.Exists(Path.Combine(current.FullName, "Davids.slnx")))
         {
             current = current.Parent;
         }
@@ -812,6 +940,171 @@ public sealed class ResourceGraphTests
             var content = File.ReadAllText(scriptPath);
             Assert.DoesNotContain("Convey", content, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("Ntrada", content, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void CleanArchitectureLayerBoundariesAndTestCategoryTraitsAreEnforcedAcrossWorkspace()
+    {
+        var workspaceRoot = ResolveWorkspaceRoot();
+        var repositories = new[]
+        {
+            "Davids",
+            "Davids.Shared",
+            "Davids.Services.Identity",
+            "Davids.Services.AdminIdentity",
+            "Davids.Services.Customers",
+            "Davids.APIGateway",
+            "Davids.Frontend.Admin"
+        };
+
+        var allCsprojFiles = repositories
+            .SelectMany(repo => Directory.EnumerateFiles(Path.Combine(workspaceRoot, repo), "*.csproj", SearchOption.AllDirectories))
+            .Where(p => !p.Contains($"{Path.DirectorySeparatorChar}artifacts{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .OrderBy(p => p, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal(25, allCsprojFiles.Length);
+
+        foreach (var csproj in allCsprojFiles)
+        {
+            var projectName = Path.GetFileNameWithoutExtension(csproj);
+            var rawXml = File.ReadAllText(csproj);
+            Assert.DoesNotContain("<Nullable>disable</Nullable>", rawXml, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("CS86", rawXml, StringComparison.OrdinalIgnoreCase);
+
+            var doc = System.Xml.Linq.XDocument.Load(csproj);
+            var projectRefs = doc.Descendants()
+                .Where(e => e.Name.LocalName == "ProjectReference")
+                .Select(e => Path.GetFileNameWithoutExtension(
+                    (e.Attribute("Include")?.Value ?? string.Empty).Replace('\\', '/')))
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .ToArray();
+
+            if (projectName == "Davids.ServiceDefaults")
+            {
+                Assert.Empty(projectRefs);
+            }
+            else if (projectName.EndsWith(".Core", StringComparison.Ordinal))
+            {
+                Assert.Empty(projectRefs);
+            }
+            else if (projectName.EndsWith(".Application", StringComparison.Ordinal))
+            {
+                var prefix = projectName[..^".Application".Length];
+                Assert.Equal([$"{prefix}.Core"], projectRefs);
+            }
+            else if (projectName.StartsWith("Davids.Services.", StringComparison.Ordinal) &&
+                     projectName.EndsWith(".Infrastructure", StringComparison.Ordinal))
+            {
+                var prefix = projectName[..^".Infrastructure".Length];
+                Assert.All(projectRefs, r =>
+                    Assert.True(r == $"{prefix}.Core" || r == $"{prefix}.Application",
+                        $"Violation in {projectName}: unexpected ProjectReference '{r}'."));
+            }
+            else if (projectName.StartsWith("Davids.Services.", StringComparison.Ordinal) &&
+                     projectName.EndsWith(".Api", StringComparison.Ordinal))
+            {
+                var prefix = projectName[..^".Api".Length];
+                Assert.All(projectRefs, r =>
+                    Assert.True(
+                        r == "Davids.ServiceDefaults" ||
+                        r == $"{prefix}.Core" ||
+                        r == $"{prefix}.Application" ||
+                        r == $"{prefix}.Infrastructure",
+                        $"Violation in {projectName}: unexpected ProjectReference '{r}'."));
+            }
+            else if (projectName == "Davids.APIGateway.Infrastructure")
+            {
+                Assert.Empty(projectRefs);
+            }
+            else if (projectName == "Davids.APIGateway.Api")
+            {
+                Assert.All(projectRefs, r =>
+                    Assert.True(r is "Davids.APIGateway.Infrastructure" or "Davids.ServiceDefaults",
+                        $"Violation in {projectName}: unexpected ProjectReference '{r}'."));
+            }
+            else if (projectName == "Davids.Frontend.Admin")
+            {
+                Assert.Equal(["Davids.ServiceDefaults"], projectRefs);
+            }
+        }
+
+        // Verify zero nullable #pragma suppressions in handwritten source/test files and verify every test declares Category=Unit|Integration.
+        var traitCategoryRegex = new Regex(@"\[\s*Trait\s*\(\s*""Category""\s*,\s*""(Unit|Integration)""\s*\)\s*\]", RegexOptions.Compiled);
+        var classDeclRegex = new Regex(@"\bpublic\s+(?:sealed\s+)?class\s+\w+", RegexOptions.Compiled);
+        var testMethodAttrRegex = new Regex(@"^\s*\[\s*(Fact|Theory)\b", RegexOptions.Compiled);
+
+        foreach (var repo in repositories)
+        {
+            var repoPath = Path.Combine(workspaceRoot, repo);
+            foreach (var csFile in Directory.EnumerateFiles(repoPath, "*.cs", SearchOption.AllDirectories))
+            {
+                if (csFile.Contains($"{Path.DirectorySeparatorChar}artifacts{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
+                    csFile.Contains($"{Path.DirectorySeparatorChar}Migrations{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var content = File.ReadAllText(csFile);
+                Assert.DoesNotContain("#pragma warning disable" + " CS86", content, StringComparison.Ordinal);
+            }
+
+            var testsRoot = Path.Combine(repoPath, "tests");
+            Assert.True(Directory.Exists(testsRoot), $"Missing tests directory in {repo}.");
+            if (repo != "Davids")
+            {
+                var hasArchTest = Directory.EnumerateFiles(testsRoot, "*.cs", SearchOption.AllDirectories)
+                    .Any(f => f.EndsWith("ArchitectureTests.cs", StringComparison.Ordinal) ||
+                              File.ReadAllText(f).Contains("GetReferencedAssemblies", StringComparison.Ordinal));
+                Assert.True(hasArchTest, $"Expected Clean Architecture dependency test in {repo}/tests.");
+            }
+
+            foreach (var testFile in Directory.EnumerateFiles(testsRoot, "*.cs", SearchOption.AllDirectories))
+            {
+                if (testFile.Contains($"{Path.DirectorySeparatorChar}artifacts{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var lines = File.ReadAllLines(testFile);
+                var classHasTrait = false;
+                var pendingAttrHasTrait = false;
+
+                for (var i = 0; i < lines.Length; i++)
+                {
+                    var line = lines[i];
+                    if (traitCategoryRegex.IsMatch(line))
+                    {
+                        pendingAttrHasTrait = true;
+                    }
+
+                    if (classDeclRegex.IsMatch(line))
+                    {
+                        classHasTrait = pendingAttrHasTrait;
+                        pendingAttrHasTrait = false;
+                        continue;
+                    }
+
+                    if (testMethodAttrRegex.IsMatch(line))
+                    {
+                        var methodHasTrait = classHasTrait || pendingAttrHasTrait;
+                        for (var j = i; !methodHasTrait && j < Math.Min(lines.Length, i + 6); j++)
+                        {
+                            if (traitCategoryRegex.IsMatch(lines[j]))
+                            {
+                                methodHasTrait = true;
+                            }
+                        }
+
+                        Assert.True(
+                            methodHasTrait,
+                            $"Test at {testFile}:{i + 1} is missing [Trait(\"Category\", \"Unit\" | \"Integration\")].");
+                        pendingAttrHasTrait = false;
+                    }
+                }
+            }
         }
     }
 }

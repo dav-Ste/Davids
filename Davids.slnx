@@ -1,0 +1,147 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+    <File Path="LICENSE" />
+    <File Path=".gitignore" />
+    <File Path=".dockerignore" />
+  </Folder>
+  <Folder Name="/Solution Items/Build/">
+    <File Path="../Davids.Shared/eng/Davids.Common.props" />
+    <File Path="../Davids.Shared/scripts/Pack-SharedPackages.ps1" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path=".config/dotnet-tools.json" />
+  </Folder>
+  <Folder Name="/Solution Items/Docs/">
+    <File Path="docs/INFRASTRUCTURE-AUDIT.md" />
+    <File Path="docs/SECURITY-TESTING-PLAYBOOK.md" />
+  </Folder>
+  <Folder Name="/Solution Items/Vertical Solutions/">
+    <File Path="solutions/README.md" />
+    <File Path="solutions/Davids.Orchestration.slnx" />
+    <File Path="solutions/Davids.AdminVertical.slnx" />
+    <File Path="solutions/Davids.CustomerVertical.slnx" />
+  </Folder>
+  <Folder Name="/Solution Items/Workflows/">
+    <File Path=".github/workflows/codeql.yml" />
+    <File Path=".github/workflows/pull-request-ci.yml" />
+    <File Path=".github/workflows/staging-nightly.yml" />
+    <File Path=".github/workflows/quarterly-release.yml" />
+    <File Path=".github/workflows/production-cluster.yml" />
+  </Folder>
+  <Folder Name="/Solution Items/Scripts/">
+    <File Path="scripts/Get-Projects.ps1" />
+    <File Path="scripts/Update-Projects.ps1" />
+    <File Path="scripts/Setup.ps1" />
+    <File Path="scripts/Build.ps1" />
+    <File Path="scripts/Test.ps1" />
+    <File Path="scripts/Start.ps1" />
+    <File Path="scripts/Update-Database.ps1" />
+    <File Path="scripts/Test-Infrastructure.ps1" />
+  </Folder>
+  <Folder Name="/Solution Items/Kubernetes/">
+    <File Path="deploy/k8s/README.md" />
+    <File Path="deploy/k8s/namespace-and-networkpolicy.yaml" />
+    <File Path="deploy/k8s/workloads.yaml" />
+    <File Path="deploy/k8s/istio-mesh-security.yaml" />
+    <File Path="deploy/k8s/grafana.yaml" />
+    <File Path="deploy/k8s/kyverno/davids-verify-signed-images.yaml" />
+    <File Path="deploy/k8s/kyverno/davids-pod-security-and-mesh-admission.yaml" />
+    <File Path="deploy/k8s/kyverno/davids-cel-validating-policy.yaml" />
+    <File Path="deploy/k8s/observability/prometheus-security-alerts.yaml" />
+    <File Path="deploy/k8s/runtime-security/falco-davids-rules.yaml" />
+    <File Path="deploy/k8s/runtime-security/tetragon-tracingpolicies.yaml" />
+  </Folder>
+  <Folder Name="/Solution Items/Security/">
+    <File Path="security/README.md" />
+  </Folder>
+  <Folder Name="/Solution Items/Security/Local Dev Commit/">
+    <File Path="security/local-dev-commit/README.md" />
+    <File Path="security/local-dev-commit/gitleaks.toml" />
+    <File Path="security/local-dev-commit/pre-commit" />
+    <File Path="scripts/security/local-dev-commit/Invoke-LocalDevCommitGates.ps1" />
+    <File Path="scripts/security/local-dev-commit/Install-GitHooks.ps1" />
+    <File Path="scripts/security/local-dev-commit/Scan-Secrets.ps1" />
+    <File Path="scripts/security/local-dev-commit/Verify-Dependencies.ps1" />
+  </Folder>
+  <Folder Name="/Solution Items/Security/Pull Request CI/">
+    <File Path="security/pull-request-ci/README.md" />
+    <File Path="security/pull-request-ci/codeql/codeql-config.yml" />
+    <File Path="security/pull-request-ci/semgrep/davids-security.yml" />
+    <File Path="scripts/security/pull-request-ci/Invoke-PullRequestCiGates.ps1" />
+    <File Path="scripts/security/pull-request-ci/Scan-Semgrep.ps1" />
+    <File Path="scripts/security/pull-request-ci/Scan-IaC.ps1" />
+    <File Path="scripts/security/pull-request-ci/Scan-SupplyChain.ps1" />
+  </Folder>
+  <Folder Name="/Solution Items/Security/Staging Nightly/">
+    <File Path="security/staging-nightly/README.md" />
+    <File Path="security/staging-nightly/schemathesis/schemathesis.toml" />
+    <File Path="security/staging-nightly/nuclei/nuclei-config.yaml" />
+    <File Path="security/staging-nightly/burp/dastardly-seeds.json" />
+    <File Path="security/staging-nightly/burp/burp-dast-scan-config.json" />
+    <File Path="scripts/security/staging-nightly/Invoke-StagingNightlyGates.ps1" />
+    <File Path="scripts/security/staging-nightly/Export-OpenApiSpecs.ps1" />
+    <File Path="scripts/security/staging-nightly/Scan-Schemathesis.ps1" />
+    <File Path="scripts/security/staging-nightly/Scan-Nuclei.ps1" />
+    <File Path="scripts/security/staging-nightly/Scan-Dastardly.ps1" />
+  </Folder>
+  <Folder Name="/Solution Items/Security/Quarterly Release/">
+    <File Path="security/quarterly-release/README.md" />
+    <File Path="security/quarterly-release/zap/zap-automation.yaml" />
+    <File Path="security/quarterly-release/authz/authz-matrix.json" />
+    <File Path="security/quarterly-release/authz/BURP-COMMUNITY-GUIDE.md" />
+    <File Path="scripts/security/quarterly-release/Invoke-QuarterlyReleaseGates.ps1" />
+    <File Path="scripts/security/quarterly-release/Scan-Restler.ps1" />
+    <File Path="scripts/security/quarterly-release/Scan-Zap.ps1" />
+    <File Path="scripts/security/quarterly-release/Scan-AuthzMatrix.ps1" />
+  </Folder>
+  <Folder Name="/Solution Items/Security/Production Cluster/">
+    <File Path="security/production-cluster/README.md" />
+    <File Path="security/production-cluster/kyverno-tests/kyverno-test.yaml" />
+    <File Path="security/production-cluster/falco/davids_rules.yaml" />
+    <File Path="security/production-cluster/prometheus/davids-security-rules.yml" />
+    <File Path="security/production-cluster/seq/seq-security-signals-and-alerts.json" />
+    <File Path="scripts/security/production-cluster/Verify-ProductionClusterGates.ps1" />
+    <File Path="scripts/security/production-cluster/Bootstrap-SeqSecurityAlerts.ps1" />
+  </Folder>
+  <Folder Name="/Infrastructure/">
+    <Project Path="src/Davids.AppHost/Davids.AppHost.csproj" />
+    <Project Path="src/Davids.Bootstrap/Davids.Bootstrap.csproj" />
+    <Project Path="tests/Davids.AppHost.Tests/Davids.AppHost.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Shared/">
+    <Project Path="../Davids.Shared/src/Davids.ServiceDefaults/Davids.ServiceDefaults.csproj" />
+    <Project Path="../Davids.Shared/tests/Davids.ServiceDefaults.Tests/Davids.ServiceDefaults.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Identity/">
+    <Project Path="../Davids.Services.Identity/src/Davids.Services.Identity.Core/Davids.Services.Identity.Core.csproj" />
+    <Project Path="../Davids.Services.Identity/src/Davids.Services.Identity.Application/Davids.Services.Identity.Application.csproj" />
+    <Project Path="../Davids.Services.Identity/src/Davids.Services.Identity.Infrastructure/Davids.Services.Identity.Infrastructure.csproj" />
+    <Project Path="../Davids.Services.Identity/src/Davids.Services.Identity.Api/Davids.Services.Identity.Api.csproj" />
+    <Project Path="../Davids.Services.Identity/tests/Davids.Services.Identity.Tests/Davids.Services.Identity.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Admin-Identity/">
+    <Project Path="../Davids.Services.AdminIdentity/src/Davids.Services.AdminIdentity.Core/Davids.Services.AdminIdentity.Core.csproj" />
+    <Project Path="../Davids.Services.AdminIdentity/src/Davids.Services.AdminIdentity.Application/Davids.Services.AdminIdentity.Application.csproj" />
+    <Project Path="../Davids.Services.AdminIdentity/src/Davids.Services.AdminIdentity.Infrastructure/Davids.Services.AdminIdentity.Infrastructure.csproj" />
+    <Project Path="../Davids.Services.AdminIdentity/src/Davids.Services.AdminIdentity.Api/Davids.Services.AdminIdentity.Api.csproj" />
+    <Project Path="../Davids.Services.AdminIdentity/tests/Davids.Services.AdminIdentity.Tests/Davids.Services.AdminIdentity.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Customers/">
+    <Project Path="../Davids.Services.Customers/src/Davids.Services.Customers.Core/Davids.Services.Customers.Core.csproj" />
+    <Project Path="../Davids.Services.Customers/src/Davids.Services.Customers.Application/Davids.Services.Customers.Application.csproj" />
+    <Project Path="../Davids.Services.Customers/src/Davids.Services.Customers.Infrastructure/Davids.Services.Customers.Infrastructure.csproj" />
+    <Project Path="../Davids.Services.Customers/src/Davids.Services.Customers.Api/Davids.Services.Customers.Api.csproj" />
+    <Project Path="../Davids.Services.Customers/tests/Davids.Services.Customers.Tests/Davids.Services.Customers.Tests.csproj" />
+  </Folder>
+  <Folder Name="/API-Gateway/">
+    <Project Path="../Davids.APIGateway/src/Davids.APIGateway.Infrastructure/Davids.APIGateway.Infrastructure.csproj" />
+    <Project Path="../Davids.APIGateway/src/Davids.APIGateway.Api/Davids.APIGateway.Api.csproj" />
+    <Project Path="../Davids.APIGateway/tests/Davids.APIGateway.Tests/Davids.APIGateway.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Frontend/">
+    <Project Path="../Davids.Frontend.Admin/src/Davids.Frontend.Admin/Davids.Frontend.Admin.csproj" />
+    <Project Path="../Davids.Frontend.Admin/tests/Davids.Frontend.Admin.Tests/Davids.Frontend.Admin.Tests.csproj" />
+  </Folder>
+</Solution>

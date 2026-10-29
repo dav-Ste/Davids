@@ -31,11 +31,11 @@ try {
         }
     }
 
-    $null = (& $dotnet list Davids.sln package --include-transitive --format json) -join [Environment]::NewLine
+    $null = (& $dotnet list Davids.slnx package --include-transitive --format json) -join [Environment]::NewLine
     if ($LASTEXITCODE) { throw 'Dependency inspection failed.' }
 
     # dotnet list package --vulnerable exits 0 even when advisories exist; parse the JSON report explicitly.
-    $vulnRaw = (& $dotnet list Davids.sln package --vulnerable --include-transitive --format json) -join [Environment]::NewLine
+    $vulnRaw = (& $dotnet list Davids.slnx package --vulnerable --include-transitive --format json) -join [Environment]::NewLine
     if ($LASTEXITCODE) { throw 'NuGet vulnerability audit command failed.' }
     $vulnReport = $vulnRaw | ConvertFrom-Json
     $advisoryFindings = New-Object System.Collections.Generic.List[string]

@@ -8,7 +8,7 @@ This repository owns the .NET 10 Aspire orchestration and local infrastructure t
 - SQL Server baseline scripts (`database/`)
 - PowerShell setup, build, test, and database scripts (`scripts/`)
 
-It orchestrates the following sibling repositories, each with its own standalone solution (`Davids.sln` here is the aggregate development solution):
+It orchestrates the following sibling repositories, each with its own standalone solution (`Davids.slnx` here is the aggregate development solution):
 
 - Davids Shared Host Defaults (`Davids.Shared`)
 - Davids Customer Identity OIDC Provider (`Davids.Services.Identity`)
@@ -31,13 +31,13 @@ Clone this infrastructure repository and the sibling repositories into the **sam
 
 ```text
 <workspace>/
-  Davids/                          # this repository; Aspire + Davids.sln
-  Davids.Shared/                   # shared Davids.ServiceDefaults + Davids.Shared.sln
-  Davids.Services.Identity/        # Customer OIDC Provider (identitydb, role: user) + Davids.Services.Identity.sln
-  Davids.Services.AdminIdentity/   # Admin OIDC Provider (adminidentitydb, role: admin) + Davids.Services.AdminIdentity.sln
-  Davids.Services.Customers/       # Customers API (customersdb, RS256 JWKS) + Davids.Services.Customers.sln
-  Davids.APIGateway/               # YARP edge gateway + OIDC BFF + Davids.APIGateway.sln
-  Davids.Frontend.Admin/           # Admin Web frontend + Davids.Frontend.Admin.sln
+  Davids/                          # this repository; Aspire + Davids.slnx
+  Davids.Shared/                   # shared Davids.ServiceDefaults + Davids.Shared.slnx
+  Davids.Services.Identity/        # Customer OIDC Provider (identitydb, role: user) + Davids.Services.Identity.slnx
+  Davids.Services.AdminIdentity/   # Admin OIDC Provider (adminidentitydb, role: admin) + Davids.Services.AdminIdentity.slnx
+  Davids.Services.Customers/       # Customers API (customersdb, RS256 JWKS) + Davids.Services.Customers.slnx
+  Davids.APIGateway/               # YARP edge gateway + OIDC BFF + Davids.APIGateway.slnx
+  Davids.Frontend.Admin/           # Admin Web frontend + Davids.Frontend.Admin.slnx
 ```
 
 `Davids.AppHost` references the five application hosts by relative path:
@@ -85,14 +85,20 @@ Set-Location Davids
 
 To fast-forward clean Git checkouts later, run `./scripts/Update-Projects.ps1`.
 
-Open `Davids.sln` to work on Aspire and all components together, or open any standalone component solution:
+Open `Davids.slnx` to work on Aspire and all 25 projects together (including Solution Items for build props, workflows, Kubernetes manifests, and security configs), open a focused vertical `.slnx` slice that keeps `Davids.AppHost` loaded for `F5` debugging:
 
-- `../Davids.Shared/Davids.Shared.sln`
-- `../Davids.Services.Identity/Davids.Services.Identity.sln`
-- `../Davids.Services.AdminIdentity/Davids.Services.AdminIdentity.sln`
-- `../Davids.Services.Customers/Davids.Services.Customers.sln`
-- `../Davids.APIGateway/Davids.APIGateway.sln`
-- `../Davids.Frontend.Admin/Davids.Frontend.Admin.sln`
+- `solutions/Davids.Orchestration.slnx` (`AppHost`, `Bootstrap`, and `AppHost.Tests`)
+- `solutions/Davids.AdminVertical.slnx` (`AppHost`, `Bootstrap`, `ServiceDefaults`, `APIGateway`, `AdminIdentity`, and `Frontend.Admin`)
+- `solutions/Davids.CustomerVertical.slnx` (`AppHost`, `Bootstrap`, `ServiceDefaults`, `APIGateway`, `Identity`, and `Customers`)
+
+Or open any standalone component solution:
+
+- `../Davids.Shared/Davids.Shared.slnx`
+- `../Davids.Services.Identity/Davids.Services.Identity.slnx`
+- `../Davids.Services.AdminIdentity/Davids.Services.AdminIdentity.slnx`
+- `../Davids.Services.Customers/Davids.Services.Customers.slnx`
+- `../Davids.APIGateway/Davids.APIGateway.slnx`
+- `../Davids.Frontend.Admin/Davids.Frontend.Admin.slnx`
 
 ## Infrastructure credentials and how to access them
 
@@ -165,11 +171,13 @@ Build and test the complete composition or a single standalone component:
 ```powershell
 ./scripts/Build.ps1
 ./scripts/Test.ps1
+./scripts/Test.ps1 -Category Unit
+./scripts/Test.ps1 -Category Integration
 ./scripts/security/local-dev-commit/Verify-Dependencies.ps1
 
-dotnet restore ../Davids.Services.AdminIdentity/Davids.Services.AdminIdentity.sln --locked-mode
-dotnet build   ../Davids.Services.AdminIdentity/Davids.Services.AdminIdentity.sln --no-restore -c Release
-dotnet test    ../Davids.Services.AdminIdentity/Davids.Services.AdminIdentity.sln --no-build --no-restore -c Release
+dotnet restore ../Davids.Services.AdminIdentity/Davids.Services.AdminIdentity.slnx --locked-mode
+dotnet build   ../Davids.Services.AdminIdentity/Davids.Services.AdminIdentity.slnx --no-restore -c Release
+dotnet test    ../Davids.Services.AdminIdentity/Davids.Services.AdminIdentity.slnx --no-build --no-restore -c Release
 ```
 
 For the live OIDC discovery, Customer PKCE, RabbitMQ outbox, and Admin OIDC BFF smoke test, retrieve `Parameters:dev-admin-password` via `dotnet user-secrets list --project src/Davids.AppHost` and pass the `api-gateway` endpoint URL from the Aspire dashboard (or your Kubernetes/Istio gateway):
@@ -269,10 +277,13 @@ Every repository (`Davids`, `Davids.Shared`, `Davids.Services.Identity`, `Davids
     ./scripts/security/local-dev-commit/Invoke-LocalDevCommitGates.ps1
     ```
 - **Strict NuGet direct + transitive vulnerability auditing (`NuGetAudit`)**:
-  - `Directory.Build.props` in every repository sets `<NuGetAudit>true</NuGetAudit>`, `<NuGetAuditMode>all</NuGetAuditMode>`, `<NuGetAuditLevel>low</NuGetAuditLevel>`, and promotes `NU1900`, `NU1901`, `NU1902`, `NU1903`, and `NU1904` into `<WarningsAsErrors>`.
-  - `./scripts/security/local-dev-commit/Verify-Dependencies.ps1` parses the JSON output of `dotnet list Davids.sln package --vulnerable --include-transitive --format json` and fails if any advisory is reported.
-- **Compile-time Roslyn security static analysis (`AnalysisModeSecurity=All`)**:
-  - `Directory.Build.props` in every repository enables `<EnableNETAnalyzers>true</EnableNETAnalyzers>`, `<AnalysisLevel>latest</AnalysisLevel>`, and `<AnalysisModeSecurity>All</AnalysisModeSecurity>` alongside `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`.
+  - `Davids.Shared/eng/Davids.Common.props` (imported by `Directory.Build.props` in every repository) sets `<NuGetAudit>true</NuGetAudit>`, `<NuGetAuditMode>all</NuGetAuditMode>`, `<NuGetAuditLevel>low</NuGetAuditLevel>`, and promotes `NU1900`, `NU1901`, `NU1902`, `NU1903`, and `NU1904` into `<WarningsAsErrors>`.
+  - Each repository's `Directory.Packages.props` declares only the NuGet packages directly referenced by that repository plus explicit transitive security overrides (`<ItemGroup Label="Transitive Security Pins">`), verified automatically by `ResourceGraphTests`.
+  - Consumer services (`Identity`, `AdminIdentity`, `Customers`, `APIGateway`, `Frontend.Admin`) support both local sibling `<ProjectReference>` development (default) and NuGet `<PackageReference Include="Davids.ServiceDefaults" />` consumption (`/p:UseSharedPackageReference=true` or automatic fallback when `../Davids.Shared` is not checked out; packable via `../Davids.Shared/scripts/Pack-SharedPackages.ps1`).
+  - `./scripts/security/local-dev-commit/Verify-Dependencies.ps1` parses the JSON output of `dotnet list Davids.slnx package --vulnerable --include-transitive --format json` and fails if any advisory is reported.
+- **Compile-time Roslyn security static analysis (`AnalysisModeSecurity=All`), strict C# nullability (`<Nullable>enable</Nullable>`), test categorization & Clean Architecture layer tests**:
+  - `Davids.Shared/eng/Davids.Common.props` (imported by `Directory.Build.props` in every repository, with standalone single-repo fallback) enables `<Nullable>enable</Nullable>`, `<UseArtifactsOutput>true</UseArtifactsOutput>` (routing all `bin`/`obj`/`publish` outputs cleanly into `<RepoRoot>/artifacts/`), `<EnableNETAnalyzers>true</EnableNETAnalyzers>`, `<AnalysisLevel>latest</AnalysisLevel>`, and `<AnalysisModeSecurity>All</AnalysisModeSecurity>` alongside `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` across all 25 projects.
+  - Every xUnit test across all 7 test projects declares `[Trait("Category", "Unit")]` or `[Trait("Category", "Integration")]` (filterable via `./scripts/Test.ps1 -Category Unit` or `dotnet test --filter "Category=Unit"`), and zero-cost `System.Reflection` + MSBuild `ArchitectureTests` enforce inward-only Clean Architecture layer boundaries (`Core -> Application -> Infrastructure -> Api`) and service isolation in every repository.
 
 ## Pull Request CI security gates (`security/pull-request-ci` & `scripts/security/pull-request-ci`)
 
@@ -357,14 +368,14 @@ Every repository includes SHA-pinned GitHub Actions security workflows (`.github
 
 ## Validation and limitations
 
-The six standalone service/shared solutions (`Davids.Shared.sln`, `Davids.Services.Identity.sln`, `Davids.Services.AdminIdentity.sln`, `Davids.Services.Customers.sln`, `Davids.APIGateway.sln`, `Davids.Frontend.Admin.sln`) and `Davids.Bootstrap` were restored in locked mode (`--locked-mode`), `Davids.sln` was restored with NuGet-supplied host-OS DCP and Aspire Dashboard binaries (`AspireUseCliBundle=false`, so Visual Studio `F5` and `dotnet run` launch without requiring a standalone Aspire CLI installation), all 7 repositories passed `Gitleaks` (`0` leaks), custom `Semgrep` SAST (`0` findings), `istioctl 1.31.3 analyze` (`0` issues), `Checkov` (`0` failed checks across Kubernetes, Dockerfile, and GitHub Actions), `Grype` (`0` vulnerabilities), `Trivy` (`0` vulnerabilities/misconfigurations), NuGet transitive vulnerability auditing (`0` advisories), live `Schemathesis v4.32.6` OpenAPI 3.1 fuzzing & stateful testing (`2,967 / 2,967` generated test cases passed, `0` failures), live `Nuclei v3.11.1` security regression testing (`4 / 4` posture assertions matched, `0` vulnerability findings across `6` templates), live `Microsoft RESTler` stateful API fuzzing (`0` bug buckets across `2,015` stateful requests), live Cross-Role Authorization & Cryptographic Boundary verification (`42 / 42` checks passed), and live Kyverno (`18 / 18` policy tests passed), Istio `STRICT` mTLS, Falco/Tetragon eBPF, and `promtool` (`7` alert rules unit-tested) verification, and all solutions were built in `Release` with `-warnaserror` (0 warnings, 0 errors) and tested (**106 tests passed**):
+The six standalone service/shared solutions (`Davids.Shared.slnx`, `Davids.Services.Identity.slnx`, `Davids.Services.AdminIdentity.slnx`, `Davids.Services.Customers.slnx`, `Davids.APIGateway.slnx`, `Davids.Frontend.Admin.slnx`) and `Davids.Bootstrap` were restored in locked mode (`--locked-mode`), `Davids.slnx` was restored with NuGet-supplied host-OS DCP and Aspire Dashboard binaries (`AspireUseCliBundle=false`, so Visual Studio `F5` and `dotnet run` launch without requiring a standalone Aspire CLI installation), all 7 repositories passed `Gitleaks` (`0` leaks), custom `Semgrep` SAST (`0` findings), `istioctl 1.31.3 analyze` (`0` issues), `Checkov` (`0` failed checks across Kubernetes, Dockerfile, and GitHub Actions), `Grype` (`0` vulnerabilities), `Trivy` (`0` vulnerabilities/misconfigurations), NuGet transitive vulnerability auditing (`0` advisories), live `Schemathesis v4.32.6` OpenAPI 3.1 fuzzing & stateful testing (`2,967 / 2,967` generated test cases passed, `0` failures), live `Nuclei v3.11.1` security regression testing (`4 / 4` posture assertions matched, `0` vulnerability findings across `6` templates), live `Microsoft RESTler` stateful API fuzzing (`0` bug buckets across `2,015` stateful requests), live Cross-Role Authorization & Cryptographic Boundary verification (`42 / 42` checks passed), and live Kyverno (`18 / 18` policy tests passed), Istio `STRICT` mTLS, Falco/Tetragon eBPF, and `promtool` (`7` alert rules unit-tested) verification, and all solutions were built in `Release` with `-warnaserror` (0 warnings, 0 errors) and tested (**106 tests passed**):
 
-- `Davids.Shared.sln`: 7 tests (`Davids.ServiceDefaults.Tests`)
-- `Davids.Services.Identity.sln`: 23 tests (`Davids.Services.Identity.Tests`)
-- `Davids.Services.AdminIdentity.sln`: 13 tests (`Davids.Services.AdminIdentity.Tests`)
-- `Davids.Services.Customers.sln`: 10 tests (`Davids.Services.Customers.Tests`)
-- `Davids.APIGateway.sln`: 34 tests (`Davids.APIGateway.Tests`)
-- `Davids.Frontend.Admin.sln`: 8 tests (`Davids.Frontend.Admin.Tests`)
-- `Davids.sln` (AppHost DCP/Dashboard metadata, resource graph, OIDC wiring & Local Dev / PR CI / Staging Nightly / Quarterly Release / Production Cluster security gate verification): 11 tests (`Davids.AppHost.Tests`)
+- `Davids.Shared.slnx`: 7 tests (`Davids.ServiceDefaults.Tests`)
+- `Davids.Services.Identity.slnx`: 23 tests (`Davids.Services.Identity.Tests`)
+- `Davids.Services.AdminIdentity.slnx`: 13 tests (`Davids.Services.AdminIdentity.Tests`)
+- `Davids.Services.Customers.slnx`: 10 tests (`Davids.Services.Customers.Tests`)
+- `Davids.APIGateway.slnx`: 34 tests (`Davids.APIGateway.Tests`)
+- `Davids.Frontend.Admin.slnx`: 8 tests (`Davids.Frontend.Admin.Tests`)
+- `Davids.slnx` (AppHost DCP/Dashboard metadata, resource graph, OIDC wiring & Local Dev / PR CI / Staging Nightly / Quarterly Release / Production Cluster security gate verification): 11 tests (`Davids.AppHost.Tests`)
 
 No Docker runtime is available inside the sandbox environment, so container-based runners (`Dastardly`, containerized `OWASP ZAP`, and Dockerized `RESTler`) execute on a Docker-enabled workstation or GitHub Actions runner.

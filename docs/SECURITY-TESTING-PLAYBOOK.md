@@ -54,7 +54,7 @@ Because `Davids` uses a **YARP OIDC BFF (`davids_admin_bff` cookie + CSRF header
 
 - **Native NuGet Vulnerability Auditing (`NuGetAudit`)**:
   - Configure `<NuGetAudit>true</NuGetAudit>`, `<NuGetAuditMode>all</NuGetAuditMode>`, and `<NuGetAuditLevel>low</NuGetAuditLevel>` in `Directory.Build.props` with `NU1901`–`NU1904` treated as errors so `dotnet restore` fails automatically if any direct or transitive package in `packages.lock.json` receives a CVE advisory.
-  - Run `dotnet list <sln> package --vulnerable --include-transitive --format json` on a nightly schedule (parse JSON output with `jq` or PowerShell rather than relying on exit code `0`).
+  - Run `dotnet list <solution.slnx> package --vulnerable --include-transitive --format json` on a nightly schedule (parse JSON output with `jq` or PowerShell rather than relying on exit code `0`).
 - **Dependabot or Renovate**:
   - Automate lockfile-aware PRs for NuGet (`Directory.Packages.props` + `packages.lock.json`), `.NET 10` base images, and pinned container tags (`sql`, `redis`, `rabbitmq`, `vault`, `grafana`).
 - **Container Image & SBOM Scanning**:

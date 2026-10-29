@@ -17,12 +17,12 @@ if ($owner -match '/' -or [string]::IsNullOrWhiteSpace($owner)) {
 $infraRoot = Split-Path $PSScriptRoot -Parent
 $workspaceRoot = Split-Path $infraRoot -Parent
 $repositories = @(
-    @{ Name = 'Davids.Shared'; Solution = 'Davids.Shared.sln' },
-    @{ Name = 'Davids.Services.Identity'; Solution = 'Davids.Services.Identity.sln' },
-    @{ Name = 'Davids.Services.AdminIdentity'; Solution = 'Davids.Services.AdminIdentity.sln' },
-    @{ Name = 'Davids.Services.Customers'; Solution = 'Davids.Services.Customers.sln' },
-    @{ Name = 'Davids.APIGateway'; Solution = 'Davids.APIGateway.sln' },
-    @{ Name = 'Davids.Frontend.Admin'; Solution = 'Davids.Frontend.Admin.sln' }
+    @{ Name = 'Davids.Shared'; Solution = 'Davids.Shared.slnx' },
+    @{ Name = 'Davids.Services.Identity'; Solution = 'Davids.Services.Identity.slnx' },
+    @{ Name = 'Davids.Services.AdminIdentity'; Solution = 'Davids.Services.AdminIdentity.slnx' },
+    @{ Name = 'Davids.Services.Customers'; Solution = 'Davids.Services.Customers.slnx' },
+    @{ Name = 'Davids.APIGateway'; Solution = 'Davids.APIGateway.slnx' },
+    @{ Name = 'Davids.Frontend.Admin'; Solution = 'Davids.Frontend.Admin.slnx' }
 )
 
 foreach ($repository in $repositories) {
@@ -46,4 +46,4 @@ foreach ($repository in $repositories) {
     }
 }
 
-Write-Host "Component checkouts are ready beside '$infraRoot'. Open Davids.sln for the aggregate Aspire solution."
+Write-Host "Component checkouts are ready beside '$infraRoot'. Open Davids.slnx for the aggregate Aspire solution."

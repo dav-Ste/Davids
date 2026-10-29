@@ -189,12 +189,12 @@ try {
     # Restore each standalone repository solution sequentially in locked mode (-m:1 -nr:false --tl:off)
     # to avoid multi-node MSBuild memory spikes on Windows when Docker Desktop & Aspire are running.
     $lockedSolutions = @(
-        '../Davids.Shared/Davids.Shared.sln',
-        '../Davids.Services.Identity/Davids.Services.Identity.sln',
-        '../Davids.Services.AdminIdentity/Davids.Services.AdminIdentity.sln',
-        '../Davids.Services.Customers/Davids.Services.Customers.sln',
-        '../Davids.APIGateway/Davids.APIGateway.sln',
-        '../Davids.Frontend.Admin/Davids.Frontend.Admin.sln',
+        '../Davids.Shared/Davids.Shared.slnx',
+        '../Davids.Services.Identity/Davids.Services.Identity.slnx',
+        '../Davids.Services.AdminIdentity/Davids.Services.AdminIdentity.slnx',
+        '../Davids.Services.Customers/Davids.Services.Customers.slnx',
+        '../Davids.APIGateway/Davids.APIGateway.slnx',
+        '../Davids.Frontend.Admin/Davids.Frontend.Admin.slnx',
         'src/Davids.Bootstrap/Davids.Bootstrap.csproj'
     )
     foreach ($sln in $lockedSolutions) {
@@ -205,6 +205,10 @@ try {
     # Clear any stale AppHost build outputs so Visual Studio / dotnet run always re-stamps
     # host-OS DCP (dcpclipath) and Dashboard (aspiredashboardpath) assembly metadata.
     foreach ($staleDir in @(
+        'artifacts/bin/Davids.AppHost',
+        'artifacts/obj/Davids.AppHost',
+        'artifacts/bin/Davids.AppHost.Tests',
+        'artifacts/obj/Davids.AppHost.Tests',
         'src/Davids.AppHost/bin',
         'src/Davids.AppHost/obj',
         'tests/Davids.AppHost.Tests/bin',
@@ -215,10 +219,10 @@ try {
         }
     }
 
-    # Restore Davids.sln (Davids.AppHost resolves host-OS RID packages Aspire.Hosting.Orchestration.<rid>
+    # Restore Davids.slnx (Davids.AppHost resolves host-OS RID packages Aspire.Hosting.Orchestration.<rid>
     # and Aspire.Dashboard.Sdk.<rid> pinned to 13.6.1 in Directory.Packages.props).
-    & $dotnet restore 'Davids.sln' -m:1 -nr:false --tl:off
-    if ($LASTEXITCODE) { throw 'Solution restore failed for Davids.sln.' }
+    & $dotnet restore 'Davids.slnx' -m:1 -nr:false --tl:off
+    if ($LASTEXITCODE) { throw 'Solution restore failed for Davids.slnx.' }
 
     $installHooksScript = Join-Path $PSScriptRoot 'security/local-dev-commit/Install-GitHooks.ps1'
     if (Test-Path -LiteralPath $installHooksScript) {

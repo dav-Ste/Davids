@@ -114,7 +114,7 @@ jobs:
             done
             sleep 8
 
-            dotnet build ./Davids/Davids.sln -c Release -warnaserror -m:2 -nr:false --tl:off
+            dotnet build ./Davids/Davids.slnx -c Release -warnaserror -m:2 -nr:false --tl:off
 
             export ConnectionStrings__identitydb="Server=127.0.0.1,1433;Database=identitydb;User Id=sa;Password=${OTP_SQL};TrustServerCertificate=True;Encrypt=True"
             export ConnectionStrings__adminidentitydb="Server=127.0.0.1,1433;Database=adminidentitydb;User Id=sa;Password=${OTP_SQL};TrustServerCertificate=True;Encrypt=True"

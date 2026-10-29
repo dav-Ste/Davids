@@ -1,3 +1,8 @@
+param(
+    [ValidateSet('All', 'Unit', 'Integration')]
+    [string]$Category = 'All'
+)
+
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path $PSScriptRoot -Parent
 $dotnet = 'dotnet'
@@ -9,8 +14,12 @@ if ($env:OS -eq 'Windows_NT') {
 $env:MSBUILDDISABLENODEREUSE = '1'
 Push-Location $repoRoot
 try {
-    $solution = 'Davids.sln'
+    $solution = 'Davids.slnx'
     if (-not (Test-Path $solution)) { throw "Missing $solution. Run ./scripts/Get-Projects.ps1 first." }
-    & $dotnet test $solution --no-restore -c Release -m:2 -nr:false --tl:off
+    $testArgs = @('test', $solution, '--no-restore', '-c', 'Release', '-m:2', '-nr:false', '--tl:off')
+    if ($Category -ne 'All') {
+        $testArgs += @('--filter', "Category=$Category")
+    }
+    & $dotnet @testArgs
     if ($LASTEXITCODE) { throw 'Test failed.' }
 } finally { Pop-Location }

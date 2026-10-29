@@ -139,13 +139,13 @@ foreach ($repoName in $repos) {
 
     Write-Host "Running Checkov IaC & workflow scan on $repoName..."
     if ($null -ne $checkovCmd) {
-        & $checkovCmd.Source -d $dir --framework kubernetes,dockerfile,github_actions --skip-path bin --skip-path obj --skip-path .vs --skip-path .git --skip-path kyverno-tests --compact --quiet
+        & $checkovCmd.Source -d $dir --framework kubernetes,dockerfile,github_actions --skip-path artifacts --skip-path bin --skip-path obj --skip-path .vs --skip-path .git --skip-path kyverno-tests --compact --quiet
     } else {
         $resolvedDir = (Resolve-Path -LiteralPath $dir).Path
         & $dockerCmd.Source run --rm `
             --mount "type=bind,source=$resolvedDir,target=/tf,readonly" `
             $checkovImage `
-            -d /tf --framework kubernetes,dockerfile,github_actions --skip-path bin --skip-path obj --skip-path .vs --skip-path .git --skip-path kyverno-tests --compact --quiet
+            -d /tf --framework kubernetes,dockerfile,github_actions --skip-path artifacts --skip-path bin --skip-path obj --skip-path .vs --skip-path .git --skip-path kyverno-tests --compact --quiet
     }
     if ($LASTEXITCODE) {
         throw "Checkov reported IaC, Dockerfile, or GitHub Actions security findings in $repoName."

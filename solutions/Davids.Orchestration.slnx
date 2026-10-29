@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/Infrastructure/">
+    <Project Path="../src/Davids.AppHost/Davids.AppHost.csproj" />
+    <Project Path="../src/Davids.Bootstrap/Davids.Bootstrap.csproj" />
+    <Project Path="../tests/Davids.AppHost.Tests/Davids.AppHost.Tests.csproj" />
+  </Folder>
+</Solution>

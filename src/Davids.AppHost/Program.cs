@@ -87,8 +87,8 @@ var customers = builder.AddProject<Projects.Davids_Services_Customers_Api>("cust
     .WaitFor(adminIdentity)
     .WithHttpHealthCheck("/health");
 
-IResourceBuilder<ProjectResource> frontendAdmin = null;
-IResourceBuilder<ProjectResource> apiGateway = null;
+IResourceBuilder<ProjectResource>? frontendAdmin = null;
+IResourceBuilder<ProjectResource>? apiGateway = null;
 
 if (Enabled("ApiGateway"))
 {
@@ -195,8 +195,8 @@ else
         .WithEnvironment("DataProtection__MasterKey", gatewayDataProtectionKey);
 }
 
-IResourceBuilder<ContainerResource> jaeger = null;
-IResourceBuilder<ContainerResource> prometheus = null;
+IResourceBuilder<ContainerResource>? jaeger = null;
+IResourceBuilder<ContainerResource>? prometheus = null;
 
 if (Enabled("Jaeger"))
 {
@@ -283,12 +283,12 @@ if (Enabled("Grafana"))
     if (!string.IsNullOrWhiteSpace(configuredPrometheusUrl))
         grafana.WithEnvironment("PROMETHEUS_URL", configuredPrometheusUrl.TrimEnd('/'));
     else
-        grafana.WithEnvironment("PROMETHEUS_URL", prometheus!.GetEndpoint("http")).WaitFor(prometheus);
+        grafana.WithEnvironment("PROMETHEUS_URL", prometheus!.GetEndpoint("http")).WaitFor(prometheus!);
 
     if (!string.IsNullOrWhiteSpace(configuredJaegerUrl))
         grafana.WithEnvironment("JAEGER_URL", configuredJaegerUrl.TrimEnd('/'));
     else
-        grafana.WithEnvironment("JAEGER_URL", jaeger!.GetEndpoint("ui")).WaitFor(jaeger);
+        grafana.WithEnvironment("JAEGER_URL", jaeger!.GetEndpoint("ui")).WaitFor(jaeger!);
 }
 // Opt-in metric sink; disabled by default due to local memory/startup cost.
 if (Enabled("InfluxDB", false))
