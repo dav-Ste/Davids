@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "1.0",
+  "description": "Production Cluster Seq Login-Audit & Runtime Security Signals and Alert Thresholds ($0 Free Individual/Dev Tier + Prometheus/Grafana OSS parity)",
+  "signals": [
+    {
+      "id": "signal-davids-admin-lockout",
+      "title": "Davids — Administrator Account Lockout (Critical)",
+      "description": "Matches Administrator Identity login attempts rejected due to per-account lockout.",
+      "filter": "SecurityAuditEvent = 'LoginAudit' and AuthDomain = 'admin' and Outcome = 'account_locked'",
+      "alert": {
+        "level": "Error",
+        "windowMinutes": 5,
+        "thresholdCount": 1,
+        "suppressionMinutes": 15
+      }
+    },
+    {
+      "id": "signal-davids-customer-lockout",
+      "title": "Davids — Customer Credential-Stuffing Lockout Spike",
+      "description": "Matches Customer Identity login attempts rejected due to per-account lockout.",
+      "filter": "SecurityAuditEvent = 'LoginAudit' and AuthDomain = 'customer' and Outcome = 'account_locked'",
+      "alert": {
+        "level": "Warning",
+        "windowMinutes": 5,
+        "thresholdCount": 5,
+        "suppressionMinutes": 15
+      }
+    },
+    {
+      "id": "signal-davids-oidc-token-replay",
+      "title": "Davids — OIDC Authorization-Code / Refresh-Token Replay or State Tampering",
+      "description": "Matches OpenIddict token grant rejections (single-use code/refresh replay) and tampered authorize request_token values.",
+      "filter": "SecurityAuditEvent = 'LoginAudit' and Outcome in ['token_grant_rejected', 'invalid_request_token', 'unsupported_grant_type']",
+      "alert": {
+        "level": "Error",
+        "windowMinutes": 5,
+        "thresholdCount": 3,
+        "suppressionMinutes": 10
+      }
+    },
+    {
+      "id": "signal-davids-rate-limit-429",
+      "title": "Davids — Authentication & Gateway Rate-Limiter Rejections (HTTP 429)",
+      "description": "Matches HTTP 429 rate-limiter rejections emitted by Davids.APIGateway, Identity, and AdminIdentity.",
+      "filter": "SecurityAuditEvent = 'RateLimitRejected'",
+      "alert": {
+        "level": "Warning",
+        "windowMinutes": 5,
+        "thresholdCount": 30,
+        "suppressionMinutes": 15
+      }
+    },
+    {
+      "id": "signal-davids-bff-csrf",
+      "title": "Davids — Administrator BFF CSRF Rejections (HTTP 403)",
+      "description": "Matches cookie-authenticated Admin BFF requests missing valid X-Requested-With: DavidsAdmin or Origin headers.",
+      "filter": "SecurityAuditEvent = 'BffCsrfRejected'",
+      "alert": {
+        "level": "Warning",
+        "windowMinutes": 5,
+        "thresholdCount": 5,
+        "suppressionMinutes": 15
+      }
+    },
+    {
+      "id": "signal-davids-falco-runtime",
+      "title": "Davids — Falco eBPF Container Runtime Intrusion",
+      "description": "Matches Falcosidekick CLEF events shipped from the davids Kubernetes namespace.",
+      "filter": "priority in ['Emergency', 'Alert', 'Critical', 'Error'] and output like '%ns=davids%'",
+      "alert": {
+        "level": "Fatal",
+        "windowMinutes": 5,
+        "thresholdCount": 1,
+        "suppressionMinutes": 5
+      }
+    }
+  ]
+}

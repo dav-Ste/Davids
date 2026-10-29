@@ -1,0 +1,320 @@
+{
+  "schemaVersion": "1.0",
+  "description": "Davids Platform Quarterly / Release Cross-Role Authorization & Tenant Isolation Matrix (Free Automated Autorize Equivalent)",
+  "cases": [
+    {
+      "id": "AUTHZ-001",
+      "category": "Unauthenticated-Boundary",
+      "description": "Unauthenticated caller cannot read /identity/me",
+      "method": "GET",
+      "path": "/identity/me",
+      "actor": "unauthenticated",
+      "expectedStatuses": [401]
+    },
+    {
+      "id": "AUTHZ-002",
+      "category": "Unauthenticated-Boundary",
+      "description": "Unauthenticated caller cannot read /admin-identity/me",
+      "method": "GET",
+      "path": "/admin-identity/me",
+      "actor": "unauthenticated",
+      "expectedStatuses": [401]
+    },
+    {
+      "id": "AUTHZ-003",
+      "category": "Unauthenticated-Boundary",
+      "description": "Unauthenticated caller cannot browse /customers",
+      "method": "GET",
+      "path": "/customers",
+      "actor": "unauthenticated",
+      "expectedStatuses": [401]
+    },
+    {
+      "id": "AUTHZ-004",
+      "category": "Unauthenticated-Boundary",
+      "description": "Unauthenticated caller cannot read /customers/{custBId}",
+      "method": "GET",
+      "path": "/customers/{{custBId}}",
+      "actor": "unauthenticated",
+      "expectedStatuses": [401]
+    },
+    {
+      "id": "AUTHZ-005",
+      "category": "Unauthenticated-Boundary",
+      "description": "Unauthenticated caller cannot read Admin BFF /api/admin/me",
+      "method": "GET",
+      "path": "/api/admin/me",
+      "actor": "unauthenticated",
+      "expectedStatuses": [401]
+    },
+    {
+      "id": "AUTHZ-006",
+      "category": "Baseline-Owner-Access",
+      "description": "Customer A can read own /identity/me profile",
+      "method": "GET",
+      "path": "/identity/me",
+      "actor": "customerA",
+      "expectedStatuses": [200]
+    },
+    {
+      "id": "AUTHZ-007",
+      "category": "Baseline-Owner-Access",
+      "description": "Customer A can read own /identity/users/{custAId}",
+      "method": "GET",
+      "path": "/identity/users/{{custAId}}",
+      "actor": "customerA",
+      "expectedStatuses": [200]
+    },
+    {
+      "id": "AUTHZ-008",
+      "category": "Baseline-Owner-Access",
+      "description": "Customer A can read own /customers/{custAId}",
+      "method": "GET",
+      "path": "/customers/{{custAId}}",
+      "actor": "customerA",
+      "expectedStatuses": [200]
+    },
+    {
+      "id": "AUTHZ-009",
+      "category": "Baseline-Owner-Access",
+      "description": "Customer A can read own /customers/{custAId}/state",
+      "method": "GET",
+      "path": "/customers/{{custAId}}/state",
+      "actor": "customerA",
+      "expectedStatuses": [200]
+    },
+    {
+      "id": "AUTHZ-010",
+      "category": "Horizontal-IDOR",
+      "description": "Customer A cannot read Customer B's /identity/users/{custBId} record",
+      "method": "GET",
+      "path": "/identity/users/{{custBId}}",
+      "actor": "customerA",
+      "expectedStatuses": [403]
+    },
+    {
+      "id": "AUTHZ-011",
+      "category": "Horizontal-IDOR",
+      "description": "Customer A cannot read Customer B's /customers/{custBId} PII profile",
+      "method": "GET",
+      "path": "/customers/{{custBId}}",
+      "actor": "customerA",
+      "expectedStatuses": [403]
+    },
+    {
+      "id": "AUTHZ-012",
+      "category": "Horizontal-IDOR",
+      "description": "Customer A cannot read Customer B's /customers/{custBId}/state",
+      "method": "GET",
+      "path": "/customers/{{custBId}}/state",
+      "actor": "customerA",
+      "expectedStatuses": [403]
+    },
+    {
+      "id": "AUTHZ-013",
+      "category": "Horizontal-IDOR",
+      "description": "Customer A cannot complete registration for Customer B via POST /customers body customerId",
+      "method": "POST",
+      "path": "/customers",
+      "actor": "customerA",
+      "jsonBody": {
+        "customerId": "{{custBId}}",
+        "fullName": "IDOR Takeover Attempt",
+        "address": "99 Attacker Lane"
+      },
+      "expectedStatuses": [403]
+    },
+    {
+      "id": "AUTHZ-014",
+      "category": "Vertical-Privilege-Escalation",
+      "description": "Customer A cannot list/search all customers via GET /customers",
+      "method": "GET",
+      "path": "/customers",
+      "actor": "customerA",
+      "expectedStatuses": [401, 403]
+    },
+    {
+      "id": "AUTHZ-015",
+      "category": "Vertical-Privilege-Escalation",
+      "description": "Customer A cannot update Customer B via Admin PUT /customers/{custBId}",
+      "method": "PUT",
+      "path": "/customers/{{custBId}}",
+      "actor": "customerA",
+      "jsonBody": {
+        "customerId": "{{custBId}}",
+        "fullName": "Escalated Edit",
+        "address": "99 Attacker Lane",
+        "isVip": true
+      },
+      "expectedStatuses": [401, 403]
+    },
+    {
+      "id": "AUTHZ-016",
+      "category": "Vertical-Privilege-Escalation",
+      "description": "Customer A cannot promote own VIP flag via Admin PUT /customers/{custAId}",
+      "method": "PUT",
+      "path": "/customers/{{custAId}}",
+      "actor": "customerA",
+      "jsonBody": {
+        "customerId": "{{custAId}}",
+        "fullName": "Self VIP Escalation",
+        "address": "10 Self Street",
+        "isVip": true
+      },
+      "expectedStatuses": [401, 403]
+    },
+    {
+      "id": "AUTHZ-017",
+      "category": "Vertical-Privilege-Escalation",
+      "description": "Customer A cannot mutate customer state via Admin PUT /customers/{custAId}/state/valid",
+      "method": "PUT",
+      "path": "/customers/{{custAId}}/state/valid",
+      "actor": "customerA",
+      "expectedStatuses": [401, 403]
+    },
+    {
+      "id": "AUTHZ-018",
+      "category": "Vertical-Privilege-Escalation",
+      "description": "Customer token from Identity DB cannot authenticate to AdminIdentity /admin-identity/me",
+      "method": "GET",
+      "path": "/admin-identity/me",
+      "actor": "customerA",
+      "expectedStatuses": [401, 403]
+    },
+    {
+      "id": "AUTHZ-019",
+      "category": "Vertical-Privilege-Escalation",
+      "description": "Customer token cannot enumerate administrators via GET /admin-identity/users",
+      "method": "GET",
+      "path": "/admin-identity/users",
+      "actor": "customerA",
+      "expectedStatuses": [401, 403]
+    },
+    {
+      "id": "AUTHZ-020",
+      "category": "Vertical-Privilege-Escalation",
+      "description": "Customer token cannot create an administrator via POST /admin-identity/users",
+      "method": "POST",
+      "path": "/admin-identity/users",
+      "actor": "customerA",
+      "jsonBody": {
+        "email": "rogue.admin@davids.example",
+        "password": "__RUNTIME_TEST_PASSWORD__",
+        "fullName": "Rogue Admin"
+      },
+      "expectedStatuses": [401, 403]
+    },
+    {
+      "id": "AUTHZ-021",
+      "category": "Vertical-Privilege-Escalation",
+      "description": "Customer token cannot read administrator login audit trail via GET /admin-identity/audit/logins",
+      "method": "GET",
+      "path": "/admin-identity/audit/logins",
+      "actor": "customerA",
+      "expectedStatuses": [401, 403]
+    },
+    {
+      "id": "AUTHZ-022",
+      "category": "Vertical-Privilege-Escalation",
+      "description": "Customer Bearer token cannot access cookie-bound Admin BFF /api/admin/me",
+      "method": "GET",
+      "path": "/api/admin/me",
+      "actor": "customerA",
+      "expectedStatuses": [401, 403]
+    },
+    {
+      "id": "AUTHZ-023",
+      "category": "Cross-Authority-Domain-Separation",
+      "description": "Admin token from AdminIdentity DB is rejected by Customer Identity /identity/me",
+      "method": "GET",
+      "path": "/identity/me",
+      "actor": "admin",
+      "expectedStatuses": [401, 403]
+    },
+    {
+      "id": "AUTHZ-024",
+      "category": "Cross-Authority-Domain-Separation",
+      "description": "Admin token from AdminIdentity DB is rejected by Customer-only POST /customers",
+      "method": "POST",
+      "path": "/customers",
+      "actor": "admin",
+      "jsonBody": {
+        "customerId": "{{custBId}}",
+        "fullName": "Admin Calling Customer Endpoint",
+        "address": "1 Admin Way"
+      },
+      "expectedStatuses": [401, 403]
+    },
+    {
+      "id": "AUTHZ-025",
+      "category": "Baseline-Admin-Access",
+      "description": "Admin can read own /admin-identity/me profile",
+      "method": "GET",
+      "path": "/admin-identity/me",
+      "actor": "admin",
+      "expectedStatuses": [200]
+    },
+    {
+      "id": "AUTHZ-026",
+      "category": "Baseline-Admin-Access",
+      "description": "Admin can browse /customers",
+      "method": "GET",
+      "path": "/customers",
+      "actor": "admin",
+      "expectedStatuses": [200]
+    },
+    {
+      "id": "AUTHZ-027",
+      "category": "Baseline-Admin-Access",
+      "description": "Admin can read Customer B details via GET /customers/{custBId}",
+      "method": "GET",
+      "path": "/customers/{{custBId}}",
+      "actor": "admin",
+      "expectedStatuses": [200]
+    },
+    {
+      "id": "AUTHZ-028",
+      "category": "Public-Admin-SignUp-Prohibition",
+      "description": "Public /admin-identity/sign-up is blocked at edge (401) or absent (404) for unauthenticated callers",
+      "method": "POST",
+      "path": "/admin-identity/sign-up",
+      "actor": "unauthenticated",
+      "jsonBody": {
+        "email": "attacker@davids.example",
+        "password": "__RUNTIME_TEST_PASSWORD__"
+      },
+      "expectedStatuses": [401, 404]
+    },
+    {
+      "id": "AUTHZ-029",
+      "category": "Public-Admin-SignUp-Prohibition",
+      "description": "Public /admin-identity/sign-up does not exist even with Admin Bearer token",
+      "method": "POST",
+      "path": "/admin-identity/sign-up",
+      "actor": "admin",
+      "jsonBody": {
+        "email": "attacker2@davids.example",
+        "password": "__RUNTIME_TEST_PASSWORD__"
+      },
+      "expectedStatuses": [404]
+    },
+    {
+      "id": "AUTHZ-030",
+      "category": "Dynamic-Object-Path-Truncation-Defense",
+      "description": "GET /customers/{custAId} rejects injected query parameters (RESTler InvalidDynamicObjectChecker defense)",
+      "method": "GET",
+      "path": "/customers/{{custAId}}?injected_query_string=123/state",
+      "actor": "customerA",
+      "expectedStatuses": [400]
+    },
+    {
+      "id": "AUTHZ-031",
+      "category": "Dynamic-Object-Path-Truncation-Defense",
+      "description": "GET /identity/users/{custAId} rejects injected query parameters",
+      "method": "GET",
+      "path": "/identity/users/{{custAId}}?injected_query_string=123",
+      "actor": "customerA",
+      "expectedStatuses": [400]
+    }
+  ]
+}

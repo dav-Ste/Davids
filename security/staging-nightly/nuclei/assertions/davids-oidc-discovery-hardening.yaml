@@ -1,0 +1,37 @@
+id: davids-posture-oidc-discovery-hardening
+
+info:
+  name: Davids Dual OIDC Discovery & RS256 JWKS Posture Assertion
+  author: davids-security
+  severity: info
+  description: Verifies both Customer Identity and Admin Identity OIDC discovery and JWKS endpoints enforce RS256 asymmetric signing and PKCE S256.
+  tags: davids,posture,oidc,jwks
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/identity/.well-known/openid-configuration"
+      - "{{BaseURL}}/admin-identity/.well-known/openid-configuration"
+
+    stop-at-first-match: false
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+
+      - type: word
+        part: body
+        words:
+          - '"authorization_code"'
+          - '"RS256"'
+          - '"S256"'
+        condition: and
+
+      - type: word
+        part: body
+        words:
+          - '"password"'
+          - '"implicit"'
+        negative: true
+        condition: or

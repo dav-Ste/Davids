@@ -1,0 +1,98 @@
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: davids-stage5-kyverno-admission-suite
+policies:
+  - ../../../deploy/k8s/kyverno/davids-pod-security-and-mesh-admission.yaml
+  - ../../../deploy/k8s/kyverno/davids-cel-validating-policy.yaml
+resources:
+  - resources-pods.yaml
+results:
+  - policy: davids-pod-security-and-mesh-admission
+    rule: disallow-latest-and-require-sha256-digest
+    resources:
+      - davids/compliant-davids-api-gateway-with-istio
+    kind: Pod
+    result: pass
+  - policy: davids-pod-security-and-mesh-admission
+    rule: require-non-root-high-uid
+    resources:
+      - davids/compliant-davids-api-gateway-with-istio
+    kind: Pod
+    result: pass
+  - policy: davids-pod-security-and-mesh-admission
+    rule: require-readonly-rootfs-drop-all-caps-and-seccomp
+    resources:
+      - davids/compliant-davids-api-gateway-with-istio
+    kind: Pod
+    result: pass
+  - policy: davids-pod-security-and-mesh-admission
+    rule: disallow-host-namespaces-and-hostpath
+    resources:
+      - davids/compliant-davids-api-gateway-with-istio
+    kind: Pod
+    result: pass
+  - policy: davids-pod-security-and-mesh-admission
+    rule: disallow-serviceaccount-token-automount
+    resources:
+      - davids/compliant-davids-api-gateway-with-istio
+    kind: Pod
+    result: pass
+  - policy: davids-pod-security-and-mesh-admission
+    rule: disallow-istio-sidecar-bypass
+    resources:
+      - davids/compliant-davids-api-gateway-with-istio
+    kind: Pod
+    result: pass
+  - policy: davids-pod-security-and-mesh-admission
+    rule: disallow-latest-and-require-sha256-digest
+    resources:
+      - davids/bad-unpinned-latest-tag-pod
+    kind: Pod
+    result: fail
+  - policy: davids-pod-security-and-mesh-admission
+    rule: require-non-root-high-uid
+    resources:
+      - davids/bad-root-uid-pod
+    kind: Pod
+    result: fail
+  - policy: davids-pod-security-and-mesh-admission
+    rule: require-readonly-rootfs-drop-all-caps-and-seccomp
+    resources:
+      - davids/bad-writable-rootfs-and-privesc-pod
+    kind: Pod
+    result: fail
+  - policy: davids-pod-security-and-mesh-admission
+    rule: disallow-host-namespaces-and-hostpath
+    resources:
+      - davids/bad-hostpid-and-automount-sa-pod
+    kind: Pod
+    result: fail
+  - policy: davids-pod-security-and-mesh-admission
+    rule: disallow-serviceaccount-token-automount
+    resources:
+      - davids/bad-hostpid-and-automount-sa-pod
+    kind: Pod
+    result: fail
+  - policy: davids-pod-security-and-mesh-admission
+    rule: disallow-istio-sidecar-bypass
+    resources:
+      - davids/bad-istio-sidecar-disabled-pod
+    kind: Pod
+    result: fail
+  - policy: davids-cel-workload-hardening
+    isValidatingPolicy: true
+    resources:
+      - davids/compliant-davids-api-gateway-with-istio
+    kind: Pod
+    result: pass
+  - policy: davids-cel-workload-hardening
+    isValidatingPolicy: true
+    resources:
+      - davids/bad-unpinned-latest-tag-pod
+      - davids/bad-root-uid-pod
+      - davids/bad-writable-rootfs-and-privesc-pod
+      - davids/bad-hostpid-and-automount-sa-pod
+      - davids/bad-istio-sidecar-disabled-pod
+    kind: Pod
+    result: fail

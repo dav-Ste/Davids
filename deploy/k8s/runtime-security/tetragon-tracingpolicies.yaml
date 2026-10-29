@@ -1,0 +1,124 @@
+# Production Cluster — Cilium Tetragon v1.7.x eBPF In-Kernel Enforcement (TracingPolicyNamespaced)
+# License: Apache-2.0 ($0 CNCF eBPF runtime enforcement with synchronous in-kernel Sigkill)
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicyNamespaced
+metadata:
+  name: davids-enforce-no-shells-or-nettools
+  namespace: davids
+  labels:
+    app.kubernetes.io/part-of: davids-platform
+    security.davids.io/lifecycle: production-cluster
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - api-gateway
+          - identity
+          - admin-identity
+          - customers
+          - frontend-admin
+  kprobes:
+    - call: "sys_execve"
+      syscall: true
+      args:
+        - index: 0
+          type: "string"
+      selectors:
+        - matchArgs:
+            - index: 0
+              operator: "Equal"
+              values:
+                - "/bin/sh"
+                - "/bin/bash"
+                - "/bin/dash"
+                - "/bin/ash"
+                - "/usr/bin/sh"
+                - "/usr/bin/bash"
+                - "/usr/bin/curl"
+                - "/usr/bin/wget"
+                - "/usr/bin/nc"
+                - "/usr/bin/ncat"
+                - "/usr/bin/socat"
+                - "/usr/bin/python"
+                - "/usr/bin/python3"
+          matchActions:
+            - action: Sigkill
+---
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicyNamespaced
+metadata:
+  name: davids-enforce-no-tmp-or-memfd-exec
+  namespace: davids
+  labels:
+    app.kubernetes.io/part-of: davids-platform
+    security.davids.io/lifecycle: production-cluster
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - api-gateway
+          - identity
+          - admin-identity
+          - customers
+          - frontend-admin
+  kprobes:
+    - call: "sys_execve"
+      syscall: true
+      args:
+        - index: 0
+          type: "string"
+      selectors:
+        - matchArgs:
+            - index: 0
+              operator: "Prefix"
+              values:
+                - "/tmp/"
+                - "/var/tmp/"
+                - "/dev/shm/"
+          matchActions:
+            - action: Sigkill
+---
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicyNamespaced
+metadata:
+  name: davids-audit-sensitive-files-and-escape-syscalls
+  namespace: davids
+  labels:
+    app.kubernetes.io/part-of: davids-platform
+    security.davids.io/lifecycle: production-cluster
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - api-gateway
+          - identity
+          - admin-identity
+          - customers
+          - frontend-admin
+  kprobes:
+    - call: "security_file_open"
+      syscall: false
+      args:
+        - index: 0
+          type: "file"
+      selectors:
+        - matchArgs:
+            - index: 0
+              operator: "Prefix"
+              values:
+                - "/etc/shadow"
+                - "/var/run/secrets/kubernetes.io/serviceaccount"
+                - "/etc/ssl/private"
+          matchActions:
+            - action: Post
+    - call: "sys_ptrace"
+      syscall: true
+      selectors:
+        - matchActions:
+            - action: Sigkill

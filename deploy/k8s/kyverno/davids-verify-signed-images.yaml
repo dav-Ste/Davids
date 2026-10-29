@@ -1,0 +1,59 @@
+# Production Cluster — Kyverno Admission Control: Sigstore Cosign Image Signature & CycloneDX SBOM Attestation Enforcement
+# Free ($0) CNCF Apache-2.0 admission policy verifying keyless GitHub Actions OIDC signatures via Sigstore Fulcio + Rekor.
+# For air-gapped clusters using a self-managed Cosign keypair instead of Fulcio/Rekor, replace `keyless:` with:
+#   keys:
+#     publicKeys: |-
+#       <PEM public key from cosign.pub>
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: davids-verify-signed-images
+  annotations:
+    policies.kyverno.io/title: Verify Signed Davids Container Images & CycloneDX SBOM Attestations
+    policies.kyverno.io/category: Software Supply Chain Security
+    policies.kyverno.io/severity: critical
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Blocks admission of any Pod in the davids namespace whose ghcr.io/davids/* container image
+      lacks a valid Sigstore Cosign cryptographic signature and CycloneDX SBOM attestation from
+      the official GitHub Actions OIDC release workflow.
+spec:
+  validationFailureAction: Enforce
+  background: false
+  webhookTimeoutSeconds: 15
+  failurePolicy: Fail
+  rules:
+    - name: verify-cosign-oidc-signature-and-sbom
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - davids
+      verifyImages:
+        - type: Cosign
+          imageReferences:
+            - "ghcr.io/*/davids-*:*"
+            - "ghcr.io/*/davids-*@sha256:*"
+          mutateDigest: true
+          verifyDigest: true
+          required: true
+          attestors:
+            - count: 1
+              entries:
+                - keyless:
+                    issuer: "https://token.actions.githubusercontent.com"
+                    subjectRegExp: "^https://github\\.com/[^/]+/Davids(\\.[A-Za-z0-9_.-]+)?/\\.github/workflows/.*$"
+                    rekor:
+                      url: "https://rekor.sigstore.dev"
+          attestations:
+            - type: https://cyclonedx.org/bom
+              attestors:
+                - count: 1
+                  entries:
+                    - keyless:
+                        issuer: "https://token.actions.githubusercontent.com"
+                        subjectRegExp: "^https://github\\.com/[^/]+/Davids(\\.[A-Za-z0-9_.-]+)?/\\.github/workflows/.*$"
+                        rekor:
+                          url: "https://rekor.sigstore.dev"

@@ -1,0 +1,127 @@
+rule_files:
+  - davids-security-rules.yml
+
+evaluation_interval: 1m
+
+tests:
+  # Scenario 1: Healthy normal login traffic -> zero security alerts fire.
+  - interval: 1m
+    input_series:
+      - series: 'davids_security_login_audit_total{domain="admin",outcome="succeeded",succeeded="true"}'
+        values: '0+2x10'
+      - series: 'davids_security_login_audit_total{domain="customer",outcome="succeeded",succeeded="true"}'
+        values: '0+20x10'
+      - series: 'davids_security_rate_limit_rejected_total{service="davids-api-gateway",policy="gateway"}'
+        values: '0+1x10'
+      - series: 'davids_security_bff_csrf_rejected_total{service="davids-api-gateway",endpoint="proxy"}'
+        values: '0+0x10'
+      - series: 'davids_security_token_revoked_total{domain="customer",source="rfc7009_revocation"}'
+        values: '0+1x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: DavidsAdminAccountLockoutDetected
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: DavidsCustomerCredentialStuffingLockoutSpike
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: DavidsOidcTokenReplayOrGrantTamperingDetected
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: DavidsAuthRateLimiterSpike
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: DavidsAdminBffCsrfRejectionSpike
+        exp_alerts: []
+
+  # Scenario 2: Simulated credential stuffing, admin lockout, OIDC replay cascade, 429 flood, CSRF attack, eBPF intrusion & Kyverno block -> all 7 alerts fire.
+  - interval: 1m
+    input_series:
+      - series: 'davids_security_login_audit_total{domain="admin",outcome="account_locked",succeeded="false"}'
+        values: '0 0 1 1 1 1'
+      - series: 'davids_security_login_audit_total{domain="customer",outcome="account_locked",succeeded="false"}'
+        values: '0 2 5 7 8 8'
+      - series: 'davids_security_token_revoked_total{domain="customer",source="replay_cascade"}'
+        values: '0 0 1 1 1 1'
+      - series: 'davids_security_rate_limit_rejected_total{service="davids-api-gateway",policy="gateway"}'
+        values: '0+60x8'
+      - series: 'davids_security_bff_csrf_rejected_total{service="davids-api-gateway",endpoint="/auth/logout"}'
+        values: '0 2 6 8 8 8'
+      - series: 'tetragon_policy_events_total{policy="davids-enforce-no-shells-or-nettools"}'
+        values: '0 0 1 1 1 1'
+      - series: 'kyverno_policy_results_total{policy_name="davids-pod-security-and-mesh-admission",policy_namespace="",resource_namespace="davids",rule_result="fail",rule_type="validate"}'
+        values: '0 0 2 2 2 2'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: DavidsAdminAccountLockoutDetected
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              component: admin-identity
+              lifecycle: production-cluster
+            exp_annotations:
+              summary: "Administrator account lockout triggered in Davids.Services.AdminIdentity"
+              description: "At least one administrator account entered lockout (1 event(s) in 5m). Inspect Seq signal 'signal-davids-admin-lockout' and AdminLoginAuditLogs immediately."
+      - eval_time: 4m
+        alertname: DavidsCustomerCredentialStuffingLockoutSpike
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              component: identity
+              lifecycle: production-cluster
+            exp_annotations:
+              summary: "Elevated customer account lockouts indicating credential-stuffing or brute-force activity"
+              description: "Customer Identity recorded 8 account_locked outcomes over the last 5 minutes."
+      - eval_time: 4m
+        alertname: DavidsOidcTokenReplayOrGrantTamperingDetected
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              component: oidc-token-security
+              lifecycle: production-cluster
+            exp_annotations:
+              summary: "OIDC authorization-code / refresh-token replay or request_token tampering detected"
+              description: "OpenIddict rejected tampered grants or triggered RFC 6749 s10.5 replay cascade revocation (1 event(s) in 5m). Investigate Seq signal 'signal-davids-oidc-token-replay'."
+      - eval_time: 5m
+        alertname: DavidsAuthRateLimiterSpike
+        exp_alerts:
+          - exp_labels:
+              service: davids-api-gateway
+              policy: gateway
+              severity: warning
+              component: rate-limiter
+              lifecycle: production-cluster
+            exp_annotations:
+              summary: "Sustained HTTP 429 rate-limiter rejections on davids-api-gateway (gateway)"
+              description: "Rate limiter 'gateway' on 'davids-api-gateway' is rejecting 1.00 req/s over 5 minutes."
+      - eval_time: 4m
+        alertname: DavidsAdminBffCsrfRejectionSpike
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              component: api-gateway-bff
+              lifecycle: production-cluster
+            exp_annotations:
+              summary: "Elevated Administrator BFF CSRF rejections at Davids.APIGateway"
+              description: "Davids.APIGateway blocked 8 cookie-authenticated state-changing requests missing valid X-Requested-With / Origin headers in 5m."
+      - eval_time: 4m
+        alertname: DavidsFalcoOrTetragonRuntimeIntrusion
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              component: ebpf-runtime
+              lifecycle: production-cluster
+            exp_annotations:
+              summary: "eBPF runtime threat detected or killed by Falco / Cilium Tetragon in cluster"
+              description: "Falco or Cilium Tetragon recorded 1 high-severity container runtime security event(s) in the last 5 minutes."
+      - eval_time: 4m
+        alertname: DavidsKyvernoAdmissionPolicyViolation
+        exp_alerts:
+          - exp_labels:
+              policy_name: davids-pod-security-and-mesh-admission
+              severity: warning
+              component: kyverno-admission
+              lifecycle: production-cluster
+            exp_annotations:
+              summary: "Kyverno blocked a non-compliant or unsigned pod in namespace 'davids' (davids-pod-security-and-mesh-admission)"
+              description: "Kyverno policy 'davids-pod-security-and-mesh-admission' rejected 2 admission request(s) in namespace 'davids' over 5 minutes."

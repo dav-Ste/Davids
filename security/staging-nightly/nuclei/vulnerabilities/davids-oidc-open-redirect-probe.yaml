@@ -1,0 +1,31 @@
+id: davids-vuln-open-redirect-probe
+
+info:
+  name: Davids OIDC & BFF Open Redirect Probe
+  author: davids-security
+  severity: high
+  description: Detects open redirects in Gateway BFF /auth/login returnUrl handling or OIDC /connect/authorize redirect_uri validation.
+  tags: davids,vuln,redirect,oidc,bff
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/auth/login?returnUrl=https://evil.attacker.example/phish"
+      - "{{BaseURL}}/auth/login?returnUrl=//evil.attacker.example/phish"
+      - "{{BaseURL}}/identity/connect/authorize?client_id=davids-web&redirect_uri=https://evil.attacker.example/callback&response_type=code&scope=openid"
+      - "{{BaseURL}}/admin-identity/connect/authorize?client_id=davids-admin-bff&redirect_uri=https://evil.attacker.example/callback&response_type=code&scope=openid"
+
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 301
+          - 302
+          - 303
+          - 307
+          - 308
+
+      - type: regex
+        part: header
+        regex:
+          - '(?i)^Location:\s*(https?:)?//evil\.attacker\.example'

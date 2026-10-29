@@ -1,0 +1,209 @@
+name: Pull Request CI — Security Gate
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  secrets-and-semgrep:
+    name: Gitleaks + Custom Davids Semgrep SAST
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout Davids repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Run SHA-256 verified Gitleaks v8.30.1
+        run: |
+          set -euo pipefail
+          curl -fsSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz -o /tmp/gitleaks.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  /tmp/gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          chmod +x /tmp/gitleaks
+          /tmp/gitleaks dir . --config .gitleaks.toml --verbose --redact --no-banner
+          /tmp/gitleaks git . --config .gitleaks.toml --verbose --redact --no-banner
+
+      - name: Run Semgrep custom Davids security rules
+        run: |
+          python3 -m pip install --quiet semgrep==1.182.0
+          semgrep scan --validate --config security/pull-request-ci/semgrep/davids-security.yml --metrics=off
+          semgrep scan --no-git-ignore --exclude=bin --exclude=obj --exclude=.git --exclude=.vs --exclude=TestResults --config security/pull-request-ci/semgrep/davids-security.yml . --error --metrics=off --sarif -o semgrep.sarif
+
+      - name: Upload Semgrep SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep-davids
+
+  dotnet-build-test-and-sca:
+    name: .NET 10 Build, Tests & NuGet JSON Vulnerability Audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Davids
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: Davids
+
+      - name: Checkout Davids.Shared
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Shared
+          path: Davids.Shared
+
+      - name: Checkout Davids.Services.Identity
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Services.Identity
+          path: Davids.Services.Identity
+
+      - name: Checkout Davids.Services.AdminIdentity
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Services.AdminIdentity
+          path: Davids.Services.AdminIdentity
+
+      - name: Checkout Davids.Services.Customers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Services.Customers
+          path: Davids.Services.Customers
+
+      - name: Checkout Davids.APIGateway
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.APIGateway
+          path: Davids.APIGateway
+
+      - name: Checkout Davids.Frontend.Admin
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Frontend.Admin
+          path: Davids.Frontend.Admin
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Locked restore, -warnaserror build, test & JSON vulnerability audit
+        shell: pwsh
+        working-directory: ./Davids
+        run: |
+          foreach ($sln in @(
+            '../Davids.Shared/Davids.Shared.sln',
+            '../Davids.Services.Identity/Davids.Services.Identity.sln',
+            '../Davids.Services.AdminIdentity/Davids.Services.AdminIdentity.sln',
+            '../Davids.Services.Customers/Davids.Services.Customers.sln',
+            '../Davids.APIGateway/Davids.APIGateway.sln',
+            '../Davids.Frontend.Admin/Davids.Frontend.Admin.sln',
+            'src/Davids.Bootstrap/Davids.Bootstrap.csproj'
+          )) {
+            dotnet restore $sln --locked-mode -m:1 -nr:false --tl:off
+            if ($LASTEXITCODE) { throw "Locked restore failed for $sln" }
+          }
+          dotnet restore Davids.sln -m:1 -nr:false --tl:off
+          if ($LASTEXITCODE) { throw 'Restore failed for Davids.sln' }
+          dotnet build Davids.sln --no-restore -c Release -warnaserror -m:2 -nr:false --tl:off
+          if ($LASTEXITCODE) { throw 'Build failed for Davids.sln' }
+          dotnet test Davids.sln --no-build -c Release -m:2 -nr:false --tl:off
+          if ($LASTEXITCODE) { throw 'Tests failed for Davids.sln' }
+          ./scripts/security/local-dev-commit/Verify-Dependencies.ps1
+
+  iac-and-istio-mesh:
+    name: Checkov IaC + istioctl analyze
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout Davids repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Checkov Kubernetes & GitHub Actions scan
+        uses: bridgecrewio/checkov-action@99bb2caf247dfd9f03cf984373bc6043d4e32ebf # v12.1347.0
+        with:
+          directory: .
+          framework: kubernetes,dockerfile,github_actions
+          quiet: true
+          compact: true
+          skip_path: kyverno-tests
+          output_format: cli,sarif
+          output_file_path: console,checkov.sarif
+
+      - name: Upload Checkov SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          sarif_file: checkov.sarif
+          category: checkov-iac
+
+      - name: Run SHA-256 verified istioctl 1.31.3 analyze
+        run: |
+          set -euo pipefail
+          curl -fsSL https://github.com/istio/istio/releases/download/1.31.3/istioctl-1.31.3-linux-amd64.tar.gz -o /tmp/istioctl.tar.gz
+          echo "382c3004ce2e9c5ed3064b092ae0da7f6bbe30c766a1be282f45725add004860  /tmp/istioctl.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/istioctl.tar.gz -C /tmp istioctl
+          chmod +x /tmp/istioctl
+          /tmp/istioctl analyze --use-kube=false --failure-threshold Warning deploy/k8s/*.yaml
+
+  supply-chain-grype-and-trivy:
+    name: SHA-Pinned Syft SBOM + Grype + Trivy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout Davids repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Generate CycloneDX SBOM (Syft)
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: davids.sbom.cdx.json
+          upload-artifact: false
+
+      - name: Upload CycloneDX SBOM artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: davids-sbom-cyclonedx
+          path: davids.sbom.cdx.json
+
+      - name: Scan SBOM with SHA-pinned Grype
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
+        with:
+          sbom: davids.sbom.cdx.json
+          fail-build: true
+          severity-cutoff: high
+          output-format: sarif
+
+      - name: Scan lockfiles & manifests with SHA-pinned Trivy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,misconfig
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          format: sarif
+          output: trivy-fs.sarif
+
+      - name: Upload Trivy SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-fs

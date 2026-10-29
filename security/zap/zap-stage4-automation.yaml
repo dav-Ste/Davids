@@ -1,0 +1,149 @@
+---
+# Davids Platform — Stage 4 Free Full Active/Passive DAST & OpenAPI Security Plan
+# Tool: OWASP ZAP 2.17.0 Automation Framework (100% Free / Apache-2.0)
+# Container: ghcr.io/zaproxy/zaproxy:2.17.0@sha256:030d3df57735dacbb83464854758e674dd9ad01d79d12a129a8e58b1fd384238
+env:
+  contexts:
+    - name: "Davids-Gateway"
+      urls:
+        - "${ZAP_TARGET_URL}"
+      includePaths:
+        - "${ZAP_TARGET_URL}.*"
+      excludePaths:
+        - "${ZAP_TARGET_URL}/logout.*"
+        - "${ZAP_TARGET_URL}/identity/connect/logout.*"
+        - "${ZAP_TARGET_URL}/identity/connect/revocation.*"
+        - "${ZAP_TARGET_URL}/admin-identity/connect/logout.*"
+        - "${ZAP_TARGET_URL}/admin-identity/connect/revocation.*"
+      technology:
+        exclude:
+          - "Db.MySQL"
+          - "Db.PostgreSQL"
+          - "Db.Oracle"
+          - "Db.MongoDB"
+          - "Language.PHP"
+          - "Language.JSP/Servlet"
+          - "Language.Ruby"
+          - "OS.MacOS"
+  parameters:
+    failOnError: true
+    failOnWarning: false
+    progressToStdout: true
+
+jobs:
+  - type: passiveScan-config
+    parameters:
+      maxAlertsPerRule: 10
+      scanOnlyInScope: true
+      enableTags: false
+
+  - type: replacer
+    parameters:
+      deleteAllRules: true
+    rules:
+      - description: "Inject Customer RS256 Bearer token for Customer Identity routes"
+        url: "^${ZAP_TARGET_URL}/identity/(me|users)(/.*|\\?.*)?$"
+        matchType: "req_header"
+        matchString: "Authorization"
+        matchRegex: false
+        replacementString: "${ZAP_CUSTOMER_BEARER_HEADER}"
+      - description: "Inject Admin RS256 Bearer token for Admin Identity management routes"
+        url: "^${ZAP_TARGET_URL}/admin-identity/(me|users|audit)(/.*|\\?.*)?$"
+        matchType: "req_header"
+        matchString: "Authorization"
+        matchRegex: false
+        replacementString: "${ZAP_ADMIN_BEARER_HEADER}"
+      - description: "Inject Admin RS256 Bearer token for Customers management routes"
+        url: "^${ZAP_TARGET_URL}/customers(/.*|\\?.*)?$"
+        matchType: "req_header"
+        matchString: "Authorization"
+        matchRegex: false
+        replacementString: "${ZAP_ADMIN_BEARER_HEADER}"
+
+  - type: requestor
+    parameters:
+      user: ""
+    requests:
+      - url: "${ZAP_TARGET_URL}/login"
+        name: "Admin-BFF-Login-Entry"
+        method: "GET"
+      - url: "${ZAP_TARGET_URL}/identity/.well-known/openid-configuration"
+        name: "Customer-OIDC-Discovery"
+        method: "GET"
+      - url: "${ZAP_TARGET_URL}/admin-identity/.well-known/openid-configuration"
+        name: "Admin-OIDC-Discovery"
+        method: "GET"
+      - url: "${ZAP_TARGET_URL}/identity/.well-known/jwks"
+        name: "Customer-OIDC-JWKS"
+        method: "GET"
+      - url: "${ZAP_TARGET_URL}/admin-identity/.well-known/jwks"
+        name: "Admin-OIDC-JWKS"
+        method: "GET"
+
+  - type: openapi
+    parameters:
+      apiFile: "/zap/wrk/specs/identity.restler.openapi.json"
+      targetUrl: "${ZAP_TARGET_URL}"
+      context: "Davids-Gateway"
+
+  - type: openapi
+    parameters:
+      apiFile: "/zap/wrk/specs/admin-identity.restler.openapi.json"
+      targetUrl: "${ZAP_TARGET_URL}"
+      context: "Davids-Gateway"
+
+  - type: openapi
+    parameters:
+      apiFile: "/zap/wrk/specs/customers.restler.openapi.json"
+      targetUrl: "${ZAP_TARGET_URL}"
+      context: "Davids-Gateway"
+
+  - type: spider
+    parameters:
+      context: "Davids-Gateway"
+      url: "${ZAP_TARGET_URL}/login"
+      maxDuration: 3
+      parseComments: true
+      parseRobotsTxt: false
+
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 5
+
+  - type: activeScan
+    parameters:
+      context: "Davids-Gateway"
+      maxRuleDurationInMins: 5
+      maxScanDurationInMins: 25
+      threadPerHost: 4
+
+  - type: report
+    parameters:
+      template: "sarif-json"
+      reportDir: "/zap/wrk/reports"
+      reportFile: "zap-stage4.sarif"
+      reportTitle: "Davids Stage 4 OWASP ZAP Full Security Report (SARIF)"
+      reportDescription: "Quarterly/Release active + passive + OpenAPI DAST scan across Davids YARP Gateway"
+
+  - type: report
+    parameters:
+      template: "traditional-json"
+      reportDir: "/zap/wrk/reports"
+      reportFile: "zap-stage4.json"
+      reportTitle: "Davids Stage 4 OWASP ZAP Full Security Report (JSON)"
+
+  - type: report
+    parameters:
+      template: "traditional-html-plus"
+      reportDir: "/zap/wrk/reports"
+      reportFile: "zap-stage4.html"
+      reportTitle: "Davids Stage 4 OWASP ZAP Full Security Report (HTML)"
+
+  - type: exitStatus
+    parameters:
+      errorLevel: "Medium"
+      warnLevel: "Low"
+      okExitValue: 0
+      errorExitValue: 1
+      warnExitValue: 0
+    alwaysRun: true

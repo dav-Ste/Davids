@@ -1,0 +1,36 @@
+{
+  "x-restler-global-annotations": [
+    {
+      "producer_endpoint": "/customers",
+      "producer_method": "GET",
+      "producer_resource_name": "[0]/id",
+      "consumer_endpoint": "/customers/{customerId}",
+      "consumer_method": "GET",
+      "consumer_param": "customerId"
+    },
+    {
+      "producer_endpoint": "/customers",
+      "producer_method": "GET",
+      "producer_resource_name": "[0]/id",
+      "consumer_endpoint": "/customers/{customerId}",
+      "consumer_method": "PUT",
+      "consumer_param": "customerId"
+    },
+    {
+      "producer_endpoint": "/customers",
+      "producer_method": "GET",
+      "producer_resource_name": "[0]/id",
+      "consumer_endpoint": "/customers/{customerId}/state",
+      "consumer_method": "GET",
+      "consumer_param": "customerId"
+    },
+    {
+      "producer_endpoint": "/customers",
+      "producer_method": "GET",
+      "producer_resource_name": "[0]/id",
+      "consumer_endpoint": "/customers/{customerId}/state/{state}",
+      "consumer_method": "PUT",
+      "consumer_param": "customerId"
+    }
+  ]
+}

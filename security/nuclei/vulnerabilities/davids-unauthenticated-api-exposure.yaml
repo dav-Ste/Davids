@@ -1,0 +1,23 @@
+id: davids-vuln-unauthenticated-api-exposure
+
+info:
+  name: Davids Unauthenticated Access to Protected Identity or Customer APIs
+  author: davids-security
+  severity: critical
+  description: Detects authentication bypass where protected Identity, AdminIdentity, or Customers endpoints return 200 OK to anonymous callers.
+  tags: davids,vuln,authz,bypass
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/customers"
+      - "{{BaseURL}}/identity/me"
+      - "{{BaseURL}}/identity/me/login-audits"
+      - "{{BaseURL}}/admin-identity/me"
+      - "{{BaseURL}}/admin-identity/users"
+      - "{{BaseURL}}/admin-identity/login-audits"
+
+    matchers:
+      - type: status
+        status:
+          - 200

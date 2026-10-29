@@ -1,0 +1,547 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Davids Customers API",
+    "description": "Customer profile, registration completion, and administrator customer management endpoints protected by dual RS256 OIDC authorities.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:17320",
+      "description": "Davids YARP API Gateway"
+    }
+  ],
+  "paths": {
+    "/customers": {
+      "get": {
+        "tags": [
+          "Davids.Services.Customers.Api"
+        ],
+        "parameters": [
+          {
+            "name": "isVip",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "vipOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "vip",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "",
+                "valid",
+                "incomplete",
+                "suspicious",
+                "locked"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomerDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing or invalid RS256 Bearer access token."
+          },
+          "403": {
+            "description": "Caller lacks permission for this customer resource."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Davids.Services.Customers.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteCustomerRegistration"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing or invalid RS256 Bearer access token."
+          },
+          "403": {
+            "description": "Caller lacks permission for this customer resource."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/customers/{customerId}": {
+      "get": {
+        "tags": [
+          "Davids.Services.Customers.Api"
+        ],
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDetailsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing or invalid RS256 Bearer access token."
+          },
+          "403": {
+            "description": "Caller lacks permission for this customer resource."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Davids.Services.Customers.Api"
+        ],
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDetailsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing or invalid RS256 Bearer access token."
+          },
+          "403": {
+            "description": "Caller lacks permission for this customer resource."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/customers/{customerId}/state": {
+      "get": {
+        "tags": [
+          "Davids.Services.Customers.Api"
+        ],
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerStateDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing or invalid RS256 Bearer access token."
+          },
+          "403": {
+            "description": "Caller lacks permission for this customer resource."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/customers/{customerId}/state/{state}": {
+      "put": {
+        "tags": [
+          "Davids.Services.Customers.Api"
+        ],
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "state",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "valid",
+                "incomplete",
+                "suspicious",
+                "locked"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing or invalid RS256 Bearer access token."
+          },
+          "403": {
+            "description": "Caller lacks permission for this customer resource."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CompleteCustomerRegistration": {
+        "required": [
+          "fullName",
+          "address"
+        ],
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fullName": {
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^[^\\u0000]*\\S[^\\u0000]*$",
+            "type": "string"
+          },
+          "address": {
+            "maxLength": 500,
+            "minLength": 1,
+            "pattern": "^[^\\u0000]*\\S[^\\u0000]*$",
+            "type": "string"
+          }
+        }
+      },
+      "CustomerDetailsDto": {
+        "type": "object",
+        "properties": {
+          "completedOrders": {
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "nullable": true,
+            "type": "string"
+          },
+          "fullName": {
+            "nullable": true,
+            "type": "string"
+          },
+          "address": {
+            "nullable": true,
+            "type": "string"
+          },
+          "isVip": {
+            "type": "boolean"
+          },
+          "state": {
+            "nullable": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedOrdersCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CustomerDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "nullable": true,
+            "type": "string"
+          },
+          "fullName": {
+            "nullable": true,
+            "type": "string"
+          },
+          "address": {
+            "nullable": true,
+            "type": "string"
+          },
+          "isVip": {
+            "type": "boolean"
+          },
+          "state": {
+            "nullable": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedOrdersCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CustomerStateDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "nullable": true,
+            "type": "string"
+          }
+        }
+      },
+      "UpdateCustomer": {
+        "required": [
+          "fullName",
+          "address"
+        ],
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fullName": {
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^[^\\u0000]*\\S[^\\u0000]*$",
+            "type": "string"
+          },
+          "address": {
+            "maxLength": 500,
+            "minLength": 1,
+            "pattern": "^[^\\u0000]*\\S[^\\u0000]*$",
+            "type": "string"
+          },
+          "email": {
+            "maxLength": 254,
+            "minLength": 6,
+            "pattern": "^[A-Za-z0-9_%+\\-]{1,20}(?:\\.[A-Za-z0-9_%+\\-]{1,20}){0,2}@(?:[A-Za-z0-9](?:[A-Za-z0-9\\-]{0,30}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}$",
+            "nullable": true,
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              null,
+              "valid",
+              "incomplete",
+              "suspicious",
+              "locked"
+            ],
+            "nullable": true,
+            "type": "string"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "description": "RS256 OIDC access token (CustomerBearer aud: davids-services or AdminBearer aud: davids-admin).",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Davids.Services.Customers.Api"
+    }
+  ]
+}

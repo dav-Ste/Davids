@@ -1,0 +1,23 @@
+id: davids-vuln-bff-logout-csrf-bypass
+
+info:
+  name: Davids BFF Logout Cross-Origin CSRF Bypass
+  author: davids-security
+  severity: high
+  description: Detects if POST /auth/logout accepts cross-origin requests from an untrusted Origin header instead of rejecting with 403 Forbidden.
+  tags: davids,vuln,csrf,bff
+
+http:
+  - raw:
+      - |
+        POST /auth/logout HTTP/1.1
+        Host: {{Hostname}}
+        Origin: https://evil.attacker.example
+        Content-Length: 0
+
+    matchers:
+      - type: status
+        status:
+          - 200
+          - 204
+          - 302

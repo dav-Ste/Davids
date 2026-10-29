@@ -1,0 +1,102 @@
+{
+  "restler_fuzzable_string": [
+    "fuzzstring",
+    "davids-stage4-probe"
+  ],
+  "restler_fuzzable_string_unquoted": [],
+  "restler_fuzzable_datetime": [
+    "2026-10-28T12:00:00Z"
+  ],
+  "restler_fuzzable_datetime_unquoted": [],
+  "restler_fuzzable_date": [
+    "2026-10-28"
+  ],
+  "restler_fuzzable_date_unquoted": [],
+  "restler_fuzzable_uuid4": [
+    "566048da-ed19-4cd3-8e0a-b7e0e1ec4d72"
+  ],
+  "restler_fuzzable_uuid4_unquoted": [],
+  "restler_fuzzable_int": [
+    "10",
+    "1"
+  ],
+  "restler_fuzzable_number": [
+    "1.23"
+  ],
+  "restler_fuzzable_bool": [
+    "false",
+    "true"
+  ],
+  "restler_fuzzable_object": [
+    "{ \"fuzz\": false }"
+  ],
+  "restler_custom_payload": {
+    "email": [
+      "restler.stage4.alpha@davids.example",
+      "restler.stage4.beta@davids.example",
+      "cust.b@davids.example"
+    ],
+    "password": [
+      "__RESTLER_RUNTIME_FUZZ_PASSWORD__"
+    ],
+    "role": [
+      "user"
+    ],
+    "fullName": [
+      "Stage4 Restler Customer",
+      "Updated Restler Customer"
+    ],
+    "address": [
+      "10 George Square, Glasgow G2 1DU"
+    ],
+    "state": [
+      "valid",
+      "locked",
+      "suspicious"
+    ],
+    "client_id": [
+      "davids-web"
+    ],
+    "response_type": [
+      "code"
+    ],
+    "grant_type": [
+      "authorization_code",
+      "refresh_token"
+    ],
+    "code_challenge_method": [
+      "S256"
+    ],
+    "scope": [
+      "openid email profile roles offline_access davids-services"
+    ]
+  },
+  "restler_custom_payload_unquoted": {},
+  "restler_custom_payload_uuid4_suffix": {},
+  "restler_custom_payload_header": {},
+  "restler_custom_payload_query": {
+    "search": [
+      ""
+    ],
+    "query": [
+      ""
+    ],
+    "isVip": [
+      "false",
+      "true"
+    ],
+    "vipOnly": [
+      "false"
+    ],
+    "vip": [
+      "false"
+    ],
+    "state": [
+      "valid",
+      "incomplete"
+    ],
+    "limit": [
+      "20"
+    ]
+  }
+}

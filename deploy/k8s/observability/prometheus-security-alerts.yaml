@@ -1,0 +1,100 @@
+# Production Cluster — Prometheus Operator PrometheusRule CRD for Davids Login-Audit & Runtime Security Alerts ($0 Apache-2.0)
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: davids-security-alerts
+  namespace: davids
+  labels:
+    app.kubernetes.io/part-of: davids-platform
+    release: kube-prometheus-stack
+    security.davids.io/lifecycle: production-cluster
+spec:
+  groups:
+    - name: davids.security.authentication.audit
+      interval: 30s
+      rules:
+        - alert: DavidsAdminAccountLockoutDetected
+          expr: sum(increase(davids_security_login_audit_total{domain="admin",outcome="account_locked"}[5m])) >= 1
+          for: 0m
+          labels:
+            severity: critical
+            component: admin-identity
+            lifecycle: production-cluster
+          annotations:
+            summary: "Administrator account lockout triggered in Davids.Services.AdminIdentity"
+            description: "At least one administrator account entered lockout ({{ $value | printf \"%.0f\" }} event(s) in 5m). Inspect Seq signal 'signal-davids-admin-lockout' and AdminLoginAuditLogs immediately."
+
+        - alert: DavidsCustomerCredentialStuffingLockoutSpike
+          expr: sum(increase(davids_security_login_audit_total{domain="customer",outcome="account_locked"}[5m])) >= 5
+          for: 1m
+          labels:
+            severity: warning
+            component: identity
+            lifecycle: production-cluster
+          annotations:
+            summary: "Elevated customer account lockouts indicating credential-stuffing or brute-force activity"
+            description: "Customer Identity recorded {{ $value | printf \"%.0f\" }} account_locked outcomes over the last 5 minutes."
+
+        - alert: DavidsOidcTokenReplayOrGrantTamperingDetected
+          expr: |
+            (sum(increase(davids_security_login_audit_total{outcome=~"token_grant_rejected|invalid_request_token|unsupported_grant_type"}[5m])) >= 3)
+            or
+            (sum(increase(davids_security_token_revoked_total{source="replay_cascade"}[5m])) >= 1)
+          for: 0m
+          labels:
+            severity: critical
+            component: oidc-token-security
+            lifecycle: production-cluster
+          annotations:
+            summary: "OIDC authorization-code / refresh-token replay or request_token tampering detected"
+            description: "OpenIddict rejected tampered grants or triggered RFC 6749 s10.5 replay cascade revocation ({{ $value | printf \"%.0f\" }} event(s) in 5m). Investigate Seq signal 'signal-davids-oidc-token-replay'."
+
+        - alert: DavidsAuthRateLimiterSpike
+          expr: sum by (service, policy) (rate(davids_security_rate_limit_rejected_total[5m])) > 0.5
+          for: 2m
+          labels:
+            severity: warning
+            component: rate-limiter
+            lifecycle: production-cluster
+          annotations:
+            summary: "Sustained HTTP 429 rate-limiter rejections on {{ $labels.service }} ({{ $labels.policy }})"
+            description: "Rate limiter '{{ $labels.policy }}' on '{{ $labels.service }}' is rejecting {{ $value | printf \"%.2f\" }} req/s over 5 minutes."
+
+        - alert: DavidsAdminBffCsrfRejectionSpike
+          expr: sum(increase(davids_security_bff_csrf_rejected_total[5m])) >= 5
+          for: 1m
+          labels:
+            severity: warning
+            component: api-gateway-bff
+            lifecycle: production-cluster
+          annotations:
+            summary: "Elevated Administrator BFF CSRF rejections at Davids.APIGateway"
+            description: "Davids.APIGateway blocked {{ $value | printf \"%.0f\" }} cookie-authenticated state-changing requests missing valid X-Requested-With / Origin headers in 5m."
+
+    - name: davids.security.cluster.runtime
+      interval: 30s
+      rules:
+        - alert: DavidsFalcoOrTetragonRuntimeIntrusion
+          expr: |
+            (sum(increase(falcosidekick_inputs_total{priority=~"Emergency|Alert|Critical|Error"}[5m])) >= 1)
+            or
+            (sum(increase(tetragon_policy_events_total[5m])) >= 1)
+          for: 0m
+          labels:
+            severity: critical
+            component: ebpf-runtime
+            lifecycle: production-cluster
+          annotations:
+            summary: "eBPF runtime threat detected or killed by Falco / Cilium Tetragon in cluster"
+            description: "Falco or Cilium Tetragon recorded {{ $value | printf \"%.0f\" }} high-severity container runtime security event(s) in the last 5 minutes."
+
+        - alert: DavidsKyvernoAdmissionPolicyViolation
+          expr: sum by (policy_name) (increase(kyverno_policy_results_total{policy_namespace=~"davids|",resource_namespace="davids",rule_result="fail",rule_type="validate"}[5m])) >= 1
+          for: 0m
+          labels:
+            severity: warning
+            component: kyverno-admission
+            lifecycle: production-cluster
+          annotations:
+            summary: "Kyverno blocked a non-compliant or unsigned pod in namespace 'davids' ({{ $labels.policy_name }})"
+            description: "Kyverno policy '{{ $labels.policy_name }}' rejected {{ $value | printf \"%.0f\" }} admission request(s) in namespace 'davids' over 5 minutes."

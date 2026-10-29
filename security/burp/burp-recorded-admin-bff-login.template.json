@@ -1,0 +1,43 @@
+{
+  "label": "Davids Administrator OIDC Authorization Code + PKCE (S256) BFF Login",
+  "version": 2,
+  "notes": "Substitute ${GATEWAY_BASE_URL}, ${BURP_ADMIN_EMAIL}, and ${BURP_ADMIN_PASSWORD} from Burp Suite DAST CI secrets at scan registration time. Keep /auth/logout excluded in scope so the active crawler preserves the HttpOnly BFF session cookie.",
+  "events": [
+    {
+      "eventType": "goto",
+      "url": "${GATEWAY_BASE_URL}/login"
+    },
+    {
+      "eventType": "userNavigate",
+      "triggers": [
+        {
+          "eventType": "click",
+          "cssSelector": "#login-btn",
+          "tagName": "BUTTON"
+        }
+      ]
+    },
+    {
+      "eventType": "typing",
+      "cssSelector": "input[name='email']",
+      "typedValue": "${BURP_ADMIN_EMAIL}",
+      "masked": false
+    },
+    {
+      "eventType": "typing",
+      "cssSelector": "input[name='password']",
+      "typedValue": "${BURP_ADMIN_PASSWORD}",
+      "masked": true
+    },
+    {
+      "eventType": "userNavigate",
+      "triggers": [
+        {
+          "eventType": "click",
+          "cssSelector": "button[type='submit']",
+          "tagName": "BUTTON"
+        }
+      ]
+    }
+  ]
+}

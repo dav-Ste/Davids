@@ -1,0 +1,21 @@
+{
+  "SwaggerSpecFilePath": [
+    "specs/admin-identity.restler.openapi.json",
+    "specs/customers.restler.openapi.json"
+  ],
+  "AnnotationFilePath": "annotations-admin.json",
+  "CustomDictionaryFilePath": "dict.template.json",
+  "IncludeOptionalParameters": true,
+  "UseHeaderExamples": true,
+  "UsePathExamples": true,
+  "UseQueryExamples": true,
+  "UseBodyExamples": true,
+  "DiscoverExamples": false,
+  "DataFuzzing": true,
+  "ReadOnlyFuzz": false,
+  "ResolveQueryDependencies": true,
+  "ResolveBodyDependencies": true,
+  "ResolveHeaderDependencies": false,
+  "UseRefreshableToken": true,
+  "AllowGetProducers": true
+}

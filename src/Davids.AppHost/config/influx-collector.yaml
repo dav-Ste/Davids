@@ -1,0 +1,19 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+processors:
+  batch: {}
+exporters:
+  influxdb:
+    endpoint: ${env:INFLUXDB_ENDPOINT}
+    org: davids
+    bucket: identity
+    metrics_schema: telegraf-prometheus-v2
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [influxdb]

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Sdk Name="Aspire.AppHost.Sdk" Version="13.6.1" />
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AspireUseCliBundle>false</AspireUseCliBundle>
+    <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+    <IsAspireHost>true</IsAspireHost>
+    <UserSecretsId>davids-identity-apphost</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../Davids.Services.Identity/src/Davids.Services.Identity.Api/Davids.Services.Identity.Api.csproj" />
+    <ProjectReference Include="../../../Davids.Services.AdminIdentity/src/Davids.Services.AdminIdentity.Api/Davids.Services.AdminIdentity.Api.csproj" />
+    <ProjectReference Include="../../../Davids.Services.Customers/src/Davids.Services.Customers.Api/Davids.Services.Customers.Api.csproj" />
+    <ProjectReference Include="../../../Davids.APIGateway/src/Davids.APIGateway.Api/Davids.APIGateway.Api.csproj" />
+    <ProjectReference Include="../../../Davids.Frontend.Admin/src/Davids.Frontend.Admin/Davids.Frontend.Admin.csproj" />
+    <ProjectReference Include="../Davids.Bootstrap/Davids.Bootstrap.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+    <PackageReference Include="Aspire.Hosting.SqlServer" />
+    <PackageReference Include="Aspire.Hosting.RabbitMQ" />
+    <PackageReference Include="Aspire.Hosting.Redis" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+</Project>

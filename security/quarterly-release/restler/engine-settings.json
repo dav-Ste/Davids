@@ -1,0 +1,33 @@
+{
+  "max_combinations": 20,
+  "max_request_execution_time": 30,
+  "max_sequence_length": 10,
+  "time_budget": 0.25,
+  "no_tokens_in_logs": true,
+  "save_results_in_fixed_dirname": true,
+  "wait_for_async_resource_creation": true,
+  "token_refresh_interval": 600,
+  "checkers": {
+    "leakagerule": {
+      "mode": "normal"
+    },
+    "resourcehierarchy": {
+      "mode": "normal"
+    },
+    "useafterfree": {
+      "mode": "normal"
+    },
+    "namespacerule": {
+      "mode": "normal"
+    },
+    "invaliddynamicobject": {
+      "mode": "normal"
+    },
+    "payloadbody": {
+      "mode": "normal"
+    },
+    "invalidvalue": {
+      "mode": "normal"
+    }
+  }
+}

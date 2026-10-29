@@ -1,0 +1,210 @@
+# Production Cluster — Grafana 13.2.x Unified Alerting Provisioning for Davids Login-Audit & Runtime Security
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: davids-security-audit
+    folder: Davids
+    interval: 1m
+    rules:
+      - uid: davids-admin-lockout
+        title: Davids Admin Account Lockout Detected
+        condition: C
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "Administrator account lockout triggered in Davids.Services.AdminIdentity"
+          description: "Inspect Seq signal 'signal-davids-admin-lockout' and AdminLoginAuditLogs immediately."
+        labels:
+          severity: critical
+          component: admin-identity
+          lifecycle: production-cluster
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(increase(davids_security_login_audit_total{domain="admin",outcome="account_locked"}[5m])) or vector(0)
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0.5]
+
+      - uid: davids-customer-lockout-spike
+        title: Davids Customer Credential-Stuffing Lockout Spike
+        condition: C
+        for: 1m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "Elevated customer account lockouts (>= 5 in 5m)"
+          description: "Possible credential-stuffing or brute-force campaign against Customer Identity."
+        labels:
+          severity: warning
+          component: identity
+          lifecycle: production-cluster
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(increase(davids_security_login_audit_total{domain="customer",outcome="account_locked"}[5m])) or vector(0)
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [4.5]
+
+      - uid: davids-oidc-replay-tampering
+        title: Davids OIDC Token Replay or Grant Tampering Detected
+        condition: C
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "OIDC authorization-code / refresh-token replay or request_token tampering detected"
+          description: "OpenIddict rejected tampered grants or triggered RFC 6749 s10.5 replay cascade revocation."
+        labels:
+          severity: critical
+          component: oidc-token-security
+          lifecycle: production-cluster
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: >-
+                (sum(increase(davids_security_token_revoked_total{source="replay_cascade"}[5m])) or vector(0)) * 3
+                + (sum(increase(davids_security_login_audit_total{outcome=~"token_grant_rejected|invalid_request_token|unsupported_grant_type"}[5m])) or vector(0))
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [2.5]
+
+      - uid: davids-rate-limit-spike
+        title: Davids HTTP 429 Rate-Limiter Rejection Spike
+        condition: C
+        for: 2m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "Sustained HTTP 429 rate-limiter rejections (> 0.5 req/s)"
+          description: "Edge YARP Gateway or OIDC endpoint rate limiters are actively throttling abusive traffic."
+        labels:
+          severity: warning
+          component: rate-limiter
+          lifecycle: production-cluster
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(rate(davids_security_rate_limit_rejected_total[5m])) or vector(0)
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0.5]
+
+      - uid: davids-bff-csrf-spike
+        title: Davids Admin BFF CSRF Rejection Spike
+        condition: C
+        for: 1m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "Elevated Administrator BFF CSRF rejections (>= 5 in 5m)"
+          description: "Davids.APIGateway blocked cookie-authenticated requests failing X-Requested-With / Origin verification."
+        labels:
+          severity: warning
+          component: api-gateway-bff
+          lifecycle: production-cluster
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(increase(davids_security_bff_csrf_rejected_total[5m])) or vector(0)
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [4.5]
+
+      - uid: davids-ebpf-runtime-intrusion
+        title: Davids Falco / Tetragon eBPF Runtime Intrusion
+        condition: C
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "Falco or Cilium Tetragon detected/killed a container runtime threat in namespace 'davids'"
+          description: "Inspect Seq signal 'signal-davids-falco-runtime' and Tetragon/Falco pod events immediately."
+        labels:
+          severity: critical
+          component: ebpf-runtime
+          lifecycle: production-cluster
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: >-
+                (sum(increase(falcosidekick_inputs_total{priority=~"Emergency|Alert|Critical|Error"}[5m])) or vector(0))
+                + (sum(increase(tetragon_policy_events_total[5m])) or vector(0))
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0.5]

@@ -1,0 +1,39 @@
+id: davids-posture-auth-and-bff-boundaries
+
+info:
+  name: Davids API Gateway Auth, BFF Redirect, CSRF & TRACE Boundary Assertion
+  author: davids-security
+  severity: info
+  description: Verifies anonymous browser /login redirect, anonymous API 401 enforcement, cross-origin BFF logout 403 CSRF rejection, and HTTP TRACE 405 blocking.
+  tags: davids,posture,authz,csrf,bff
+
+http:
+  - raw:
+      - |
+        GET / HTTP/1.1
+        Host: {{Hostname}}
+        Accept: text/html
+
+      - |
+        GET /customers HTTP/1.1
+        Host: {{Hostname}}
+
+      - |
+        POST /auth/logout HTTP/1.1
+        Host: {{Hostname}}
+        Origin: https://evil.attacker.example
+        Content-Length: 0
+
+      - |
+        TRACE /gateway-info HTTP/1.1
+        Host: {{Hostname}}
+
+    req-condition: true
+    matchers:
+      - type: dsl
+        dsl:
+          - "status_code_1 == 302 && contains(tolower(header_1), '/login')"
+          - "status_code_2 == 401"
+          - "status_code_3 == 403"
+          - "status_code_4 == 405"
+        condition: and

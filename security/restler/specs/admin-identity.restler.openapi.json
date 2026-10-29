@@ -1,0 +1,497 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Davids Administrator Identity OIDC API",
+    "description": "Dedicated OAuth 2.1 / OpenID Connect administrator authority (adminidentitydb, RS256 + PKCE S256). No public sign-up endpoint exists.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:17320",
+      "description": "Davids YARP API Gateway"
+    }
+  ],
+  "paths": {
+    "/admin-identity/connect/token": {
+      "post": {
+        "tags": [
+          "Davids.Services.AdminIdentity.Api"
+        ],
+        "summary": "Exchange a confidential BFF OAuth 2.1 authorization code (+ PKCE verifier) or refresh token.",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "required": [
+                  "grant_type",
+                  "client_id"
+                ],
+                "type": "object",
+                "properties": {
+                  "grant_type": {
+                    "enum": [
+                      "authorization_code",
+                      "refresh_token"
+                    ],
+                    "type": "string"
+                  },
+                  "client_id": {
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "client_secret": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "code": {
+                    "maxLength": 2048,
+                    "type": "string"
+                  },
+                  "redirect_uri": {
+                    "maxLength": 512,
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "code_verifier": {
+                    "maxLength": 128,
+                    "minLength": 43,
+                    "type": "string"
+                  },
+                  "refresh_token": {
+                    "maxLength": 2048,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          }
+        }
+      }
+    },
+    "/admin-identity/connect/userinfo": {
+      "get": {
+        "tags": [
+          "Davids.Services.AdminIdentity.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked administrator Bearer token."
+          },
+          "403": {
+            "description": "Caller does not hold the admin role."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Davids.Services.AdminIdentity.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked administrator Bearer token."
+          },
+          "403": {
+            "description": "Caller does not hold the admin role."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/admin-identity/me": {
+      "get": {
+        "tags": [
+          "Davids.Services.AdminIdentity.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked administrator Bearer token."
+          },
+          "403": {
+            "description": "Caller does not hold the admin role."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/admin-identity/users": {
+      "get": {
+        "tags": [
+          "Davids.Services.AdminIdentity.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminUserDto"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked administrator Bearer token."
+          },
+          "403": {
+            "description": "Caller does not hold the admin role."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Davids.Services.AdminIdentity.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAdminUser"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked administrator Bearer token."
+          },
+          "403": {
+            "description": "Caller does not hold the admin role."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/admin-identity/login-audits": {
+      "get": {
+        "tags": [
+          "Davids.Services.AdminIdentity.Api"
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "maximum": 500,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "succeeded",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminLoginAuditDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked administrator Bearer token."
+          },
+          "403": {
+            "description": "Caller does not hold the admin role."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AdminLoginAuditDto": {
+        "required": [
+          "id",
+          "occurredAtUtc",
+          "adminUserId",
+          "email",
+          "succeeded",
+          "outcome",
+          "failureReason",
+          "clientId",
+          "clientIpAddress",
+          "userAgent",
+          "correlationId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "occurredAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "adminUserId": {
+            "nullable": true,
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "nullable": true,
+            "type": "string"
+          },
+          "succeeded": {
+            "type": "boolean"
+          },
+          "outcome": {
+            "nullable": true,
+            "type": "string"
+          },
+          "failureReason": {
+            "nullable": true,
+            "type": "string"
+          },
+          "clientId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "clientIpAddress": {
+            "nullable": true,
+            "type": "string"
+          },
+          "userAgent": {
+            "nullable": true,
+            "type": "string"
+          },
+          "correlationId": {
+            "nullable": true,
+            "type": "string"
+          }
+        }
+      },
+      "AdminUserDto": {
+        "required": [
+          "id",
+          "email",
+          "fullName",
+          "role",
+          "isActive",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "nullable": true,
+            "type": "string"
+          },
+          "fullName": {
+            "nullable": true,
+            "type": "string"
+          },
+          "role": {
+            "nullable": true,
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateAdminUser": {
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "adminId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "maxLength": 254,
+            "minLength": 6,
+            "pattern": "^[A-Za-z0-9_%+\\-]{1,20}(?:\\.[A-Za-z0-9_%+\\-]{1,20}){0,2}@(?:[A-Za-z0-9](?:[A-Za-z0-9\\-]{0,30}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}$",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 128,
+            "minLength": 12,
+            "pattern": "^[^\\u0000]*\\S[^\\u0000]*$",
+            "type": "string"
+          },
+          "fullName": {
+            "maxLength": 200,
+            "pattern": "^[^\\u0000]*$",
+            "nullable": true,
+            "type": "string"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "description": "RS256 OIDC administrator access token (aud: davids-admin, role: admin).",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Davids.Services.AdminIdentity.Api"
+    }
+  ]
+}

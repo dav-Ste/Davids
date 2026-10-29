@@ -1,0 +1,83 @@
+{
+  "name": "Davids Platform - Staging Nightly Web BFF & OpenAPI DAST",
+  "version": "2.0",
+  "davidsProfile": {
+    "targetGatewayEnvVar": "DAVIDS_STAGE3_GATEWAY_URL",
+    "openApiDefinitions": [
+      "security/openapi/identity.gateway.openapi.json",
+      "security/openapi/admin-identity.gateway.openapi.json",
+      "security/openapi/customers.gateway.openapi.json"
+    ],
+    "recordedLoginSequence": "security/burp/burp-recorded-admin-bff-login.template.json",
+    "sessionPreservationExclusions": [
+      "/auth/logout",
+      "/signout-callback-oidc",
+      "/admin-identity/connect/logout"
+    ]
+  },
+  "scan_configurations": [
+    {
+      "name": "Davids BFF + API Active Audit",
+      "scanner": {
+        "scope": {
+          "advanced_mode": true,
+          "include": [
+            { "protocol": "any", "file": "^/login$" },
+            { "protocol": "any", "file": "^/$" },
+            { "protocol": "any", "file": "^/gateway-info$" },
+            { "protocol": "any", "file": "^/auth/me$" },
+            { "protocol": "any", "file": "^/customers(/.*)?$" },
+            { "protocol": "any", "file": "^/identity(/.*)?$" },
+            { "protocol": "any", "file": "^/admin-identity(/.*)?$" }
+          ],
+          "exclude": [
+            { "protocol": "any", "file": "^/auth/logout$" },
+            { "protocol": "any", "file": "^/signout-callback-oidc$" },
+            { "protocol": "any", "file": "^/admin-identity/connect/logout$" },
+            { "protocol": "any", "file": "^/(health|alive)$" }
+          ]
+        },
+        "crawl_optimization": {
+          "crawl_strategy": "more_complete",
+          "crawl_limits": {
+            "maximum_crawl_time": 15,
+            "maximum_unique_locations": 500
+          },
+          "submit_forms": true,
+          "execute_javascript": true
+        },
+        "audit_optimization": {
+          "audit_speed": "thorough",
+          "audit_accuracy": "minimize_false_positives",
+          "skip_flagged_insertion_points": false
+        },
+        "issues_reported": {
+          "scan_type_intrusive_active": true,
+          "scan_type_light_active": true,
+          "scan_type_passive": true,
+          "scan_type_javascript_analysis": true,
+          "individual_issues": {
+            "cross_site_scripting_reflected": true,
+            "cross_site_scripting_stored": true,
+            "cross_site_scripting_dom_based": true,
+            "sql_injection": true,
+            "cross_site_request_forgery": true,
+            "cross_origin_resource_sharing": true,
+            "open_redirection_reflected": true,
+            "open_redirection_dom_based": true,
+            "jwt_weak_or_hardcoded_secret": true,
+            "content_security_policy": true,
+            "tls_cookie_without_secure_flag_set": true,
+            "cookie_without_httponly_flag_set": true,
+            "http_trace_method_is_enabled": true,
+            "strict_transport_security_not_enforced": true
+          }
+        },
+        "handling_application_errors_during_audit": {
+          "pause_task_consecutive_timed_out_audit_requests": 25,
+          "skip_insertion_point_consecutive_failed_requests": 10
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+id: davids-posture-gateway-security-headers
+
+info:
+  name: Davids API Gateway Security Headers Posture Assertion
+  author: davids-security
+  severity: info
+  description: Verifies that Davids.APIGateway enforces strict CSP, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, and Permissions-Policy headers.
+  tags: davids,posture,headers,csp
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/login"
+
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+
+      - type: word
+        part: header
+        words:
+          - "default-src 'self'"
+          - "script-src 'self'"
+          - "object-src 'none'"
+          - "frame-ancestors 'none'"
+          - "nosniff"
+          - "strict-origin-when-cross-origin"
+        condition: and
+
+      - type: word
+        part: header
+        words:
+          - "unsafe-inline"
+          - "unsafe-eval"
+        negative: true
+        condition: or

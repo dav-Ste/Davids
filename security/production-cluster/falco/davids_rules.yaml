@@ -1,0 +1,115 @@
+# Production Cluster — CNCF Falco 0.45.x Runtime Security Rules for Davids (.NET 10 Microservices)
+# License: Apache-2.0 ($0 free CNCF Graduated runtime threat detection)
+
+- list: davids_shell_and_recon_binaries
+  items:
+    - sh
+    - bash
+    - dash
+    - ash
+    - zsh
+    - ksh
+    - curl
+    - wget
+    - nc
+    - ncat
+    - netcat
+    - socat
+    - nmap
+    - tcpdump
+    - python
+    - python3
+    - perl
+    - ruby
+    - pwsh
+    - chmod
+    - chown
+
+- list: davids_allowed_egress_ports
+  items: [53, 80, 443, 1433, 3000, 4317, 4318, 5341, 5672, 6379, 8080, 8200, 9090, 15001, 15006, 15012, 15020, 15021, 15090, 16686]
+
+- macro: in_davids_namespace
+  condition: (k8s.ns.name = "davids")
+
+- macro: is_davids_dotnet_container
+  condition: >
+    (in_davids_namespace and
+     container.name in ("api-gateway", "identity", "admin-identity", "customers", "frontend-admin"))
+
+- rule: Davids Dotnet Container Spawned Shell or Recon Tool
+  desc: >
+    Detects post-exploitation execution of an interactive shell, scripting interpreter,
+    or network reconnaissance utility inside a distroless/non-root Davids .NET 10 container.
+  condition: >
+    spawned_process and
+    is_davids_dotnet_container and
+    proc.name in (davids_shell_and_recon_binaries)
+  output: >
+    CRITICAL Davids runtime intrusion: unexpected process spawned in .NET container
+    (ns=%k8s.ns.name pod=%k8s.pod.name container=%container.name user=%user.name
+    uid=%user.uid proc=%proc.name cmdline=%proc.cmdline parent=%proc.pname)
+  priority: CRITICAL
+  tags: [davids, runtime, container, mitre_execution, T1059]
+
+- rule: Davids Fileless or Writable-Tmp Binary Execution
+  desc: >
+    Detects execution of dropped binaries or fileless payloads from /tmp, /var/tmp,
+    /dev/shm, or anonymous memfd descriptors inside the davids namespace.
+  condition: >
+    spawned_process and
+    in_davids_namespace and
+    (proc.exepath startswith "/tmp/" or
+     proc.exepath startswith "/var/tmp/" or
+     proc.exepath startswith "/dev/shm/" or
+     proc.exepath contains "memfd:")
+  output: >
+    CRITICAL Davids fileless/tmp execution attempt blocked/detected
+    (ns=%k8s.ns.name pod=%k8s.pod.name container=%container.name exe=%proc.exepath cmdline=%proc.cmdline)
+  priority: CRITICAL
+  tags: [davids, runtime, fileless, mitre_defense_evasion, T1620]
+
+- rule: Davids Unexpected Read of Kubernetes Secret or Credential Path
+  desc: >
+    Detects any non-dotnet process inside a Davids container attempting to read
+    Kubernetes ServiceAccount tokens, /etc/shadow, or TLS/Vault credential mounts.
+  condition: >
+    open_read and
+    is_davids_dotnet_container and
+    not proc.name in ("dotnet") and
+    (fd.name startswith "/var/run/secrets/" or
+     fd.name = "/etc/shadow" or
+     fd.name startswith "/etc/ssl/private/")
+  output: >
+    CRITICAL Davids credential access by non-dotnet process
+    (ns=%k8s.ns.name pod=%k8s.pod.name container=%container.name proc=%proc.name file=%fd.name)
+  priority: CRITICAL
+  tags: [davids, runtime, credential_access, T1552]
+
+- rule: Davids Container Privilege Escalation or Namespace Escape Syscall
+  desc: >
+    Detects ptrace, setns, unshare, bpf, or kernel-module syscalls inside the davids namespace.
+  condition: >
+    in_davids_namespace and
+    evt.type in (ptrace, setns, unshare, bpf, init_module, finit_module) and
+    evt.dir = <
+  output: >
+    CRITICAL Davids container escape / privilege escalation syscall detected
+    (ns=%k8s.ns.name pod=%k8s.pod.name container=%container.name syscall=%evt.type proc=%proc.cmdline uid=%user.uid)
+  priority: CRITICAL
+  tags: [davids, runtime, privilege_escalation, container_escape, T1611]
+
+- rule: Davids Unexpected Outbound Connection Port from Dotnet Pod
+  desc: >
+    Detects outbound TCP connections from Davids .NET containers to unexpected destination ports
+    outside Istio Envoy, SQL Server, Redis, RabbitMQ, Vault, Seq, and OpenTelemetry ports.
+  condition: >
+    outbound and
+    is_davids_dotnet_container and
+    fd.l4proto = tcp and
+    not fd.sport in (davids_allowed_egress_ports) and
+    not fd.dport in (davids_allowed_egress_ports)
+  output: >
+    WARNING Davids unexpected outbound TCP egress attempt
+    (ns=%k8s.ns.name pod=%k8s.pod.name container=%container.name dest=%fd.rip:%fd.rport proc=%proc.name)
+  priority: WARNING
+  tags: [davids, runtime, command_and_control, exfiltration, T1071]

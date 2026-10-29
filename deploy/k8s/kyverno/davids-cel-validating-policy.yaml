@@ -1,0 +1,48 @@
+# Production Cluster — Modern Kyverno v1.19+ CEL ValidatingPolicy (policies.kyverno.io/v1)
+# Compiles directly to native Kubernetes CEL expressions with zero JMESPath overhead ($0 CNCF Apache-2.0).
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: davids-cel-workload-hardening
+  annotations:
+    policies.kyverno.io/title: Davids CEL Non-Root Digest-Pinned & Istio Sidecar Guard
+    policies.kyverno.io/category: Pod Security & Zero-Trust Mesh (CEL)
+    policies.kyverno.io/severity: high
+spec:
+  validationActions:
+    - Deny
+  matchConstraints:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: davids
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+  validations:
+    - expression: >-
+        object.metadata.namespace != 'davids' ||
+        (object.spec.?automountServiceAccountToken.orValue(true) == false &&
+         object.spec.?hostPID.orValue(false) == false &&
+         object.spec.?hostNetwork.orValue(false) == false &&
+         object.spec.?hostIPC.orValue(false) == false)
+      message: "Pods in namespace 'davids' must disable automountServiceAccountToken and hostPID/hostNetwork/hostIPC."
+    - expression: >-
+        object.metadata.namespace != 'davids' ||
+        object.spec.containers.all(c, c.image.contains('@sha256:') && !c.image.endsWith(':latest'))
+      message: "Every container image in namespace 'davids' must use an immutable '@sha256:' digest and never ':latest'."
+    - expression: >-
+        object.metadata.namespace != 'davids' ||
+        object.spec.containers.all(c,
+          c.name in ['istio-proxy', 'istio-validation'] ||
+          (c.?securityContext.?runAsNonRoot.orValue(false) == true &&
+           c.?securityContext.?runAsUser.orValue(0) >= 10000 &&
+           c.?securityContext.?allowPrivilegeEscalation.orValue(true) == false &&
+           c.?securityContext.?readOnlyRootFilesystem.orValue(false) == true))
+      message: "Application containers in 'davids' must run non-root (UID >= 10000), readOnlyRootFilesystem=true, and allowPrivilegeEscalation=false."
+    - expression: >-
+        object.metadata.namespace != 'davids' ||
+        (object.metadata.?annotations[?'sidecar.istio.io/inject'].orValue('true') != 'false' &&
+         object.metadata.?labels[?'sidecar.istio.io/inject'].orValue('true') != 'false')
+      message: "Disabling Istio STRICT mTLS sidecar injection is prohibited in namespace 'davids'."

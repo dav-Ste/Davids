@@ -1,0 +1,39 @@
+# Davids Stage 3 — Schemathesis v4.32.x OpenAPI Property-Based & Stateful Fuzzing Configuration
+# Exercised locally via .\scripts\Scan-Schemathesis.ps1 and in CI via .github/workflows/staging-dast-nightly.yml
+
+continue-on-failure = true
+max-redirects = 0
+request-timeout = 10
+rate-limit = "auto"
+
+[generation]
+max-examples = 50
+allow-x00 = true
+unique-inputs = true
+
+[checks]
+enabled = true
+
+[phases]
+examples.enabled = true
+coverage.enabled = true
+fuzzing.enabled = true
+stateful.enabled = true
+
+# OAuth 2.1 /connect/token requires single-use cryptographic authorization codes issued by
+# interactive /connect/authorize + PKCE S256 verification; synthetic codes must always return 400.
+# OpenIddict also rejects undeclared HTTP verbs on /connect/* with RFC 6749 400 invalid_request (ID2084).
+[[operations]]
+include-path-regex = "/connect/(token|userinfo)$"
+
+[operations.checks]
+positive_data_acceptance.enabled = false
+unsupported_method.enabled = false
+
+# Customer sign-up intentionally returns 400 (email_in_use) when stateful links replay an already-registered
+# userId or email (preserving the Davids Identity domain contract).
+[[operations]]
+include-path-regex = "(^|/identity)/sign-up$"
+
+[operations.checks]
+positive_data_acceptance.enabled = false

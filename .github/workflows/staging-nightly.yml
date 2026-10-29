@@ -1,0 +1,332 @@
+name: Staging / Nightly — DAST & OpenAPI Fuzzing
+
+on:
+  schedule:
+    - cron: "15 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  staging-nightly-dast-suite:
+    name: Dastardly (Burp DAST) + Schemathesis OpenAPI Fuzzing + Nuclei Regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout Davids
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: Davids
+
+      - name: Checkout Davids.Shared
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Shared
+          path: Davids.Shared
+
+      - name: Checkout Davids.Services.Identity
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Services.Identity
+          path: Davids.Services.Identity
+
+      - name: Checkout Davids.Services.AdminIdentity
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Services.AdminIdentity
+          path: Davids.Services.AdminIdentity
+
+      - name: Checkout Davids.Services.Customers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Services.Customers
+          path: Davids.Services.Customers
+
+      - name: Checkout Davids.APIGateway
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.APIGateway
+          path: Davids.APIGateway
+
+      - name: Checkout Davids.Frontend.Admin
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Frontend.Admin
+          path: Davids.Frontend.Admin
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install SHA-pinned ProjectDiscovery Nuclei v3.11.1
+        uses: projectdiscovery/nuclei-action@32a91c0da7be14c07b0ade6c14fa0f6e78d97c9c # v3.1.0
+        with:
+          version: "v3.11.1"
+          install-only: "true"
+
+      - name: Validate OpenAPI 3.1 contracts, Schemathesis TOML, Nuclei YAML & Burp DAST configs
+        shell: pwsh
+        working-directory: ./Davids
+        run: |
+          ./scripts/security/staging-nightly/Invoke-StagingNightlyGates.ps1 -ValidateOnly
+
+      - name: Resolve target or launch ephemeral 5-service Davids stack + mint PKCE OIDC tokens
+        id: target
+        env:
+          VAR_STAGING_URL: ${{ vars.STAGING_GATEWAY_URL }}
+          STAGING_ADMIN_EMAIL: ${{ secrets.STAGING_ADMIN_EMAIL }}
+          STAGING_ADMIN_PASSWORD: ${{ secrets.STAGING_ADMIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/staging-nightly-logs" "$GITHUB_WORKSPACE/Davids/TestResults/staging-nightly"
+          chmod 0777 "$GITHUB_WORKSPACE/Davids/TestResults/staging-nightly"
+
+          EXTERNAL_URL="${VAR_STAGING_URL:-}"
+          if [ -n "$EXTERNAL_URL" ]; then
+            GATEWAY_URL="${EXTERNAL_URL%/}"
+            DASTARDLY_URL="$GATEWAY_URL"
+            ADMIN_EMAIL="$STAGING_ADMIN_EMAIL"
+            ADMIN_PASS="$STAGING_ADMIN_PASSWORD"
+          else
+            OTP_SQL="$(openssl rand -hex 16)Aa1!"
+            echo "::add-mask::$OTP_SQL"
+            ADMIN_EMAIL="staging.admin@davids.example"
+            ADMIN_PASS="$(openssl rand -hex 16)Bb2!"
+            echo "::add-mask::$ADMIN_PASS"
+
+            docker run -d --name davids-staging-sql -p 127.0.0.1:1433:1433 \
+              -e ACCEPT_EULA=Y -e "MSSQL_SA_PASSWORD=$OTP_SQL" \
+              mcr.microsoft.com/mssql/server:2022-latest
+
+            docker run -d --name davids-staging-redis -p 127.0.0.1:6379:6379 \
+              redis:7-alpine
+
+            for i in $(seq 1 60); do
+              if (echo > /dev/tcp/127.0.0.1/1433) 2>/dev/null && (echo > /dev/tcp/127.0.0.1/6379) 2>/dev/null; then
+                break
+              fi
+              sleep 1
+            done
+            sleep 8
+
+            dotnet build ./Davids/Davids.sln -c Release -warnaserror -m:2 -nr:false --tl:off
+
+            export ConnectionStrings__identitydb="Server=127.0.0.1,1433;Database=identitydb;User Id=sa;Password=${OTP_SQL};TrustServerCertificate=True;Encrypt=True"
+            export ConnectionStrings__adminidentitydb="Server=127.0.0.1,1433;Database=adminidentitydb;User Id=sa;Password=${OTP_SQL};TrustServerCertificate=True;Encrypt=True"
+            export ConnectionStrings__customersdb="Server=127.0.0.1,1433;Database=customersdb;User Id=sa;Password=${OTP_SQL};TrustServerCertificate=True;Encrypt=True"
+            export ConnectionStrings__redis="127.0.0.1:6379"
+            export ASPNETCORE_ENVIRONMENT="Development"
+            export RateLimiting__AuthPermitLimit="10000"
+            export RateLimiting__GeneralPermitLimit="50000"
+
+            dotnet run --no-build -c Release --project ./Davids.Services.Identity/src/Davids.Services.Identity.Api --urls http://127.0.0.1:5004 > "$RUNNER_TEMP/staging-nightly-logs/identity.log" 2>&1 &
+            dotnet run --no-build -c Release --project ./Davids.Services.AdminIdentity/src/Davids.Services.AdminIdentity.Api --urls http://127.0.0.1:17325 > "$RUNNER_TEMP/staging-nightly-logs/admin-identity.log" 2>&1 &
+            Customers__Oidc__MetadataAddress="http://127.0.0.1:5004/.well-known/openid-configuration" \
+            Customers__Oidc__AdminMetadataAddress="http://127.0.0.1:17325/.well-known/openid-configuration" \
+            Customers__Oidc__RequireHttpsMetadata="false" \
+              dotnet run --no-build -c Release --project ./Davids.Services.Customers/src/Davids.Services.Customers.Api --urls http://127.0.0.1:5002 > "$RUNNER_TEMP/staging-nightly-logs/customers.log" 2>&1 &
+            dotnet run --no-build -c Release --project ./Davids.Frontend.Admin/src/Davids.Frontend.Admin --urls http://127.0.0.1:17321 > "$RUNNER_TEMP/staging-nightly-logs/frontend.log" 2>&1 &
+
+            GatewayAuth__CustomerAuthority="http://127.0.0.1:5004" \
+            GatewayAuth__AdminAuthority="http://127.0.0.1:17325" \
+            GatewayAuth__AdminPublicAuthority="http://localhost:17320/admin-identity" \
+            GatewayAuth__RequireHttpsMetadata="false" \
+            ReverseProxy__Clusters__identity-cluster__Destinations__destination1__Address="http://127.0.0.1:5004" \
+            ReverseProxy__Clusters__admin-identity-cluster__Destinations__destination1__Address="http://127.0.0.1:17325" \
+            ReverseProxy__Clusters__customers-cluster__Destinations__destination1__Address="http://127.0.0.1:5002" \
+            ReverseProxy__Clusters__frontend-cluster__Destinations__destination1__Address="http://127.0.0.1:17321" \
+              dotnet run --no-build -c Release --project ./Davids.APIGateway/src/Davids.APIGateway.Api --urls http://0.0.0.0:17320 > "$RUNNER_TEMP/staging-nightly-logs/gateway.log" 2>&1 &
+
+            for i in $(seq 1 90); do
+              if curl -fsS http://127.0.0.1:17320/gateway-info >/dev/null 2>&1 && \
+                 curl -fsS http://127.0.0.1:17320/identity/.well-known/openid-configuration >/dev/null 2>&1 && \
+                 curl -fsS http://127.0.0.1:17320/admin-identity/.well-known/openid-configuration >/dev/null 2>&1; then
+                break
+              fi
+              sleep 1
+            done
+
+            dotnet run --no-build -c Release --project ./Davids/src/Davids.Bootstrap -- \
+              bootstrap-admin \
+              --connection-string "$ConnectionStrings__adminidentitydb" \
+              --email "$ADMIN_EMAIL" \
+              --password "$ADMIN_PASS"
+
+            pwsh -NoProfile -Command "& ./Davids/scripts/security/staging-nightly/Export-OpenApiSpecs.ps1 -GatewayUrl 'http://localhost:17320'"
+            git -C ./Davids diff --exit-code -- security/staging-nightly/openapi/
+
+            GATEWAY_URL="http://localhost:17320"
+            DOCKER_BRIDGE_IP="$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}')"
+            DASTARDLY_URL="http://${DOCKER_BRIDGE_IP}:17320"
+          fi
+
+          echo "gateway_url=$GATEWAY_URL" >> "$GITHUB_OUTPUT"
+          echo "dastardly_url=$DASTARDLY_URL" >> "$GITHUB_OUTPUT"
+
+          python3 - "$GATEWAY_URL" "$ADMIN_EMAIL" "$ADMIN_PASS" << 'PY'
+          import base64, hashlib, json, os, secrets, sys, urllib.parse, urllib.request
+
+          gw, admin_email, admin_pass = sys.argv[1], sys.argv[2], sys.argv[3]
+
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  return None
+
+          opener = urllib.request.build_opener(NoRedirect)
+
+          def mint_pkce(prefix, client_id, redirect_uri, scopes, email, password):
+              verifier = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode().rstrip("=")
+              challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip("=")
+              q = urllib.parse.urlencode({
+                  "client_id": client_id,
+                  "response_type": "code",
+                  "redirect_uri": redirect_uri,
+                  "scope": scopes,
+                  "code_challenge": challenge,
+                  "code_challenge_method": "S256",
+                  "state": "staging-nightly",
+              })
+              req = urllib.request.Request(
+                  f"{gw}/{prefix}/connect/authorize?{q}",
+                  data=urllib.parse.urlencode({"email": email, "password": password}).encode(),
+                  headers={"Content-Type": "application/x-www-form-urlencoded"},
+                  method="POST",
+              )
+              try:
+                  opener.open(req)
+                  raise RuntimeError("Expected 302 redirect from /connect/authorize")
+              except urllib.error.HTTPError as e:
+                  if e.code != 302:
+                      raise
+                  loc = e.headers["Location"]
+              code = urllib.parse.parse_qs(urllib.parse.urlparse(loc).query)["code"][0]
+              treq = urllib.request.Request(
+                  f"{gw}/{prefix}/connect/token",
+                  data=urllib.parse.urlencode({
+                      "grant_type": "authorization_code",
+                      "client_id": client_id,
+                      "code": code,
+                      "redirect_uri": redirect_uri,
+                      "code_verifier": verifier,
+                  }).encode(),
+                  headers={"Content-Type": "application/x-www-form-urlencoded"},
+                  method="POST",
+              )
+              with urllib.request.urlopen(treq) as resp:
+                  return json.loads(resp.read().decode())["access_token"]
+
+          cust_email = f"st.{secrets.token_hex(5)}@davids.example"
+          cust_pass = f"StNightly!{secrets.token_hex(6)}Aa9"
+          sreq = urllib.request.Request(
+              f"{gw}/identity/sign-up",
+              data=json.dumps({"email": cust_email, "password": cust_pass, "role": "user"}).encode(),
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+          urllib.request.urlopen(sreq).read()
+          cust_tok = mint_pkce("identity", "davids-customer-pkce", "http://localhost:17320/identity/callback",
+                               "openid profile email roles offline_access davids_api", cust_email, cust_pass)
+          print(f"::add-mask::{cust_tok}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"customer_bearer=Bearer {cust_tok}\n")
+
+          if admin_email and admin_pass:
+              adm_tok = mint_pkce("admin-identity", "davids-admin-cli", "http://localhost:17320/admin-cli/callback",
+                                  "openid profile email roles offline_access davids_api", admin_email, admin_pass)
+              print(f"::add-mask::{adm_tok}")
+              with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+                  fh.write(f"admin_bearer=Bearer {adm_tok}\n")
+          PY
+
+      - name: Schemathesis Unauthenticated Boundary Fuzzing (Identity, AdminIdentity, Customers)
+        shell: pwsh
+        working-directory: ./Davids
+        run: |
+          python3 -m pip install --quiet schemathesis==4.32.6
+          ./scripts/security/staging-nightly/Scan-Schemathesis.ps1 -GatewayUrl "${{ steps.target.outputs.gateway_url }}"
+
+      - name: Schemathesis Authenticated Customer OIDC RS256 + Stateful Fuzzing (Identity)
+        uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
+        with:
+          version: "4.32.6"
+          schema: "./Davids/security/staging-nightly/openapi/identity.gateway.openapi.json"
+          base-url: ${{ steps.target.outputs.gateway_url }}
+          config-file: "./Davids/security/staging-nightly/schemathesis/schemathesis.toml"
+          authorization: ${{ steps.target.outputs.customer_bearer }}
+          coverage-report-path: "./Davids/TestResults/staging-nightly/coverage-identity.html"
+          coverage-artifact-name: "schemathesis-coverage-identity"
+          coverage-pr-comment: "false"
+          args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-identity.junit.xml --warnings off"
+
+      - name: Schemathesis Authenticated Customer OIDC RS256 + Stateful Fuzzing (Customers POST)
+        uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
+        with:
+          version: "4.32.6"
+          schema: "./Davids/security/staging-nightly/openapi/customers.gateway.openapi.json"
+          base-url: ${{ steps.target.outputs.gateway_url }}
+          config-file: "./Davids/security/staging-nightly/schemathesis/schemathesis.toml"
+          authorization: ${{ steps.target.outputs.customer_bearer }}
+          coverage-report-path: "./Davids/TestResults/staging-nightly/coverage-customers-user.html"
+          coverage-artifact-name: "schemathesis-coverage-customers-user"
+          coverage-pr-comment: "false"
+          args: "--include-method POST --report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-customers-user.junit.xml --warnings off"
+
+      - name: Schemathesis Authenticated Admin OIDC RS256 Fuzzing (AdminIdentity)
+        if: steps.target.outputs.admin_bearer != ''
+        uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
+        with:
+          version: "4.32.6"
+          schema: "./Davids/security/staging-nightly/openapi/admin-identity.gateway.openapi.json"
+          base-url: ${{ steps.target.outputs.gateway_url }}
+          config-file: "./Davids/security/staging-nightly/schemathesis/schemathesis.toml"
+          authorization: ${{ steps.target.outputs.admin_bearer }}
+          coverage-report-path: "./Davids/TestResults/staging-nightly/coverage-admin-identity.html"
+          coverage-artifact-name: "schemathesis-coverage-admin-identity"
+          coverage-pr-comment: "false"
+          args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-admin-identity.junit.xml --warnings off"
+
+      - name: Schemathesis Authenticated Admin OIDC RS256 + Stateful Fuzzing (Customers Admin)
+        if: steps.target.outputs.admin_bearer != ''
+        uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
+        with:
+          version: "4.32.6"
+          schema: "./Davids/security/staging-nightly/openapi/customers.gateway.openapi.json"
+          base-url: ${{ steps.target.outputs.gateway_url }}
+          config-file: "./Davids/security/staging-nightly/schemathesis/schemathesis.toml"
+          authorization: ${{ steps.target.outputs.admin_bearer }}
+          coverage-report-path: "./Davids/TestResults/staging-nightly/coverage-customers-admin.html"
+          coverage-artifact-name: "schemathesis-coverage-customers-admin"
+          coverage-pr-comment: "false"
+          args: "--exclude-method POST --report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-customers-admin.junit.xml --warnings off"
+
+      - name: ProjectDiscovery Nuclei Posture Assertions & Vulnerability Regression
+        shell: pwsh
+        working-directory: ./Davids
+        run: |
+          ./scripts/security/staging-nightly/Scan-Nuclei.ps1 -GatewayUrl "${{ steps.target.outputs.gateway_url }}"
+
+      - name: PortSwigger Dastardly Web & BFF DAST Scan (/login)
+        uses: PortSwigger/dastardly-github-action@be689170753f3243af6c7e87c1eaa5b89d91205d # main (BURP_START_URL)
+        with:
+          target-url: "${{ steps.target.outputs.dastardly_url }}/login"
+          output-filename: "Davids/TestResults/staging-nightly/dastardly-login-report.xml"
+
+      - name: Upload Nuclei SARIF to GitHub Code Scanning
+        if: always() && hashFiles('Davids/TestResults/staging-nightly/nuclei-vulns.sarif') != ''
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          sarif_file: Davids/TestResults/staging-nightly/nuclei-vulns.sarif
+          category: nuclei-davids-staging-nightly
+
+      - name: Upload Staging / Nightly DAST Reports (Schemathesis JUnit, Nuclei JSONL/SARIF, Dastardly XML)
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: staging-nightly-dast-reports
+          path: Davids/TestResults/staging-nightly/
+          if-no-files-found: warn

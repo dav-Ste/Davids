@@ -1,0 +1,11 @@
+# Davids Stage 3 — ProjectDiscovery Nuclei v3.11.x Configuration
+# Used by .\scripts\Invoke-Nuclei.ps1 and .github/workflows/staging-dast-nightly.yml
+
+disable-update-check: true
+no-interactsh: true
+follow-redirects: false
+rate-limit: 50
+concurrency: 10
+timeout: 10
+retries: 1
+stats: false

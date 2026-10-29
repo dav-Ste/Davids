@@ -1,0 +1,24 @@
+id: davids-posture-admin-signup-disabled
+
+info:
+  name: Davids Admin Identity Public Sign-Up Disabled Assertion
+  author: davids-security
+  severity: info
+  description: Verifies that Davids.Services.AdminIdentity exposes no unauthenticated public /sign-up route through the YARP API Gateway.
+  tags: davids,posture,authz,admin
+
+http:
+  - raw:
+      - |
+        POST /admin-identity/sign-up HTTP/1.1
+        Host: {{Hostname}}
+        Content-Type: application/json
+
+        {"email":"probe.attacker@davids.local","password":"Attacker-Password-123!","role":"admin"}
+
+    matchers:
+      - type: status
+        status:
+          - 401
+          - 403
+          - 404

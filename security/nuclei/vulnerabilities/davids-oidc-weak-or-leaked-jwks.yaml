@@ -1,0 +1,44 @@
+id: davids-vuln-oidc-weak-or-leaked-jwks
+
+info:
+  name: Davids OIDC Private JWK Material Leak or Weak Grant Type
+  author: davids-security
+  severity: critical
+  description: Detects private RSA key fields in JWKS responses, symmetric/none signing algorithms, or deprecated OAuth2 ROPC/Implicit grants.
+  tags: davids,vuln,oidc,jwks
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/identity/.well-known/jwks"
+      - "{{BaseURL}}/admin-identity/.well-known/jwks"
+
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+
+      - type: regex
+        part: body
+        regex:
+          - '"(d|p|q|dp|dq|qi)"\s*:'
+          - '"alg"\s*:\s*"(HS256|HS384|HS512|none)"'
+        condition: or
+
+  - method: GET
+    path:
+      - "{{BaseURL}}/identity/.well-known/openid-configuration"
+      - "{{BaseURL}}/admin-identity/.well-known/openid-configuration"
+
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+
+      - type: regex
+        part: body
+        regex:
+          - '"grant_types_supported"\s*:\s*\[[^\]]*"(password|implicit)"'
+        condition: or

@@ -1,0 +1,43 @@
+id: davids-vuln-exposed-internal-surfaces
+
+info:
+  name: Davids Exposed Internal Swagger, Metrics, Git, orHTTP TRACE Surface
+  author: davids-security
+  severity: medium
+  description: Detects accidental gateway exposure of backend Swagger UI, OpenAPI JSON, Prometheus scrape endpoints, dotfile configs, or HTTP TRACE reflection.
+  tags: davids,vuln,exposure,misconfig
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/.env"
+      - "{{BaseURL}}/.git/config"
+      - "{{BaseURL}}/swagger/index.html"
+      - "{{BaseURL}}/identity/docs"
+      - "{{BaseURL}}/admin-identity/docs"
+      - "{{BaseURL}}/customers/docs"
+
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+
+      - type: word
+        part: body
+        words:
+          - "Swagger UI"
+          - "[core]"
+          - "DB_PASSWORD"
+          - "ConnectionStrings"
+        condition: or
+
+  - raw:
+      - |
+        TRACE /gateway-info HTTP/1.1
+        Host: {{Hostname}}
+
+    matchers:
+      - type: status
+        status:
+          - 200

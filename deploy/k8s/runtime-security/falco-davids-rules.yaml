@@ -1,0 +1,68 @@
+# Production Cluster — Kubernetes ConfigMaps for CNCF Falco Custom Rules & Falcosidekick -> Prometheus + Seq Forwarding
+# Install Falco + Falcosidekick via official OSS Helm chart ($0 Apache-2.0):
+#   helm repo add falcosecurity https://falcosecurity.github.io/charts
+#   helm upgrade --install falco falcosecurity/falco -n falco --create-namespace \
+#     --set tty=true --set driver.kind=modern_ebpf \
+#     --set falcosidekick.enabled=true \
+#     --set customRules."davids_rules\.yaml"="$(cat security/production-cluster/falco/davids_rules.yaml)"
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: davids-falco-custom-rules
+  namespace: davids
+  labels:
+    app.kubernetes.io/part-of: davids-platform
+    security.davids.io/lifecycle: production-cluster
+data:
+  davids_rules.yaml: |
+    - list: davids_shell_and_recon_binaries
+      items: [sh, bash, dash, ash, zsh, ksh, curl, wget, nc, ncat, netcat, socat, nmap, tcpdump, python, python3, perl, ruby, pwsh, chmod, chown]
+
+    - list: davids_allowed_egress_ports
+      items: [53, 80, 443, 1433, 3000, 4317, 4318, 5341, 5672, 6379, 8080, 8200, 9090, 15001, 15006, 15012, 15020, 15021, 15090, 16686]
+
+    - macro: in_davids_namespace
+      condition: (k8s.ns.name = "davids")
+
+    - macro: is_davids_dotnet_container
+      condition: (in_davids_namespace and container.name in ("api-gateway", "identity", "admin-identity", "customers", "frontend-admin"))
+
+    - rule: Davids Dotnet Container Spawned Shell or Recon Tool
+      desc: Detects interactive shells or network recon binaries inside Davids .NET 10 containers.
+      condition: spawned_process and is_davids_dotnet_container and proc.name in (davids_shell_and_recon_binaries)
+      output: "CRITICAL Davids runtime intrusion: unexpected process spawned (ns=%k8s.ns.name pod=%k8s.pod.name container=%container.name proc=%proc.name cmdline=%proc.cmdline)"
+      priority: CRITICAL
+      tags: [davids, runtime, container, mitre_execution, T1059]
+
+    - rule: Davids Fileless or Writable-Tmp Binary Execution
+      desc: Detects binary execution from /tmp, /var/tmp, /dev/shm, or memfd inside davids.
+      condition: spawned_process and in_davids_namespace and (proc.exepath startswith "/tmp/" or proc.exepath startswith "/var/tmp/" or proc.exepath startswith "/dev/shm/" or proc.exepath contains "memfd:")
+      output: "CRITICAL Davids fileless/tmp execution attempt (ns=%k8s.ns.name pod=%k8s.pod.name exe=%proc.exepath cmdline=%proc.cmdline)"
+      priority: CRITICAL
+      tags: [davids, runtime, fileless, T1620]
+
+    - rule: Davids Container Privilege Escalation or Namespace Escape Syscall
+      desc: Detects ptrace, setns, unshare, bpf, or kernel-module syscalls inside davids.
+      condition: in_davids_namespace and evt.type in (ptrace, setns, unshare, bpf, init_module, finit_module) and evt.dir = <
+      output: "CRITICAL Davids escape syscall detected (ns=%k8s.ns.name pod=%k8s.pod.name syscall=%evt.type proc=%proc.cmdline)"
+      priority: CRITICAL
+      tags: [davids, runtime, privilege_escalation, T1611]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: davids-falcosidekick-forwarding
+  namespace: davids
+  labels:
+    app.kubernetes.io/part-of: davids-platform
+    security.davids.io/lifecycle: production-cluster
+data:
+  config.yaml: |
+    # Exposes /metrics (falcosidekick_inputs_total) for Prometheus + Grafana Unified Alerting
+    # and ships structured JSON runtime alerts directly into Seq's HTTP ingestion endpoint.
+    listenport: 2801
+    webhook:
+      address: "http://seq.davids.svc.cluster.local:80/api/events/raw?clef"
+      minimumpriority: "warning"
+      customHeaders:
+        Content-Type: "application/vnd.serilog.clef"

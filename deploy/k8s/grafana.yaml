@@ -1,0 +1,509 @@
+# Kubernetes / Istio deployment for Grafana pointed at the cluster's Prometheus and Jaeger services.
+# Before applying:
+#   1. Create the admin secret in the target namespace:
+#        kubectl -n davids create secret generic grafana-admin-credentials \
+#          --from-literal=admin-user=admin \
+#          --from-literal=admin-password='<strong-random-password>'
+#   2. Adjust PROMETHEUS_URL and JAEGER_URL in the Deployment below if your cluster's
+#      Prometheus or Jaeger Query service uses a different namespace/service name:
+#      - Istio addon defaults:
+#          PROMETHEUS_URL = http://prometheus.istio-system.svc.cluster.local:9090
+#          JAEGER_URL     = http://tracing.istio-system.svc.cluster.local:80
+#      - kube-prometheus-stack / Jaeger Operator examples:
+#          PROMETHEUS_URL = http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+#          JAEGER_URL     = http://jaeger-query.observability.svc.cluster.local:16686
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: davids-grafana-provisioning
+  namespace: davids
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        uid: prometheus
+        type: prometheus
+        access: proxy
+        url: ${PROMETHEUS_URL}
+        isDefault: true
+        editable: false
+        jsonData:
+          httpMethod: POST
+          timeInterval: 15s
+          exemplarTraceIdDestinations:
+            - name: trace_id
+              datasourceUid: jaeger
+            - name: traceID
+              datasourceUid: jaeger
+      - name: Jaeger
+        uid: jaeger
+        type: jaeger
+        access: proxy
+        url: ${JAEGER_URL}
+        editable: false
+        jsonData:
+          tracesToMetrics:
+            datasourceUid: prometheus
+            spanStartTimeShift: "-5m"
+            spanEndTimeShift: "5m"
+            tags:
+              - key: service.name
+                value: job
+          nodeGraph:
+            enabled: true
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: Davids
+        orgId: 1
+        folder: Davids
+        type: file
+        disableDeletion: false
+        editable: true
+        updateIntervalSeconds: 30
+        options:
+          path: /etc/grafana/dashboards
+          foldersFromFilesStructure: false
+  security-alerts.yaml: |
+    apiVersion: 1
+    groups:
+      - orgId: 1
+        name: davids-security-audit
+        folder: Davids
+        interval: 1m
+        rules:
+          - uid: davids-admin-lockout
+            title: Davids Admin Account Lockout Detected
+            condition: C
+            for: 0s
+            noDataState: OK
+            execErrState: Error
+            annotations:
+              summary: "Administrator account lockout triggered in Davids.Services.AdminIdentity"
+              description: "Inspect Seq signal 'signal-davids-admin-lockout' and AdminLoginAuditLogs immediately."
+            labels:
+              severity: critical
+              component: admin-identity
+              lifecycle: production-cluster
+            data:
+              - refId: A
+                relativeTimeRange: { from: 300, to: 0 }
+                datasourceUid: prometheus
+                model:
+                  expr: sum(increase(davids_security_login_audit_total{domain="admin",outcome="account_locked"}[5m])) or vector(0)
+                  instant: true
+                  refId: A
+              - refId: C
+                datasourceUid: __expr__
+                model:
+                  type: threshold
+                  expression: A
+                  conditions:
+                    - evaluator: { type: gt, params: [0.5] }
+          - uid: davids-customer-lockout-spike
+            title: Davids Customer Credential-Stuffing Lockout Spike
+            condition: C
+            for: 1m
+            noDataState: OK
+            execErrState: Error
+            annotations:
+              summary: "Elevated customer account lockouts (>= 5 in 5m)"
+            labels:
+              severity: warning
+              component: identity
+              lifecycle: production-cluster
+            data:
+              - refId: A
+                relativeTimeRange: { from: 300, to: 0 }
+                datasourceUid: prometheus
+                model:
+                  expr: sum(increase(davids_security_login_audit_total{domain="customer",outcome="account_locked"}[5m])) or vector(0)
+                  instant: true
+                  refId: A
+              - refId: C
+                datasourceUid: __expr__
+                model:
+                  type: threshold
+                  expression: A
+                  conditions:
+                    - evaluator: { type: gt, params: [4.5] }
+          - uid: davids-oidc-replay-tampering
+            title: Davids OIDC Token Replay or Grant Tampering Detected
+            condition: C
+            for: 0s
+            noDataState: OK
+            execErrState: Error
+            annotations:
+              summary: "OIDC authorization-code / refresh-token replay or request_token tampering detected"
+            labels:
+              severity: critical
+              component: oidc-token-security
+              lifecycle: production-cluster
+            data:
+              - refId: A
+                relativeTimeRange: { from: 300, to: 0 }
+                datasourceUid: prometheus
+                model:
+                  expr: (sum(increase(davids_security_token_revoked_total{source="replay_cascade"}[5m])) or vector(0)) * 3 + (sum(increase(davids_security_login_audit_total{outcome=~"token_grant_rejected|invalid_request_token|unsupported_grant_type"}[5m])) or vector(0))
+                  instant: true
+                  refId: A
+              - refId: C
+                datasourceUid: __expr__
+                model:
+                  type: threshold
+                  expression: A
+                  conditions:
+                    - evaluator: { type: gt, params: [2.5] }
+          - uid: davids-ebpf-runtime-intrusion
+            title: Davids Falco / Tetragon eBPF Runtime Intrusion
+            condition: C
+            for: 0s
+            noDataState: OK
+            execErrState: Error
+            annotations:
+              summary: "Falco or Cilium Tetragon detected/killed a container runtime threat in namespace 'davids'"
+            labels:
+              severity: critical
+              component: ebpf-runtime
+              lifecycle: production-cluster
+            data:
+              - refId: A
+                relativeTimeRange: { from: 300, to: 0 }
+                datasourceUid: prometheus
+                model:
+                  expr: (sum(increase(falcosidekick_inputs_total{priority=~"Emergency|Alert|Critical|Error"}[5m])) or vector(0)) + (sum(increase(tetragon_policy_events_total[5m])) or vector(0))
+                  instant: true
+                  refId: A
+              - refId: C
+                datasourceUid: __expr__
+                model:
+                  type: threshold
+                  expression: A
+                  conditions:
+                    - evaluator: { type: gt, params: [0.5] }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: davids-grafana-dashboards
+  namespace: davids
+data:
+  davids-overview.json: |
+    {
+      "editable": true,
+      "graphTooltip": 1,
+      "panels": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "id": 1,
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "exemplar": true,
+              "expr": "sum by (job) (rate(http_server_request_duration_seconds_count[5m]))",
+              "legendFormat": "{{job}}",
+              "refId": "A"
+            }
+          ],
+          "title": "Inbound HTTP Request Rate (OTel)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "id": 2,
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "exemplar": true,
+              "expr": "histogram_quantile(0.95, sum by (job, le) (rate(http_server_request_duration_seconds_bucket[5m])))",
+              "legendFormat": "{{job}} p95",
+              "refId": "A"
+            }
+          ],
+          "title": "HTTP p95 Request Duration (Click Exemplars -> Jaeger)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "id": 3,
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "sum by (destination_workload, response_code) (rate(istio_requests_total[5m]))",
+              "legendFormat": "{{destination_workload}} ({{response_code}})",
+              "refId": "A"
+            }
+          ],
+          "title": "Istio Envoy Mesh Traffic",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "jaeger", "uid": "jaeger" },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "id": 4,
+          "targets": [
+            {
+              "datasource": { "type": "jaeger", "uid": "jaeger" },
+              "limit": 20,
+              "queryType": "search",
+              "refId": "A",
+              "service": "davids-api-gateway"
+            }
+          ],
+          "title": "Recent Distributed Traces — davids-api-gateway (Jaeger)",
+          "type": "table"
+        }
+      ],
+      "refresh": "15s",
+      "schemaVersion": 39,
+      "tags": [ "davids", "prometheus", "jaeger", "istio" ],
+      "time": { "from": "now-30m", "to": "now" },
+      "title": "Davids Platform — Metrics & Distributed Traces",
+      "uid": "davids-overview",
+      "version": 1
+    }
+  davids-security-audit.json: |
+    {
+      "editable": true,
+      "graphTooltip": 1,
+      "panels": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "id": 1,
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "sum by (domain, outcome) (increase(davids_security_login_audit_total[5m]))",
+              "legendFormat": "{{domain}} — {{outcome}}",
+              "refId": "A"
+            }
+          ],
+          "title": "Login & OIDC Audit Outcomes (5m Window)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "id": 2,
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "sum by (domain, source) (increase(davids_security_token_revoked_total[5m]))",
+              "legendFormat": "{{domain}} ({{source}})",
+              "refId": "A"
+            }
+          ],
+          "title": "RS256 Access-Token Revocations (RFC 7009 vs. Replay Cascade)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "id": 3,
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "sum by (service, policy) (rate(davids_security_rate_limit_rejected_total[5m]))",
+              "legendFormat": "{{service}} ({{policy}})",
+              "refId": "A"
+            }
+          ],
+          "title": "HTTP 429 Rate-Limiter Rejections",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "id": 4,
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "sum(increase(kyverno_policy_results_total{resource_namespace=\"davids\",rule_result=\"fail\"}[5m]))",
+              "legendFormat": "Kyverno Admission Blocks",
+              "refId": "A"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "sum(increase(falcosidekick_inputs_total[5m]))",
+              "legendFormat": "Falco Runtime Events",
+              "refId": "B"
+            },
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "sum(increase(tetragon_policy_events_total[5m]))",
+              "legendFormat": "Tetragon eBPF Sigkill/Audit Events",
+              "refId": "C"
+            }
+          ],
+          "title": "Cluster Runtime & Admission Defense (Kyverno / Falco / Tetragon)",
+          "type": "timeseries"
+        }
+      ],
+      "refresh": "15s",
+      "schemaVersion": 39,
+      "tags": [ "davids", "security", "audit", "production-cluster" ],
+      "time": { "from": "now-30m", "to": "now" },
+      "title": "Davids Security & Login Audit — Production Runtime Posture",
+      "uid": "davids-security-audit",
+      "version": 1
+    }
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: davids-grafana
+  namespace: davids
+automountServiceAccountToken: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: davids
+  annotations:
+    checkov.io/skip1: CKV_K8S_43=Immutable image digest is stamped during release promotion for the target cluster architecture
+  labels:
+    app: grafana
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+        version: v1
+    spec:
+      serviceAccountName: davids-grafana
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10472
+        runAsGroup: 10472
+        fsGroup: 10472
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: grafana
+          image: grafana/grafana:13.2.4
+          imagePullPolicy: Always
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10472
+            runAsGroup: 10472
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            # Point directly at your Kubernetes / Istio cluster's Prometheus and Jaeger Query services:
+            - name: PROMETHEUS_URL
+              value: "http://prometheus.istio-system.svc.cluster.local:9090"
+            - name: JAEGER_URL
+              value: "http://tracing.istio-system.svc.cluster.local:80"
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              value: "false"
+            - name: GF_USERS_DEFAULT_THEME
+              value: "dark"
+            - name: GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH
+              value: "/etc/grafana/dashboards/davids-overview.json"
+            - name: GF_SECURITY_ADMIN_USER__FILE
+              value: "/etc/grafana/secrets/admin-user"
+            - name: GF_SECURITY_ADMIN_PASSWORD__FILE
+              value: "/etc/grafana/secrets/admin-password"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: provisioning-datasources
+              mountPath: /etc/grafana/provisioning/datasources/datasources.yaml
+              subPath: datasources.yaml
+              readOnly: true
+            - name: provisioning-dashboards
+              mountPath: /etc/grafana/provisioning/dashboards/dashboards.yaml
+              subPath: dashboards.yaml
+              readOnly: true
+            - name: provisioning-alerting
+              mountPath: /etc/grafana/provisioning/alerting/security-alerts.yaml
+              subPath: security-alerts.yaml
+              readOnly: true
+            - name: dashboards
+              mountPath: /etc/grafana/dashboards
+              readOnly: true
+            - name: grafana-admin-credentials
+              mountPath: /etc/grafana/secrets
+              readOnly: true
+            - name: grafana-storage
+              mountPath: /var/lib/grafana
+            - name: tmp
+              mountPath: /tmp
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      volumes:
+        - name: provisioning-datasources
+          configMap:
+            name: davids-grafana-provisioning
+        - name: provisioning-dashboards
+          configMap:
+            name: davids-grafana-provisioning
+        - name: provisioning-alerting
+          configMap:
+            name: davids-grafana-provisioning
+        - name: dashboards
+          configMap:
+            name: davids-grafana-dashboards
+        - name: grafana-admin-credentials
+          secret:
+            secretName: grafana-admin-credentials
+        - name: grafana-storage
+          emptyDir:
+            sizeLimit: 256Mi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: davids
+  labels:
+    app: grafana
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+  selector:
+    app: grafana

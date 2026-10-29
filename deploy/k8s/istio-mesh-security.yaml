@@ -1,0 +1,313 @@
+# Production Cluster — Zero-Trust Istio Service Mesh Security (STRICT mTLS + L7 DENY/ALLOW AuthorizationPolicies)
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: davids
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: davids-backend-port-strict-mtls
+  namespace: davids
+spec:
+  selector:
+    matchLabels:
+      version: v1
+  mtls:
+    mode: STRICT
+  portLevelMtls:
+    8080:
+      mode: STRICT
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: davids-mtls
+  namespace: davids
+spec:
+  host: "*.davids.svc.cluster.local"
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+---
+apiVersion: security.istio.io/v1
+kind: RequestAuthentication
+metadata:
+  name: davids-oidc-jwt
+  namespace: davids
+spec:
+  jwtRules:
+    - issuer: "http://identity.davids.svc.cluster.local:8080"
+      jwksUri: "http://identity.davids.svc.cluster.local:8080/.well-known/jwks"
+      audiences:
+        - "davids-services"
+      forwardOriginalToken: true
+    - issuer: "http://admin-identity.davids.svc.cluster.local:8080"
+      jwksUri: "http://admin-identity.davids.svc.cluster.local:8080/.well-known/jwks"
+      audiences:
+        - "davids-admin"
+      forwardOriginalToken: true
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: default-deny
+  namespace: davids
+spec: {}
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-prohibited-routes-and-debug-surfaces
+  namespace: davids
+spec:
+  action: DENY
+  rules:
+    - to:
+        - operation:
+            paths:
+              - "/admin-identity/sign-up"
+              - "/admin-identity/sign-up/*"
+              - "/openapi/*"
+              - "/swagger*"
+              - "/scalar*"
+    - to:
+        - operation:
+            methods:
+              - "TRACE"
+              - "TRACK"
+              - "CONNECT"
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-non-admin-jwt-on-admin-identity
+  namespace: davids
+spec:
+  selector:
+    matchLabels:
+      app: admin-identity
+  action: DENY
+  rules:
+    - from:
+        - source:
+            requestPrincipals:
+              - "*"
+      when:
+        - key: request.auth.claims[role]
+          notValues:
+            - "admin"
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-non-customer-jwt-on-identity
+  namespace: davids
+spec:
+  selector:
+    matchLabels:
+      app: identity
+  action: DENY
+  rules:
+    - from:
+        - source:
+            requestPrincipals:
+              - "*"
+      when:
+        - key: request.auth.claims[role]
+          notValues:
+            - "user"
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-ingress-to-api-gateway
+  namespace: davids
+spec:
+  selector:
+    matchLabels:
+      app: api-gateway
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"
+      to:
+        - operation:
+            methods:
+              - "GET"
+              - "HEAD"
+              - "POST"
+              - "PUT"
+              - "DELETE"
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-gateway-to-identity
+  namespace: davids
+spec:
+  selector:
+    matchLabels:
+      app: identity
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/davids/sa/davids-api-gateway"
+      to:
+        - operation:
+            methods: ["POST"]
+            paths: ["/sign-up", "/connect/token", "/connect/revocation"]
+        - operation:
+            methods: ["GET", "POST"]
+            paths: ["/connect/authorize", "/connect/userinfo", "/connect/logout"]
+        - operation:
+            methods: ["GET", "HEAD"]
+            paths: ["/.well-known/*"]
+        - operation:
+            methods: ["GET"]
+            paths: ["/me", "/me/login-audits", "/users/*"]
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-gateway-to-admin-identity
+  namespace: davids
+spec:
+  selector:
+    matchLabels:
+      app: admin-identity
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/davids/sa/davids-api-gateway"
+      to:
+        - operation:
+            methods: ["POST"]
+            paths: ["/connect/token", "/connect/revocation"]
+        - operation:
+            methods: ["GET", "POST"]
+            paths: ["/connect/authorize", "/connect/userinfo", "/connect/logout", "/users"]
+        - operation:
+            methods: ["GET", "HEAD"]
+            paths: ["/.well-known/*"]
+        - operation:
+            methods: ["GET"]
+            paths: ["/me", "/login-audits", "/users/*"]
+        - operation:
+            methods: ["PUT"]
+            paths: ["/users/*"]
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-gateway-to-customers
+  namespace: davids
+spec:
+  selector:
+    matchLabels:
+      app: customers
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/davids/sa/davids-api-gateway"
+            requestPrincipals:
+              - "*"
+      to:
+        - operation:
+            methods: ["GET", "POST"]
+            paths: ["/customers"]
+        - operation:
+            methods: ["GET", "PUT"]
+            paths: ["/customers/*"]
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-gateway-to-frontend-admin
+  namespace: davids
+spec:
+  selector:
+    matchLabels:
+      app: frontend-admin
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/davids/sa/davids-api-gateway"
+      to:
+        - operation:
+            methods: ["GET", "HEAD"]
+            paths: ["/*"]
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-observability-probes-and-metrics
+  namespace: davids
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - "istio-system"
+              - "monitoring"
+      to:
+        - operation:
+            methods:
+              - "GET"
+            paths:
+              - "/metrics"
+              - "/health"
+              - "/alive"
+              - "/api/health"
+---
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: davids-gateway
+  namespace: davids
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      tls:
+        mode: SIMPLE
+        credentialName: davids-edge-tls
+        minProtocolVersion: TLSV1_3
+      hosts:
+        - "davids.example.internal"
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: davids-routes
+  namespace: davids
+spec:
+  hosts:
+    - "davids.example.internal"
+  gateways:
+    - davids-gateway
+  http:
+    - route:
+        - destination:
+            host: api-gateway.davids.svc.cluster.local
+            port:
+              number: 8080

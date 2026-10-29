@@ -1,0 +1,29 @@
+id: davids-vuln-missing-or-unsafe-csp
+
+info:
+  name: Davids Missing Security Headers or Unsafe CSP Directives
+  author: davids-security
+  severity: high
+  description: Detects missing Content-Security-Policy / X-Frame-Options / X-Content-Type-Options headers or unsafe-inline / unsafe-eval directives on Davids.APIGateway.
+  tags: davids,vuln,headers,csp
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/login"
+      - "{{BaseURL}}/gateway-info"
+
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+
+      - type: dsl
+        dsl:
+          - "!contains(tolower(header), 'content-security-policy:')"
+          - "!contains(tolower(header), 'x-content-type-options: nosniff')"
+          - "!contains(tolower(header), 'x-frame-options: deny')"
+          - "contains(tolower(header), 'unsafe-inline')"
+          - "contains(tolower(header), 'unsafe-eval')"
+        condition: or

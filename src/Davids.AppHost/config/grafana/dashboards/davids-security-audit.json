@@ -1,0 +1,121 @@
+{
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (domain, outcome) (increase(davids_security_login_audit_total[5m]))",
+          "legendFormat": "{{domain}} — {{outcome}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Login & OIDC Audit Outcomes (5m Window)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (domain) (increase(davids_security_login_audit_total{outcome=\"account_locked\"}[5m]))",
+          "legendFormat": "{{domain}} account_locked",
+          "refId": "A"
+        }
+      ],
+      "title": "Account Lockouts (Customer vs. Admin Identity)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 3,
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (domain, source) (increase(davids_security_token_revoked_total[5m]))",
+          "legendFormat": "{{domain}} ({{source}})",
+          "refId": "A"
+        }
+      ],
+      "title": "RS256 Access-Token Revocations (RFC 7009 vs. Replay Cascade)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 4,
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (service, policy) (rate(davids_security_rate_limit_rejected_total[5m]))",
+          "legendFormat": "{{service}} ({{policy}})",
+          "refId": "A"
+        }
+      ],
+      "title": "HTTP 429 Rate-Limiter Rejections",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "id": 5,
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (endpoint) (increase(davids_security_bff_csrf_rejected_total[5m]))",
+          "legendFormat": "CSRF rejected ({{endpoint}})",
+          "refId": "A"
+        }
+      ],
+      "title": "Admin BFF CSRF Rejections (APIGateway)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "id": 6,
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(increase(kyverno_policy_results_total{resource_namespace=\"davids\",rule_result=\"fail\"}[5m]))",
+          "legendFormat": "Kyverno Admission Blocks",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(increase(falcosidekick_inputs_total[5m]))",
+          "legendFormat": "Falco Runtime Events",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(increase(tetragon_policy_events_total[5m]))",
+          "legendFormat": "Tetragon eBPF Sigkill/Audit Events",
+          "refId": "C"
+        }
+      ],
+      "title": "Cluster Runtime & Admission Defense (Kyverno / Falco / Tetragon)",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "15s",
+  "schemaVersion": 39,
+  "tags": ["davids", "security", "audit", "kyverno", "falco", "tetragon", "production-cluster"],
+  "time": { "from": "now-30m", "to": "now" },
+  "title": "Davids Security & Login Audit — Production Runtime Posture",
+  "uid": "davids-security-audit",
+  "version": 1
+}

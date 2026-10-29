@@ -1,0 +1,11 @@
+# Davids Staging / Nightly — ProjectDiscovery Nuclei v3.11.x Configuration
+# Used by .\scripts\security\staging-nightly\Scan-Nuclei.ps1 and .github/workflows/staging-nightly.yml
+
+disable-update-check: true
+no-interactsh: true
+follow-redirects: false
+rate-limit: 50
+concurrency: 10
+timeout: 10
+retries: 1
+stats: false

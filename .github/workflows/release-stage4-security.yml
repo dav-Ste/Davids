@@ -1,0 +1,237 @@
+name: Quarterly & Release Security Gates (Stage 4 - $0 OSS Toolchain)
+
+on:
+  schedule:
+    - cron: "0 3 1 1,4,7,10 *"
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stage4-release-security-suite:
+    name: Free Stage 4 Gates (AuthzMatrix + Microsoft RESTler + OWASP ZAP)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout Davids
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: Davids
+
+      - name: Checkout Davids.Shared
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Shared
+          path: Davids.Shared
+
+      - name: Checkout Davids.Services.Identity
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Services.Identity
+          path: Davids.Services.Identity
+
+      - name: Checkout Davids.Services.AdminIdentity
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Services.AdminIdentity
+          path: Davids.Services.AdminIdentity
+
+      - name: Checkout Davids.Services.Customers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Services.Customers
+          path: Davids.Services.Customers
+
+      - name: Checkout Davids.APIGateway
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.APIGateway
+          path: Davids.APIGateway
+
+      - name: Checkout Davids.Frontend.Admin
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Frontend.Admin
+          path: Davids.Frontend.Admin
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Validate OpenAPI 3.1.1 + 3.0.3 contracts, RESTler configs, ZAP plan & AuthzMatrix
+        shell: pwsh
+        working-directory: ./Davids
+        run: |
+          ./scripts/Invoke-Stage4ReleaseGates.ps1 -ValidateOnly
+
+      - name: Resolve target or launch ephemeral 5-service Davids stack + mint multi-role PKCE OIDC tokens
+        id: target
+        env:
+          VAR_STAGE4_URL: ${{ vars.STAGE4_GATEWAY_URL }}
+          STAGE4_ADMIN_EMAIL: ${{ secrets.STAGE4_ADMIN_EMAIL }}
+          STAGE4_ADMIN_PASSWORD: ${{ secrets.STAGE4_ADMIN_PASSWORD }}
+          STAGE4_ADMIN_BFF_SECRET: ${{ secrets.STAGE4_ADMIN_BFF_SECRET }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/stage4-logs" "$GITHUB_WORKSPACE/Davids/TestResults/stage4"
+          chmod 0777 "$GITHUB_WORKSPACE/Davids/TestResults/stage4"
+
+          EXTERNAL_URL="${VAR_STAGE4_URL:-}"
+          if [ -n "$EXTERNAL_URL" ]; then
+            GATEWAY_URL="${EXTERNAL_URL%/}"
+            ADMIN_EMAIL="$STAGE4_ADMIN_EMAIL"
+            ADMIN_PASS="$STAGE4_ADMIN_PASSWORD"
+            BFF_SECRET="$STAGE4_ADMIN_BFF_SECRET"
+          else
+            OTP_SQL="$(openssl rand -hex 16)Aa1!"
+            echo "::add-mask::$OTP_SQL"
+            ADMIN_EMAIL="stage4.admin@davids.example"
+            ADMIN_PASS="$(openssl rand -hex 16)Bb2!"
+            echo "::add-mask::$ADMIN_PASS"
+            BFF_SECRET="$(openssl rand -hex 24)Cc3!"
+            echo "::add-mask::$BFF_SECRET"
+
+            CUST_RSA_PEM="$(openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 2>/dev/null)"
+            ADMIN_RSA_PEM="$(openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 2>/dev/null)"
+
+            docker run -d --name davids-stage4-sql -p 127.0.0.1:1433:1433 \
+              -e ACCEPT_EULA=Y -e "MSSQL_SA_PASSWORD=$OTP_SQL" \
+              mcr.microsoft.com/mssql/server:2022-latest
+
+            docker run -d --name davids-stage4-redis -p 127.0.0.1:6379:6379 \
+              redis:7-alpine
+
+            for i in $(seq 1 60); do
+              if (echo > /dev/tcp/127.0.0.1/1433) 2>/dev/null && (echo > /dev/tcp/127.0.0.1/6379) 2>/dev/null; then
+                break
+              fi
+              sleep 1
+            done
+            sleep 8
+
+            dotnet build ./Davids/Davids.sln -c Release -warnaserror -m:2 -nr:false --tl:off
+
+            export ConnectionStrings__identitydb="Server=127.0.0.1,1433;Database=identitydb;User Id=sa;Password=${OTP_SQL};TrustServerCertificate=True;Encrypt=True"
+            export ConnectionStrings__adminidentitydb="Server=127.0.0.1,1433;Database=adminidentitydb;User Id=sa;Password=${OTP_SQL};TrustServerCertificate=True;Encrypt=True"
+            export ConnectionStrings__customersdb="Server=127.0.0.1,1433;Database=customersdb;User Id=sa;Password=${OTP_SQL};TrustServerCertificate=True;Encrypt=True"
+            export ConnectionStrings__cache="127.0.0.1:6379"
+            export Redis__Enabled="true"
+            export ASPNETCORE_ENVIRONMENT="Development"
+            export Database__ApplyMigrations="true"
+            export Http__AllowInsecureDevelopment="true"
+
+            Oidc__Issuer="http://127.0.0.1:5004/" \
+            Oidc__SigningKeyPem="$CUST_RSA_PEM" \
+            RateLimiting__AuthPermitLimit="10000" \
+              dotnet run --no-build -c Release --project ./Davids.Services.Identity/src/Davids.Services.Identity.Api --urls http://127.0.0.1:5004 > "$RUNNER_TEMP/stage4-logs/identity.log" 2>&1 &
+
+            Oidc__Issuer="http://127.0.0.1:17325/" \
+            Oidc__SigningKeyPem="$ADMIN_RSA_PEM" \
+            Oidc__ClientSecret="$BFF_SECRET" \
+            RateLimiting__AuthPermitLimit="10000" \
+              dotnet run --no-build -c Release --project ./Davids.Services.AdminIdentity/src/Davids.Services.AdminIdentity.Api --urls http://127.0.0.1:17325 > "$RUNNER_TEMP/stage4-logs/admin-identity.log" 2>&1 &
+
+            CustomerOidc__Issuer="http://127.0.0.1:5004/" \
+            AdminOidc__Issuer="http://127.0.0.1:17325/" \
+              dotnet run --no-build -c Release --project ./Davids.Services.Customers/src/Davids.Services.Customers.Api --urls http://127.0.0.1:5002 > "$RUNNER_TEMP/stage4-logs/customers.log" 2>&1 &
+
+            dotnet run --no-build -c Release --project ./Davids.Frontend.Admin/src/Davids.Frontend.Admin --urls http://127.0.0.1:17321 > "$RUNNER_TEMP/stage4-logs/frontend.log" 2>&1 &
+
+            CustomerOidc__Issuer="http://127.0.0.1:5004/" \
+            AdminOidc__Issuer="http://127.0.0.1:17325/" \
+            AdminOidc__BffClientSecret="$BFF_SECRET" \
+            RateLimiting__AdminAuthPermitLimit="10000" \
+            RateLimiting__CustomerAuthPermitLimit="10000" \
+            RateLimiting__ApiPermitLimit="50000" \
+            ReverseProxy__Clusters__identity__Destinations__d1__Address="http://127.0.0.1:5004" \
+            ReverseProxy__Clusters__admin-identity__Destinations__d1__Address="http://127.0.0.1:17325" \
+            ReverseProxy__Clusters__customers__Destinations__d1__Address="http://127.0.0.1:5002" \
+            ReverseProxy__Clusters__frontend__Destinations__d1__Address="http://127.0.0.1:17321" \
+              dotnet run --no-build -c Release --project ./Davids.APIGateway/src/Davids.APIGateway.Api --urls http://0.0.0.0:17320 > "$RUNNER_TEMP/stage4-logs/gateway.log" 2>&1 &
+
+            for i in $(seq 1 90); do
+              if curl -fsS http://127.0.0.1:17320/gateway-info >/dev/null 2>&1 && \
+                 curl -fsS http://127.0.0.1:17320/identity/.well-known/openid-configuration >/dev/null 2>&1 && \
+                 curl -fsS http://127.0.0.1:17320/admin-identity/.well-known/openid-configuration >/dev/null 2>&1; then
+                break
+              fi
+              sleep 1
+            done
+
+            dotnet run --no-build -c Release --project ./Davids/src/Davids.Bootstrap -- \
+              bootstrap-admin \
+              --connection-string "$ConnectionStrings__adminidentitydb" \
+              --email "$ADMIN_EMAIL" \
+              --password "$ADMIN_PASS"
+
+            pwsh -NoProfile -Command "& ./Davids/scripts/Export-OpenApiSpecs.ps1 -VerifyOnly"
+            GATEWAY_URL="http://localhost:17320"
+          fi
+
+          echo "gateway_url=$GATEWAY_URL" >> "$GITHUB_OUTPUT"
+          echo "admin_email=$ADMIN_EMAIL" >> "$GITHUB_OUTPUT"
+          echo "::add-mask::$ADMIN_PASS"
+          echo "admin_password=$ADMIN_PASS" >> "$GITHUB_OUTPUT"
+          echo "::add-mask::$BFF_SECRET"
+          echo "admin_bff_secret=$BFF_SECRET" >> "$GITHUB_OUTPUT"
+
+      - name: Stage 4C — Cross-Role Authorization Matrix (Autorize) & JWT/OIDC Cryptographic Boundary Gate
+        shell: pwsh
+        working-directory: ./Davids
+        env:
+          DAVIDS_STAGE4_ADMIN_EMAIL: ${{ steps.target.outputs.admin_email }}
+          DAVIDS_STAGE4_ADMIN_PASSWORD: ${{ steps.target.outputs.admin_password }}
+          DAVIDS_STAGE4_ADMIN_BFF_SECRET: ${{ steps.target.outputs.admin_bff_secret }}
+        run: |
+          ./scripts/Scan-AuthzMatrix.ps1 -GatewayUrl "${{ steps.target.outputs.gateway_url }}" -OutputDirectory "./TestResults/stage4/authz"
+
+      - name: Stage 4A — Microsoft RESTler Stateful Producer/Consumer API Fuzzing (Customer + Admin)
+        shell: pwsh
+        working-directory: ./Davids
+        env:
+          DAVIDS_STAGE4_ADMIN_EMAIL: ${{ steps.target.outputs.admin_email }}
+          DAVIDS_STAGE4_ADMIN_PASSWORD: ${{ steps.target.outputs.admin_password }}
+          DAVIDS_STAGE4_ADMIN_BFF_SECRET: ${{ steps.target.outputs.admin_bff_secret }}
+          VAR_RESTLER_MODE: ${{ vars.STAGE4_RESTLER_MODE }}
+        run: |
+          $mode = if ([string]::IsNullOrWhiteSpace($env:VAR_RESTLER_MODE)) { 'FuzzLean' } else { $env:VAR_RESTLER_MODE }
+          ./scripts/Scan-Restler.ps1 -GatewayUrl "${{ steps.target.outputs.gateway_url }}" -Mode $mode -OutputDirectory "./TestResults/stage4/restler"
+
+      - name: Stage 4B — OWASP ZAP Automation Framework Active/Passive & OpenAPI DAST
+        shell: pwsh
+        working-directory: ./Davids
+        env:
+          DAVIDS_STAGE4_ADMIN_EMAIL: ${{ steps.target.outputs.admin_email }}
+          DAVIDS_STAGE4_ADMIN_PASSWORD: ${{ steps.target.outputs.admin_password }}
+          DAVIDS_STAGE4_ADMIN_BFF_SECRET: ${{ steps.target.outputs.admin_bff_secret }}
+        run: |
+          ./scripts/Scan-Zap.ps1 -GatewayUrl "${{ steps.target.outputs.gateway_url }}" -OutputDirectory "./TestResults/stage4/zap"
+
+      - name: Upload Stage 4 AuthzMatrix SARIF to GitHub Code Scanning
+        if: always() && hashFiles('Davids/TestResults/stage4/authz/authz-matrix.sarif') != ''
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          sarif_file: Davids/TestResults/stage4/authz/authz-matrix.sarif
+          category: authz-matrix-davids-stage4
+
+      - name: Upload Stage 4 OWASP ZAP SARIF to GitHub Code Scanning
+        if: always() && hashFiles('Davids/TestResults/stage4/zap/zap-stage4.sarif') != ''
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          sarif_file: Davids/TestResults/stage4/zap/zap-stage4.sarif
+          category: owasp-zap-davids-stage4
+
+      - name: Upload Stage 4 Release Security Reports (AuthzMatrix JSON/SARIF, RESTler Summary, ZAP SARIF/HTML)
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: stage4-release-security-reports
+          path: Davids/TestResults/stage4/
+          if-no-files-found: warn

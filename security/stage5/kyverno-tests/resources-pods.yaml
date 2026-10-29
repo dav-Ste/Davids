@@ -1,0 +1,163 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: compliant-davids-api-gateway-with-istio
+  namespace: davids
+  labels:
+    app: api-gateway
+    sidecar.istio.io/inject: "true"
+spec:
+  serviceAccountName: davids-api-gateway
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: api-gateway
+      image: ghcr.io/davids/davids-api-gateway@sha256:1111111111111111111111111111111111111111111111111111111111111111
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+    - name: istio-proxy
+      image: docker.io/istio/proxyv2@sha256:2222222222222222222222222222222222222222222222222222222222222222
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1337
+        runAsGroup: 1337
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+  volumes:
+    - name: tmp
+      emptyDir:
+        sizeLimit: 64Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-unpinned-latest-tag-pod
+  namespace: davids
+spec:
+  automountServiceAccountToken: false
+  containers:
+    - name: identity
+      image: ghcr.io/davids/davids-services-identity:latest
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+        seccompProfile:
+          type: RuntimeDefault
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-root-uid-pod
+  namespace: davids
+spec:
+  automountServiceAccountToken: false
+  containers:
+    - name: customers
+      image: ghcr.io/davids/davids-services-customers@sha256:3333333333333333333333333333333333333333333333333333333333333333
+      securityContext:
+        runAsNonRoot: false
+        runAsUser: 0
+        runAsGroup: 0
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+        seccompProfile:
+          type: RuntimeDefault
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-writable-rootfs-and-privesc-pod
+  namespace: davids
+spec:
+  automountServiceAccountToken: false
+  containers:
+    - name: admin-identity
+      image: ghcr.io/davids/davids-services-admin-identity@sha256:4444444444444444444444444444444444444444444444444444444444444444
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        allowPrivilegeEscalation: true
+        readOnlyRootFilesystem: false
+        capabilities:
+          drop:
+            - NET_RAW
+        seccompProfile:
+          type: RuntimeDefault
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-hostpid-and-automount-sa-pod
+  namespace: davids
+spec:
+  hostPID: true
+  automountServiceAccountToken: true
+  containers:
+    - name: frontend-admin
+      image: ghcr.io/davids/davids-frontend-admin@sha256:5555555555555555555555555555555555555555555555555555555555555555
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+        seccompProfile:
+          type: RuntimeDefault
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-istio-sidecar-disabled-pod
+  namespace: davids
+  annotations:
+    sidecar.istio.io/inject: "false"
+spec:
+  automountServiceAccountToken: false
+  containers:
+    - name: customers
+      image: ghcr.io/davids/davids-services-customers@sha256:6666666666666666666666666666666666666666666666666666666666666666
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+        seccompProfile:
+          type: RuntimeDefault
