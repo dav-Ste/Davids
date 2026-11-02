@@ -103,7 +103,7 @@ jobs:
           else
             OTP_SQL="$(openssl rand -hex 16)Aa1!"
             echo "::add-mask::$OTP_SQL"
-            OTP_RABBIT="$(openssl rand -hex 16)Rb4!"
+            OTP_RABBIT="$(openssl rand -hex 16)Rb4"
             echo "::add-mask::$OTP_RABBIT"
             ADMIN_EMAIL="staging.admin@davids.example"
             ADMIN_PASS="$(openssl rand -hex 16)Bb2!"
@@ -123,31 +123,44 @@ jobs:
             ADMIN_RSA_PEM="$(openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 2>/dev/null)"
             ADMIN_ENC_PEM="$(openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 2>/dev/null)"
 
-            docker run -d --name davids-staging-sql -p 127.0.0.1:1433:1433 \
-              -e ACCEPT_EULA=Y -e "MSSQL_SA_PASSWORD=$OTP_SQL" \
+            docker run -d --platform linux/amd64 --name davids-staging-sql -p 127.0.0.1:1433:1433 \
+              -e ACCEPT_EULA=Y -e MSSQL_PID=Developer -e "MSSQL_SA_PASSWORD=$OTP_SQL" \
               mcr.microsoft.com/mssql/server:2022-latest
 
             docker run -d --name davids-staging-redis -p 127.0.0.1:6379:6379 \
               redis:7-alpine
 
-            docker run -d --name davids-staging-rabbit -p 127.0.0.1:5672:5672 \
+            docker run -d --user rabbitmq --name davids-staging-rabbit -p 127.0.0.1:5672:5672 \
               -e RABBITMQ_DEFAULT_USER=davids -e "RABBITMQ_DEFAULT_PASS=$OTP_RABBIT" \
               rabbitmq:4.4.0-management-alpine
 
             SQL_READY=0
-            for i in $(seq 1 90); do
+            for i in $(seq 1 120); do
+              if [ "$(docker inspect -f '{{.State.Running}}' davids-staging-sql 2>/dev/null || echo false)" != "true" ] || \
+                 [ "$(docker inspect -f '{{.State.Running}}' davids-staging-rabbit 2>/dev/null || echo false)" != "true" ]; then
+                echo "ERROR: SQL Server or RabbitMQ container exited unexpectedly during startup."
+                break
+              fi
               if (echo > /dev/tcp/127.0.0.1/6379) 2>/dev/null && \
-                 docker exec davids-staging-rabbit rabbitmq-diagnostics -q ping >/dev/null 2>&1 && \
-                 docker exec davids-staging-sql sh -c 'if [ -x /opt/mssql-tools18/bin/sqlcmd ]; then /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1 -U sa -P "$MSSQL_SA_PASSWORD" -C -Q "SELECT 1" >/dev/null 2>&1; else /opt/mssql-tools/bin/sqlcmd -S 127.0.0.1 -U sa -P "$MSSQL_SA_PASSWORD" -Q "SELECT 1" >/dev/null 2>&1; fi'; then
+                 (echo > /dev/tcp/127.0.0.1/5672) 2>/dev/null && \
+                 docker exec --user rabbitmq davids-staging-rabbit rabbitmq-diagnostics -q ping >/dev/null 2>&1 && \
+                 docker exec davids-staging-sql sh -c 'if [ -x /opt/mssql-tools18/bin/sqlcmd ]; then /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1 -U sa -P "$MSSQL_SA_PASSWORD" -C -b -Q "SELECT 1" >/dev/null 2>&1; else /opt/mssql-tools/bin/sqlcmd -S 127.0.0.1 -U sa -P "$MSSQL_SA_PASSWORD" -b -Q "SELECT 1" >/dev/null 2>&1; fi'; then
                 SQL_READY=1
                 break
               fi
               sleep 1
             done
             if [ "$SQL_READY" -ne 1 ]; then
-              echo "ERROR: SQL Server, Redis, or RabbitMQ failed to become ready within 90 seconds."
-              docker logs davids-staging-sql || true
-              docker logs davids-staging-rabbit || true
+              {
+                echo "ERROR: SQL Server, Redis, or RabbitMQ failed to become ready."
+                docker ps -a || true
+                echo "===== davids-staging-sql logs ====="
+                docker logs davids-staging-sql 2>&1 || true
+                echo "===== davids-staging-rabbit logs ====="
+                docker logs davids-staging-rabbit 2>&1 || true
+                echo "===== davids-staging-redis logs ====="
+                docker logs davids-staging-redis 2>&1 || true
+              } | tee "$GITHUB_WORKSPACE/Davids/TestResults/staging-nightly/startup-diagnostics.log"
               exit 1
             fi
 
@@ -231,11 +244,13 @@ jobs:
               sleep 1
             done
             if [ "$STACK_READY" -ne 1 ]; then
-              echo "ERROR: Ephemeral 5-service Davids stack failed readiness check within 90 seconds."
-              for logf in "$RUNNER_TEMP/staging-nightly-logs/"*.log; do
-                echo "===== $logf ====="
-                cat "$logf" || true
-              done
+              {
+                echo "ERROR: Ephemeral 5-service Davids stack failed readiness check within 90 seconds."
+                for logf in "$RUNNER_TEMP/staging-nightly-logs/"*.log; do
+                  echo "===== $logf ====="
+                  cat "$logf" || true
+                done
+              } | tee "$GITHUB_WORKSPACE/Davids/TestResults/staging-nightly/startup-diagnostics.log"
               exit 1
             fi
 

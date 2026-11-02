@@ -266,6 +266,9 @@ function Invoke-RestlerCommand {
 
     $hostRunDir = Join-Path $workRoot $WorkingSubdir
     New-Item -ItemType Directory -Path $hostRunDir -Force | Out-Null
+    if ($IsLinux) {
+        & chmod -R 0777 $OutputDirectory
+    }
 
     if ($useLocalRestler) {
         $prevRollForward = $env:DOTNET_ROLL_FORWARD
