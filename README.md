@@ -1,5 +1,11 @@
 # Davids Services — Aspire Infrastructure
 
+[![Pull Request CI — Security Gate](https://github.com/dav-Ste/Davids/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids/actions/workflows/pull-request-ci.yml)
+[![Pull Request CI — CodeQL SAST](https://github.com/dav-Ste/Davids/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids/actions/workflows/codeql.yml)
+[![Production Cluster](https://github.com/dav-Ste/Davids/actions/workflows/production-cluster.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids/actions/workflows/production-cluster.yml)
+[![Staging / Nightly DAST](https://github.com/dav-Ste/Davids/actions/workflows/staging-nightly.yml/badge.svg)](https://github.com/dav-Ste/Davids/actions/workflows/staging-nightly.yml)
+[![Quarterly / Release Security Gates](https://github.com/dav-Ste/Davids/actions/workflows/quarterly-release.yml/badge.svg)](https://github.com/dav-Ste/Davids/actions/workflows/quarterly-release.yml)
+
 This repository owns the .NET 10 Aspire orchestration and local infrastructure tooling:
 
 - Aspire AppHost (`src/Davids.AppHost`)
@@ -7,6 +13,20 @@ This repository owns the .NET 10 Aspire orchestration and local infrastructure t
 - Grafana and Kubernetes observability configuration (`src/Davids.AppHost/config/grafana`, `deploy/k8s/grafana.yaml`)
 - SQL Server baseline scripts (`database/`)
 - PowerShell setup, build, test, and database scripts (`scripts/`)
+
+## Live CI & Security Gate Status Across All 7 Repositories
+
+Every badge below updates automatically from live GitHub Actions runs on `main` (click any badge to inspect the workflow run logs and downloadable SARIF/SBOM/JUnit artifacts):
+
+| Repository | Pull Request CI (Build, Tests, Semgrep, Checkov, Grype, Trivy) | CodeQL SAST (`security-extended`) | Aggregate Runtime & DAST Gates |
+|---|---|---|---|
+| **[`Davids`](https://github.com/dav-Ste/Davids)** | [![PR CI](https://github.com/dav-Ste/Davids/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids/actions/workflows/codeql.yml) | [![Production Cluster](https://github.com/dav-Ste/Davids/actions/workflows/production-cluster.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids/actions/workflows/production-cluster.yml) [![Staging Nightly](https://github.com/dav-Ste/Davids/actions/workflows/staging-nightly.yml/badge.svg)](https://github.com/dav-Ste/Davids/actions/workflows/staging-nightly.yml) [![Quarterly Release](https://github.com/dav-Ste/Davids/actions/workflows/quarterly-release.yml/badge.svg)](https://github.com/dav-Ste/Davids/actions/workflows/quarterly-release.yml) |
+| **[`Davids.Shared`](https://github.com/dav-Ste/Davids.Shared)** | [![PR CI](https://github.com/dav-Ste/Davids.Shared/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Shared/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Shared/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Shared/actions/workflows/codeql.yml) | — |
+| **[`Davids.Services.Identity`](https://github.com/dav-Ste/Davids.Services.Identity)** | [![PR CI](https://github.com/dav-Ste/Davids.Services.Identity/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.Identity/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Services.Identity/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.Identity/actions/workflows/codeql.yml) | — |
+| **[`Davids.Services.AdminIdentity`](https://github.com/dav-Ste/Davids.Services.AdminIdentity)** | [![PR CI](https://github.com/dav-Ste/Davids.Services.AdminIdentity/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.AdminIdentity/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Services.AdminIdentity/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.AdminIdentity/actions/workflows/codeql.yml) | — |
+| **[`Davids.Services.Customers`](https://github.com/dav-Ste/Davids.Services.Customers)** | [![PR CI](https://github.com/dav-Ste/Davids.Services.Customers/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.Customers/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Services.Customers/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.Customers/actions/workflows/codeql.yml) | — |
+| **[`Davids.APIGateway`](https://github.com/dav-Ste/Davids.APIGateway)** | [![PR CI](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/codeql.yml) | — |
+| **[`Davids.Frontend.Admin`](https://github.com/dav-Ste/Davids.Frontend.Admin)** | [![PR CI](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/codeql.yml) | — |
 
 It orchestrates the following sibling repositories, each with its own standalone solution (`Davids.slnx` here is the aggregate development solution):
 
@@ -368,14 +388,14 @@ Every repository includes SHA-pinned GitHub Actions security workflows (`.github
 
 ## Validation and limitations
 
-The six standalone service/shared solutions (`Davids.Shared.slnx`, `Davids.Services.Identity.slnx`, `Davids.Services.AdminIdentity.slnx`, `Davids.Services.Customers.slnx`, `Davids.APIGateway.slnx`, `Davids.Frontend.Admin.slnx`) and `Davids.Bootstrap` were restored in locked mode (`--locked-mode`), `Davids.slnx` was restored with NuGet-supplied host-OS DCP and Aspire Dashboard binaries (`AspireUseCliBundle=false`, so Visual Studio `F5` and `dotnet run` launch without requiring a standalone Aspire CLI installation), all 7 repositories passed `Gitleaks` (`0` leaks), custom `Semgrep` SAST (`0` findings), `istioctl 1.31.3 analyze` (`0` issues), `Checkov` (`0` failed checks across Kubernetes, Dockerfile, and GitHub Actions), `Grype` (`0` vulnerabilities), `Trivy` (`0` vulnerabilities/misconfigurations), NuGet transitive vulnerability auditing (`0` advisories), live `Schemathesis v4.32.6` OpenAPI 3.1 fuzzing & stateful testing (`2,967 / 2,967` generated test cases passed, `0` failures), live `Nuclei v3.11.1` security regression testing (`4 / 4` posture assertions matched, `0` vulnerability findings across `6` templates), live `Microsoft RESTler` stateful API fuzzing (`0` bug buckets across `2,015` stateful requests), live Cross-Role Authorization & Cryptographic Boundary verification (`42 / 42` checks passed), and live Kyverno (`18 / 18` policy tests passed), Istio `STRICT` mTLS, Falco/Tetragon eBPF, and `promtool` (`7` alert rules unit-tested) verification, and all solutions were built in `Release` with `-warnaserror` (0 warnings, 0 errors) and tested (**106 tests passed**):
+The six standalone service/shared solutions (`Davids.Shared.slnx`, `Davids.Services.Identity.slnx`, `Davids.Services.AdminIdentity.slnx`, `Davids.Services.Customers.slnx`, `Davids.APIGateway.slnx`, `Davids.Frontend.Admin.slnx`) and `Davids.Bootstrap` were restored in locked mode (`--locked-mode`), `Davids.slnx` was restored with NuGet-supplied host-OS DCP and Aspire Dashboard binaries (`AspireUseCliBundle=false`, so Visual Studio `F5` and `dotnet run` launch without requiring a standalone Aspire CLI installation), all 7 repositories passed `Gitleaks` (`0` leaks), custom `Semgrep` SAST (`0` findings), `istioctl 1.31.3 analyze` (`0` issues), `Checkov` (`0` failed checks across `550` Kubernetes, `240` Dockerfile, and `1,016` GitHub Actions assertions), `Grype` (`0` vulnerabilities), `Trivy` (`0` `HIGH`/`CRITICAL` vulnerabilities or misconfigurations), NuGet transitive vulnerability auditing (`0` advisories), live `Schemathesis v4.32.6` OpenAPI 3.1 fuzzing & stateful testing (`3,386 / 3,386` generated test cases passed across `7 / 7` suites, `0` failures), live `Nuclei v3.11.1` security regression testing (`5 / 5` posture assertions matched across `4` templates, `0` vulnerability findings across `6` templates), live `Microsoft RESTler` stateful API fuzzing (`0` bug buckets across `2,015` stateful requests), live Cross-Role Authorization & Cryptographic Boundary verification (`42 / 42` checks passed), and live Kyverno (`18 / 18` policy tests passed), Istio `STRICT` mTLS, Falco/Tetragon eBPF, and `promtool` (`7` alert rules unit-tested) verification, and all solutions were built in `Release` with `-warnaserror` (0 warnings, 0 errors) and tested (**123 tests passed**):
 
-- `Davids.Shared.slnx`: 7 tests (`Davids.ServiceDefaults.Tests`)
-- `Davids.Services.Identity.slnx`: 23 tests (`Davids.Services.Identity.Tests`)
-- `Davids.Services.AdminIdentity.slnx`: 13 tests (`Davids.Services.AdminIdentity.Tests`)
-- `Davids.Services.Customers.slnx`: 10 tests (`Davids.Services.Customers.Tests`)
-- `Davids.APIGateway.slnx`: 34 tests (`Davids.APIGateway.Tests`)
-- `Davids.Frontend.Admin.slnx`: 8 tests (`Davids.Frontend.Admin.Tests`)
-- `Davids.slnx` (AppHost DCP/Dashboard metadata, resource graph, OIDC wiring & Local Dev / PR CI / Staging Nightly / Quarterly Release / Production Cluster security gate verification): 11 tests (`Davids.AppHost.Tests`)
+- `Davids.Shared.slnx`: 8 tests (`Davids.ServiceDefaults.Tests`)
+- `Davids.Services.Identity.slnx`: 27 tests (`Davids.Services.Identity.Tests`)
+- `Davids.Services.AdminIdentity.slnx`: 17 tests (`Davids.Services.AdminIdentity.Tests`)
+- `Davids.Services.Customers.slnx`: 14 tests (`Davids.Services.Customers.Tests`)
+- `Davids.APIGateway.slnx`: 36 tests (`Davids.APIGateway.Tests`)
+- `Davids.Frontend.Admin.slnx`: 9 tests (`Davids.Frontend.Admin.Tests`)
+- `Davids.slnx` (AppHost DCP/Dashboard metadata, resource graph, architecture/nullability/package hygiene, OIDC wiring & Local Dev / PR CI / Staging Nightly / Quarterly Release / Production Cluster security gate verification): 12 tests (`Davids.AppHost.Tests`)
 
 No Docker runtime is available inside the sandbox environment, so container-based runners (`Dastardly`, containerized `OWASP ZAP`, and Dockerized `RESTler`) execute on a Docker-enabled workstation or GitHub Actions runner.
