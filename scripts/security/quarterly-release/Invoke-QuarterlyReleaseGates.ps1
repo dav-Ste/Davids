@@ -41,7 +41,7 @@ if ($ValidateOnly) {
     Write-Host '=== [4/4] Validate OWASP ZAP Automation Framework Plan ==='
     & (Join-Path $PSScriptRoot 'Scan-Zap.ps1') -ValidateConfigOnly
 
-    Write-Host 'All Quarterly / Release security gate configurations ($0 free OSS/Community toolchain) validated cleanly.'
+    Write-Host 'All Quarterly / Release security gate configurations validated cleanly.'
     return
 }
 

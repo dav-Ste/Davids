@@ -21,7 +21,15 @@
       "mode": "normal"
     },
     "invaliddynamicobject": {
-      "mode": "normal"
+      "mode": "normal",
+      "no_defaults": true,
+      "invalid_objects": [
+        "valid-object/?/",
+        "valid-object/valid-object",
+        "{}",
+        "00000000-0000-0000-0000-000000000000",
+        "invalid-dynamic-object"
+      ]
     },
     "payloadbody": {
       "mode": "normal"

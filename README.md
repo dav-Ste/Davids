@@ -345,9 +345,9 @@ Every repository includes SHA-pinned GitHub Actions security workflows (`.github
     ./scripts/security/staging-nightly/Invoke-StagingNightlyGates.ps1 -InstallTools -AutoProvisionCustomerToken
     ```
 
-## Quarterly / Release security gates (`security/quarterly-release` & `scripts/security/quarterly-release` — $0 free toolchain)
+## Quarterly / Release security gates (`security/quarterly-release` & `scripts/security/quarterly-release`)
 
-`Davids` implements deep stateful API fuzzing, uncapped active/passive DAST, cross-role authorization matrix verification, and cryptographic JWT/OIDC boundary testing using **100% free (`$0` / `£0`) open-source and community tools** (`.github/workflows/quarterly-release.yml` and `./scripts/security/quarterly-release/Invoke-QuarterlyReleaseGates.ps1`):
+`Davids` implements deep stateful API fuzzing, uncapped active/passive DAST, cross-role authorization matrix verification, and cryptographic JWT/OIDC boundary testing using open-source and community tools (`.github/workflows/quarterly-release.yml` and `./scripts/security/quarterly-release/Invoke-QuarterlyReleaseGates.ps1`):
 
 - **Stateful producer/consumer API fuzzing (`Microsoft RESTler` — MIT)**:
   - `./scripts/security/staging-nightly/Export-OpenApiSpecs.ps1` normalizes all 3 gateway OpenAPI `3.1.1` specifications into RESTler-compatible OpenAPI `3.0.3` contracts (`security/quarterly-release/restler/specs/*.restler.openapi.json`).
@@ -356,16 +356,16 @@ Every repository includes SHA-pinned GitHub Actions security workflows (`.github
   - `security/quarterly-release/zap/zap-automation.yaml` and `./scripts/security/quarterly-release/Scan-Zap.ps1` run digest-pinned `ghcr.io/zaproxy/zaproxy:2.17.0` with header-replacer `RS256` Bearer injection, `/login` spidering, OpenAPI contract import across `/identity`, `/admin-identity`, and `/customers`, active/passive scanning, and native SARIF 2.1.0 + HTML reporting.
 - **Automated Cross-Role Authorization Matrix (`Autorize`) & Cryptographic JWT/OIDC Boundary Gate (`JWT Editor`)**:
   - `security/quarterly-release/authz/authz-matrix.json` and `./scripts/security/quarterly-release/Scan-AuthzMatrix.ps1` execute `31` cross-role BOLA/IDOR/BFLA test cases (`AUTHZ-001`..`AUTHZ-031` across `unauthenticated`, `customerA`, `customerB`, and `admin`) plus `11` live cryptographic boundary attacks (`CRYPTO-001`..`CRYPTO-011`: `alg: none`, cross-authority token confusion, `RS256 -> HS256` public-JWKS key confusion, rogue 2048-bit RSA keypair with `jku`/`jwk` header injection, payload claim tampering, PKCE `code_verifier` omission/mismatch, OAuth 2.1 single-use authorization-code replay + `RFC 6749 §10.5` cascade revocation, `RFC 7009` revocation, and Admin BFF `/logout` CSRF + `/login` open-redirect sanitization), exporting `authz-matrix.sarif`.
-- **Interactive manual exploratory toolkit (`Burp Suite Community Edition` — `$0`)**:
-  - `security/quarterly-release/authz/burp-community-project-options.json` and `security/quarterly-release/authz/BURP-COMMUNITY-GUIDE.md` configure free **Burp Suite Community Edition** with the free BApp Store extensions **Autorize** and **JWT Editor** (zero commercial license cost).
+- **Interactive manual exploratory toolkit (`Burp Suite Community Edition`)**:
+  - `security/quarterly-release/authz/burp-community-project-options.json` and `security/quarterly-release/authz/BURP-COMMUNITY-GUIDE.md` configure **Burp Suite Community Edition** with the BApp Store extensions **Autorize** and **JWT Editor**.
   - Run the complete Quarterly / Release suite locally:
     ```powershell
     ./scripts/security/quarterly-release/Invoke-QuarterlyReleaseGates.ps1 -RestlerMode FuzzLean
     ```
 
-## Production Cluster runtime, mesh, supply-chain & login-audit alerting (`security/production-cluster`, `deploy/k8s` & `scripts/security/production-cluster` — $0 free toolchain)
+## Production Cluster runtime, mesh, supply-chain & login-audit alerting (`security/production-cluster`, `deploy/k8s` & `scripts/security/production-cluster`)
 
-`Davids` implements continuous cluster admission control, zero-trust service mesh enforcement, eBPF container runtime security, and login-audit alerting using **100% free (`$0` / `£0`) open-source tools** (`.github/workflows/production-cluster.yml` and `./scripts/security/production-cluster/Verify-ProductionClusterGates.ps1`):
+`Davids` implements continuous cluster admission control, zero-trust service mesh enforcement, eBPF container runtime security, and login-audit alerting using open-source CNCF tools (`.github/workflows/production-cluster.yml` and `./scripts/security/production-cluster/Verify-ProductionClusterGates.ps1`):
 
 - **Kyverno admission control & Sigstore Cosign supply-chain verification (`Kyverno v1.19.2` + `Cosign` — Apache-2.0)**:
   - `deploy/k8s/kyverno/davids-verify-signed-images.yaml` enforces keyless GitHub Actions OIDC (`https://token.actions.githubusercontent.com`) image signature verification via Sigstore Fulcio + Rekor (`https://rekor.sigstore.dev`) and CycloneDX SBOM attestation (`https://cyclonedx.org/bom`), mutating and verifying immutable `@sha256:` digests on admission.

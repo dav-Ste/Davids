@@ -1,19 +1,19 @@
-# Quarterly / Release Manual Exploratory Guide — Burp Suite Community Edition ($0 Free Setup)
+# Quarterly / Release Manual Exploratory Guide — Burp Suite Community Edition
 
-This guide covers the **optional interactive human-in-the-loop exploratory session** for Quarterly / Release validation using **100% free tools ($0 license cost)**:
+This guide covers the **optional interactive human-in-the-loop exploratory session** for Quarterly / Release validation:
 
-- **Burp Suite Community Edition** (`$0`, free download from PortSwigger)
-- **Autorize** (`v1.9.4`, `$0`, free BApp Store extension — MIT/GPL open-source)
-- **JWT Editor** (`v2.6.2`, `$0`, free BApp Store extension — Apache-2.0 open-source)
+- **Burp Suite Community Edition** (PortSwigger)
+- **Autorize** (`v1.9.4`, BApp Store extension — MIT/GPL open-source)
+- **JWT Editor** (`v2.6.2`, BApp Store extension — Apache-2.0 open-source)
 
 > **Note:** Every cross-role IDOR, privilege-escalation, JWT cryptographic tampering (`alg: none`, `RS256 -> HS256` JWKS key confusion, untrusted RSA key + `jku`, payload claim mutation, token revocation), PKCE `S256` downgrade, authorization-code replay, and BFF CSRF check in this guide is **already automated** with zero manual effort by `pwsh ./scripts/security/quarterly-release/Scan-AuthzMatrix.ps1`. Use Burp Suite Community Edition only when performing hands-on exploratory testing of new UI workflows in `Davids.Frontend.Admin`.
 
 ---
 
-## 1. Install Free Extensions in Burp Suite Community Edition
+## 1. Install Extensions in Burp Suite Community Edition
 
 - Open **Burp Suite Community Edition** and select **Temporary project in memory** -> **Load from configuration file** -> choose `security/quarterly-release/authz/burp-community-project-options.json`.
-- Navigate to **Extensions** -> **BApp Store** and install two free extensions:
+- Navigate to **Extensions** -> **BApp Store** and install two extensions:
   - **Autorize** (installs Jython standalone JAR automatically via the BApp Store prompt if not yet present)
   - **JWT Editor**
 

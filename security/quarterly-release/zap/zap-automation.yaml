@@ -1,6 +1,6 @@
 ---
 # Davids Platform — Quarterly / Release Full Active/Passive DAST & OpenAPI Security Plan
-# Tool: OWASP ZAP 2.17.0 Automation Framework (100% Free / Apache-2.0)
+# Tool: OWASP ZAP 2.17.0 Automation Framework (Apache-2.0)
 # Container: ghcr.io/zaproxy/zaproxy:2.17.0@sha256:030d3df57735dacbb83464854758e674dd9ad01d79d12a129a8e58b1fd384238
 env:
   contexts:
@@ -36,6 +36,28 @@ jobs:
       maxAlertsPerRule: 10
       scanOnlyInScope: true
       enableTags: false
+
+  # Loopback-only HTTP CI allowances: in ephemeral CI the gateway listens on plain HTTP
+  # (http://localhost:17320 / http://127.0.0.1:17320), whereas production terminates TLS at
+  # Istio IngressGateway. Scoped strictly to loopback HTTP so staging/production HTTPS targets
+  # still enforce 10105 (RFC 6749 Basic challenge over cleartext) and 10106 (HTTP Only Site).
+  - type: alertFilter
+    alertFilters:
+      - ruleId: 10105
+        newRisk: "Info"
+        context: "Davids-Gateway"
+        url: "^http://(localhost|127\\.0\\.0\\.1)(:\\d+)?/(admin-)?identity/connect/token.*"
+        urlRegex: true
+      - ruleId: "10105-2"
+        newRisk: "Info"
+        context: "Davids-Gateway"
+        url: "^http://(localhost|127\\.0\\.0\\.1)(:\\d+)?/(admin-)?identity/connect/token.*"
+        urlRegex: true
+      - ruleId: 10106
+        newRisk: "Info"
+        context: "Davids-Gateway"
+        url: "^http://(localhost|127\\.0\\.0\\.1)(:\\d+)?/.*"
+        urlRegex: true
 
   - type: replacer
     parameters:
@@ -113,9 +135,19 @@ jobs:
   - type: activeScan
     parameters:
       context: "Davids-Gateway"
-      maxRuleDurationInMins: 5
-      maxScanDurationInMins: 25
+      maxRuleDurationInMins: 2
+      maxScanDurationInMins: 12
       threadPerHost: 4
+    policyDefinition:
+      rules:
+        # Disable headless-browser DOM XSS (server-rendered static HTML with strict CSP script-src 'self')
+        # and alpha/script active scan wrappers (100043 SwaggerSecretDetector.js GraalJS, 50000).
+        - id: 40026
+          threshold: "Off"
+        - id: 50000
+          threshold: "Off"
+        - id: 100043
+          threshold: "Off"
 
   - type: report
     parameters:

@@ -1,4 +1,4 @@
-name: Quarterly & Release Security Gates (Quarterly / Release - $0 OSS Toolchain)
+name: Quarterly / Release — Security Gates
 
 on:
   schedule:
@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   quarterly-release-security-suite:
-    name: Free Quarterly / Release Gates (AuthzMatrix + Microsoft RESTler + OWASP ZAP)
+    name: AuthzMatrix + Microsoft RESTler + OWASP ZAP
     runs-on: ubuntu-latest
     timeout-minutes: 90
     permissions:

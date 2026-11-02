@@ -782,7 +782,7 @@ public sealed class ResourceGraphTests
         Assert.Contains("mcr.microsoft.com/restlerfuzzer/restler:", scanRestlerScript, StringComparison.Ordinal);
         Assert.Contains("@sha256:", scanRestlerScript, StringComparison.Ordinal);
 
-        // 4. Cross-role Authorization Matrix (31 Autorize cases) + Burp Suite Community Edition ($0) config & guide.
+        // 4. Cross-role Authorization Matrix (31 Autorize cases) + Burp Suite Community Edition config & guide.
         var authzDir = Path.Combine(releaseDir, "authz");
         var matrixPath = Path.Combine(authzDir, "authz-matrix.json");
         Assert.True(File.Exists(matrixPath), "Missing security/quarterly-release/authz/authz-matrix.json.");
@@ -800,6 +800,9 @@ public sealed class ResourceGraphTests
         var releaseWorkflowPath = Path.Combine(davidsRoot, ".github", "workflows", "quarterly-release.yml");
         Assert.True(File.Exists(releaseWorkflowPath), "Missing .github/workflows/quarterly-release.yml.");
         var releaseWorkflow = File.ReadAllText(releaseWorkflowPath);
+        Assert.DoesNotContain("$0", releaseWorkflow, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("£0", releaseWorkflow, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("free", releaseWorkflow, StringComparison.OrdinalIgnoreCase);
         foreach (var line in releaseWorkflow.Split('\n'))
         {
             var trimmed = line.Trim();

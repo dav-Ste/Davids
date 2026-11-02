@@ -1,5 +1,5 @@
 # Production Cluster — CNCF Falco 0.45.x Runtime Security Rules for Davids (.NET 10 Microservices)
-# License: Apache-2.0 ($0 free CNCF Graduated runtime threat detection)
+# License: Apache-2.0 (CNCF Graduated runtime threat detection)
 
 - list: davids_shell_and_recon_binaries
   items:

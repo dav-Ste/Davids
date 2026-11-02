@@ -1,5 +1,5 @@
 # Production Cluster — Cilium Tetragon v1.7.x eBPF In-Kernel Enforcement (TracingPolicyNamespaced)
-# License: Apache-2.0 ($0 CNCF eBPF runtime enforcement with synchronous in-kernel Sigkill)
+# License: Apache-2.0 (CNCF eBPF runtime enforcement with synchronous in-kernel Sigkill)
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicyNamespaced
 metadata:

@@ -1,5 +1,5 @@
 # Production Cluster — Kyverno Admission Control: Sigstore Cosign Image Signature & CycloneDX SBOM Attestation Enforcement
-# Free ($0) CNCF Apache-2.0 admission policy verifying keyless GitHub Actions OIDC signatures via Sigstore Fulcio + Rekor.
+# CNCF Apache-2.0 admission policy verifying keyless GitHub Actions OIDC signatures via Sigstore Fulcio + Rekor.
 # For air-gapped clusters using a self-managed Cosign keypair instead of Fulcio/Rekor, replace `keyless:` with:
 #   keys:
 #     publicKeys: |-

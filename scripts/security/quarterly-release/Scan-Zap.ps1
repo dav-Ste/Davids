@@ -159,6 +159,28 @@ function Get-OidcAccessTokenPkce {
     return [string]$tokenResp.access_token
 }
 
+& docker image inspect $ZapImage *> $null
+if ($LASTEXITCODE -ne 0) {
+    $retryDelays = @(5, 10, 20, 30)
+    $pulled = $false
+    for ($attempt = 1; $attempt -le ($retryDelays.Count + 1); $attempt++) {
+        Write-Host "Pulling OWASP ZAP image ($ZapImage) [attempt $attempt/$($retryDelays.Count + 1)]..."
+        & docker pull --platform linux/amd64 $ZapImage
+        if ($LASTEXITCODE -eq 0) {
+            $pulled = $true
+            break
+        }
+        if ($attempt -le $retryDelays.Count) {
+            Start-Sleep -Seconds $retryDelays[$attempt - 1]
+        }
+    }
+    if (-not $pulled) {
+        throw "Failed to pull OWASP ZAP image '$ZapImage' after $($retryDelays.Count + 1) attempts."
+    }
+}
+
+# Mint OIDC PKCE tokens AFTER pulling the ZAP container image so the full 15-minute
+# AccessTokenLifetime remains available throughout the active/passive scan.
 if ([string]::IsNullOrWhiteSpace($CustomerBearerToken)) {
     if ([string]::IsNullOrWhiteSpace($CustomerEmail)) {
         $CustomerEmail = "zap.seed.$([Guid]::NewGuid().ToString('N').Substring(0, 8))@davids.example"
@@ -222,24 +244,54 @@ if ($IsLinux) {
     & chmod -R 0777 $OutputDirectory
 }
 
-& docker image inspect $ZapImage *> $null
-if ($LASTEXITCODE -ne 0) {
-    $retryDelays = @(5, 10, 20, 30)
-    $pulled = $false
-    for ($attempt = 1; $attempt -le ($retryDelays.Count + 1); $attempt++) {
-        Write-Host "Pulling OWASP ZAP image ($ZapImage) [attempt $attempt/$($retryDelays.Count + 1)]..."
-        & docker pull --platform linux/amd64 $ZapImage
-        if ($LASTEXITCODE -eq 0) {
-            $pulled = $true
-            break
+function ConvertTo-GitHubCodeScanningSarif {
+    param(
+        [Parameter(Mandatory)][string]$SourceSarifPath,
+        [Parameter(Mandatory)][string]$DestinationSarifPath
+    )
+
+    $sarifObj = Get-Content -LiteralPath $SourceSarifPath -Raw | ConvertFrom-Json -Depth 50
+    foreach ($run in @($sarifObj.runs)) {
+        $filteredResults = @()
+        foreach ($res in @($run.results)) {
+            $lvl = [string]$res.level
+            if ($lvl -notin @('warning', 'error')) {
+                continue
+            }
+            foreach ($loc in @($res.locations)) {
+                $phys = $loc.physicalLocation
+                if ($null -ne $phys -and $null -ne $phys.artifactLocation) {
+                    $rawUri = [string]$phys.artifactLocation.uri
+                    if ($rawUri -match '^https?://') {
+                        $anchorPath = if ($rawUri -match '/admin-identity(/|$|\?)') {
+                            'Davids/security/quarterly-release/restler/specs/admin-identity.restler.openapi.json'
+                        } elseif ($rawUri -match '/identity(/|$|\?)') {
+                            'Davids/security/quarterly-release/restler/specs/identity.restler.openapi.json'
+                        } elseif ($rawUri -match '/customers(/|$|\?)') {
+                            'Davids/security/quarterly-release/restler/specs/customers.restler.openapi.json'
+                        } else {
+                            'Davids/security/quarterly-release/zap/zap-automation.yaml'
+                        }
+                        $phys.artifactLocation.uri = $anchorPath
+                        if ($null -eq $phys.region) {
+                            $phys | Add-Member -NotePropertyName 'region' -NotePropertyValue ([pscustomobject]@{ startLine = 1 }) -Force
+                        }
+                        if ($null -ne $res.message -and -not ([string]$res.message.text).Contains($rawUri)) {
+                            $res.message.text = "$([string]$res.message.text) [Target URL: $rawUri]"
+                        }
+                    }
+                }
+            }
+            $filteredResults += $res
         }
-        if ($attempt -le $retryDelays.Count) {
-            Start-Sleep -Seconds $retryDelays[$attempt - 1]
+        $run.results = $filteredResults
+        if ($filteredResults.Count -eq 0 -and $null -ne $run.tool -and $null -ne $run.tool.driver) {
+            $run.tool.driver.rules = @()
         }
     }
-    if (-not $pulled) {
-        throw "Failed to pull OWASP ZAP image '$ZapImage' after $($retryDelays.Count + 1) attempts."
-    }
+
+    $normalizedJson = ($sarifObj | ConvertTo-Json -Depth 50) + "`n"
+    [System.IO.File]::WriteAllText($DestinationSarifPath, $normalizedJson, [System.Text.UTF8Encoding]::new($false))
 }
 
 try {
@@ -256,6 +308,18 @@ try {
     Write-Host "=== Quarterly / Release: Running OWASP ZAP 2.17.0 Automation Framework against $containerTargetUrl ==="
     & docker @dockerArgs
     $zapExit = $LASTEXITCODE
+    $generatedSarifJson = Join-Path $wrkReportsDir 'zap-quarterly-release.sarif.json'
+    $canonicalSarif = Join-Path $wrkReportsDir 'zap-quarterly-release.sarif'
+    $sourceSarif = if (Test-Path -LiteralPath $generatedSarifJson) {
+        $generatedSarifJson
+    } elseif (Test-Path -LiteralPath $canonicalSarif) {
+        $canonicalSarif
+    } else {
+        ''
+    }
+    if (-not [string]::IsNullOrWhiteSpace($sourceSarif)) {
+        ConvertTo-GitHubCodeScanningSarif -SourceSarifPath $sourceSarif -DestinationSarifPath $canonicalSarif
+    }
     if ($zapExit -ne 0) {
         throw "OWASP ZAP Quarterly / Release active/passive scan FAILED with exit code $zapExit (Medium/High alert threshold exceeded). Inspect $wrkReportsDir."
     }

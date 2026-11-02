@@ -1,5 +1,5 @@
 # Production Cluster — Modern Kyverno v1.19+ CEL ValidatingPolicy (policies.kyverno.io/v1)
-# Compiles directly to native Kubernetes CEL expressions with zero JMESPath overhead ($0 CNCF Apache-2.0).
+# Compiles directly to native Kubernetes CEL expressions with zero JMESPath overhead (CNCF Apache-2.0).
 apiVersion: policies.kyverno.io/v1
 kind: ValidatingPolicy
 metadata:

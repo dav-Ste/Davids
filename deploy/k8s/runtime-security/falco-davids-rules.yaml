@@ -1,5 +1,5 @@
 # Production Cluster — Kubernetes ConfigMaps for CNCF Falco Custom Rules & Falcosidekick -> Prometheus + Seq Forwarding
-# Install Falco + Falcosidekick via official OSS Helm chart ($0 Apache-2.0):
+# Install Falco + Falcosidekick via official OSS Helm chart (Apache-2.0):
 #   helm repo add falcosecurity https://falcosecurity.github.io/charts
 #   helm upgrade --install falco falcosecurity/falco -n falco --create-namespace \
 #     --set tty=true --set driver.kind=modern_ebpf \

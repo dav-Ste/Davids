@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "description": "Production Cluster Seq Login-Audit & Runtime Security Signals and Alert Thresholds ($0 Free Individual/Dev Tier + Prometheus/Grafana OSS parity)",
+  "description": "Production Cluster Seq Login-Audit & Runtime Security Signals and Alert Thresholds (Prometheus/Grafana OSS parity)",
   "signals": [
     {
       "id": "signal-davids-admin-lockout",

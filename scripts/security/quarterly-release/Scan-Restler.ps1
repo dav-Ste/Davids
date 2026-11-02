@@ -296,8 +296,11 @@ function Invoke-RestlerCommand {
             '-v', "${workRoot}:/restler-work",
             '-w', "/restler-work/$WorkingSubdir",
             $RestlerImage,
-            '/RESTler/restler/Restler',
-            '--disable_log_upload'
+            'dotnet',
+            '/RESTler/restler/Restler.dll',
+            '--disable_log_upload',
+            '--python_path',
+            '/usr/bin/python3'
         )
         $dockerArgs += $RestlerArgs
         & docker @dockerArgs

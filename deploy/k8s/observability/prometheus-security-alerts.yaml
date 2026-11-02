@@ -1,4 +1,4 @@
-# Production Cluster — Prometheus Operator PrometheusRule CRD for Davids Login-Audit & Runtime Security Alerts ($0 Apache-2.0)
+# Production Cluster — Prometheus Operator PrometheusRule CRD for Davids Login-Audit & Runtime Security Alerts (Apache-2.0)
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:

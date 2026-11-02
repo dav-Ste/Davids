@@ -1,6 +1,6 @@
 # Local Dev / Commit Security Gate
 
-Runs automatically on **every local `git commit` and `dotnet build`** across all 7 `Davids` repositories (`$0` open-source tools):
+Runs automatically on **every local `git commit` and `dotnet build`** across all 7 `Davids` repositories:
 
 - `gitleaks.toml` — Canonical Gitleaks secret & private-key ruleset (active at repo root `.gitleaks.toml`).
 - `pre-commit` — Canonical Git pre-commit hook blocking `.pfx`, `.p12`, `.key`, `.jks`, `.kdbx`, `.env`, and secret leaks (active at `.githooks/pre-commit`).

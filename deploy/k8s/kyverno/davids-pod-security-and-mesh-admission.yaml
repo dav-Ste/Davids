@@ -1,5 +1,5 @@
 # Production Cluster — Kyverno Admission Control: Hardened Non-Root Pod Security, Immutable Digests & Istio Mesh Sidecar Guard
-# Free ($0) CNCF Apache-2.0 policy enforcing restricted container security posture across the davids namespace.
+# CNCF Apache-2.0 policy enforcing restricted container security posture across the davids namespace.
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy
 metadata:
