@@ -45,6 +45,14 @@ Persistence uses **SQL Server** with **strict physical database isolation** acro
 - Administrator accounts and admin OpenIddict grants (`adminidentitydb`)
 - Customer profiles and completed-order tracking (`customersdb`)
 
+## Architecture, project relationships & security posture
+
+![Davids Platform — Infrastructure, Project Relationships & Security Architecture](docs/architecture-and-security.svg)
+
+- **Pre-rendered vector diagram**: [`docs/architecture-and-security.svg`](docs/architecture-and-security.svg)
+- **Editable diagram document (topology, OIDC PKCE/BFF sequence diagram, 5-stage security pipeline & PNG/SVG export commands)**: [`docs/ARCHITECTURE-AND-SECURITY-DIAGRAM.md`](docs/ARCHITECTURE-AND-SECURITY-DIAGRAM.md)
+- **Standalone Mermaid diagram source (`mmdc` / Mermaid Live Editor ready)**: [`docs/architecture-and-security.mmd`](docs/architecture-and-security.mmd)
+
 ## Repository layout
 
 Clone this infrastructure repository and the sibling repositories into the **same parent directory**:

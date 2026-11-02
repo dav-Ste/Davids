@@ -830,6 +830,26 @@ public sealed class ResourceGraphTests
             Assert.DoesNotContain("Convey", content, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("Ntrada", content, StringComparison.OrdinalIgnoreCase);
         }
+
+        // 6. Architecture, repository relationships & security diagram document + vector SVG embedded in README.md.
+        foreach (var archAsset in new[]
+        {
+            "ARCHITECTURE-AND-SECURITY-DIAGRAM.md",
+            "architecture-and-security.mmd",
+            "architecture-and-security.svg"
+        })
+        {
+            var assetPath = Path.Combine(davidsRoot, "docs", archAsset);
+            Assert.True(File.Exists(assetPath), $"Missing architecture diagram asset docs/{archAsset}.");
+            var assetContent = File.ReadAllText(assetPath);
+            Assert.DoesNotContain("Convey", assetContent, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Ntrada", assetContent, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("$0", assetContent, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("free", assetContent, StringComparison.OrdinalIgnoreCase);
+        }
+        var rootReadme = File.ReadAllText(Path.Combine(davidsRoot, "README.md"));
+        Assert.Contains("docs/architecture-and-security.svg", rootReadme, StringComparison.Ordinal);
+        Assert.Contains("docs/ARCHITECTURE-AND-SECURITY-DIAGRAM.md", rootReadme, StringComparison.Ordinal);
     }
 
     [Fact]
