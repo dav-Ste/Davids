@@ -1,41 +1,49 @@
 # Davids Services — Aspire Infrastructure
 
-[![Pull Request CI — Security Gate](https://github.com/dav-Ste/Davids/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids/actions/workflows/pull-request-ci.yml)
-[![Pull Request CI — CodeQL SAST](https://github.com/dav-Ste/Davids/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids/actions/workflows/codeql.yml)
-[![Production Cluster](https://github.com/dav-Ste/Davids/actions/workflows/production-cluster.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids/actions/workflows/production-cluster.yml)
-[![Staging / Nightly DAST](https://github.com/dav-Ste/Davids/actions/workflows/staging-nightly.yml/badge.svg)](https://github.com/dav-Ste/Davids/actions/workflows/staging-nightly.yml)
-[![Quarterly / Release Security Gates](https://github.com/dav-Ste/Davids/actions/workflows/quarterly-release.yml/badge.svg)](https://github.com/dav-Ste/Davids/actions/workflows/quarterly-release.yml)
+| Pull Request CI | CodeQL SAST | Production Cluster | Staging / Nightly DAST | Quarterly / Release |
+|---|---|---|---|---|
+| [![Pull Request CI — Security Gate](https://github.com/dav-Ste/Davids/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids/actions/workflows/pull-request-ci.yml) | [![Pull Request CI — CodeQL SAST](https://github.com/dav-Ste/Davids/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids/actions/workflows/codeql.yml) | [![Production Cluster](https://github.com/dav-Ste/Davids/actions/workflows/production-cluster.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids/actions/workflows/production-cluster.yml) | [![Staging / Nightly DAST](https://github.com/dav-Ste/Davids/actions/workflows/staging-nightly.yml/badge.svg)](https://github.com/dav-Ste/Davids/actions/workflows/staging-nightly.yml) | [![Quarterly / Release Security Gates](https://github.com/dav-Ste/Davids/actions/workflows/quarterly-release.yml/badge.svg)](https://github.com/dav-Ste/Davids/actions/workflows/quarterly-release.yml) |
 
-This repository owns the .NET 10 Aspire orchestration and local infrastructure tooling:
+This repository owns the `.NET 10` Aspire orchestration, Kubernetes/Istio manifests, and lifecycle security verification tooling for the **Davids** microservices platform:
 
 - Aspire AppHost (`src/Davids.AppHost`)
 - Vault KV-v2 OIDC key & BFF secret bootstrap (`src/Davids.Bootstrap`)
-- Grafana and Kubernetes observability configuration (`src/Davids.AppHost/config/grafana`, `deploy/k8s/grafana.yaml`)
-- SQL Server baseline scripts (`database/`)
-- PowerShell setup, build, test, and database scripts (`scripts/`)
+- Grafana, Prometheus, Jaeger, and Seq observability configuration (`src/Davids.AppHost/config/grafana`, `deploy/k8s/grafana.yaml`, `deploy/k8s/observability/`)
+- Kubernetes, Istio `STRICT` mTLS, Kyverno, Falco, and Cilium Tetragon manifests (`deploy/k8s/`)
+- SQL Server baseline scripts (`database/`) and PowerShell setup, build, test, database, and security runners (`scripts/`)
 
-## Live CI & Security Gate Status Across All 7 Repositories
+## Contents
 
-Every badge below updates automatically from live GitHub Actions runs on `main` (click any badge to inspect the workflow run logs and downloadable SARIF/SBOM/JUnit artifacts):
+- [Orchestrated repositories & live CI status](#orchestrated-repositories--live-ci-status)
+- [Architecture, project relationships & security posture](#architecture-project-relationships--security-posture)
+- [Repository layout](#repository-layout)
+- [First-time setup](#first-time-setup)
+- [Local ports & endpoints at a glance](#local-ports--endpoints-at-a-glance)
+- [Infrastructure credentials and how to access them](#infrastructure-credentials-and-how-to-access-them)
+- [Run and test](#run-and-test)
+- [Persistence and database isolation](#persistence-and-database-isolation)
+- [Component responsibilities](#component-responsibilities)
+- [Security gates by lifecycle stage](#local-dev--commit-security-gates-securitylocal-dev-commit--scriptssecuritylocal-dev-commit)
+  - [Local Dev / Commit](#local-dev--commit-security-gates-securitylocal-dev-commit--scriptssecuritylocal-dev-commit)
+  - [Pull Request CI](#pull-request-ci-security-gates-securitypull-request-ci--scriptssecuritypull-request-ci)
+  - [Staging / Nightly DAST](#staging--nightly-dast-security-gates-securitystaging-nightly--scriptssecuritystaging-nightly)
+  - [Quarterly / Release](#quarterly--release-security-gates-securityquarterly-release--scriptssecurityquarterly-release)
+  - [Production Cluster](#production-cluster-runtime-mesh-supply-chain--login-audit-alerting-securityproduction-cluster-deployk8s--scriptssecurityproduction-cluster)
+- [Validation and limitations](#validation-and-limitations)
 
-| Repository | Pull Request CI (Build, Tests, Semgrep, Checkov, Grype, Trivy) | CodeQL SAST (`security-extended`) | Aggregate Runtime & DAST Gates |
-|---|---|---|---|
-| **[`Davids`](https://github.com/dav-Ste/Davids)** | [![PR CI](https://github.com/dav-Ste/Davids/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids/actions/workflows/codeql.yml) | [![Production Cluster](https://github.com/dav-Ste/Davids/actions/workflows/production-cluster.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids/actions/workflows/production-cluster.yml) [![Staging Nightly](https://github.com/dav-Ste/Davids/actions/workflows/staging-nightly.yml/badge.svg)](https://github.com/dav-Ste/Davids/actions/workflows/staging-nightly.yml) [![Quarterly Release](https://github.com/dav-Ste/Davids/actions/workflows/quarterly-release.yml/badge.svg)](https://github.com/dav-Ste/Davids/actions/workflows/quarterly-release.yml) |
-| **[`Davids.Shared`](https://github.com/dav-Ste/Davids.Shared)** | [![PR CI](https://github.com/dav-Ste/Davids.Shared/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Shared/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Shared/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Shared/actions/workflows/codeql.yml) | — |
-| **[`Davids.Services.Identity`](https://github.com/dav-Ste/Davids.Services.Identity)** | [![PR CI](https://github.com/dav-Ste/Davids.Services.Identity/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.Identity/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Services.Identity/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.Identity/actions/workflows/codeql.yml) | — |
-| **[`Davids.Services.AdminIdentity`](https://github.com/dav-Ste/Davids.Services.AdminIdentity)** | [![PR CI](https://github.com/dav-Ste/Davids.Services.AdminIdentity/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.AdminIdentity/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Services.AdminIdentity/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.AdminIdentity/actions/workflows/codeql.yml) | — |
-| **[`Davids.Services.Customers`](https://github.com/dav-Ste/Davids.Services.Customers)** | [![PR CI](https://github.com/dav-Ste/Davids.Services.Customers/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.Customers/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Services.Customers/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.Customers/actions/workflows/codeql.yml) | — |
-| **[`Davids.APIGateway`](https://github.com/dav-Ste/Davids.APIGateway)** | [![PR CI](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/codeql.yml) | — |
-| **[`Davids.Frontend.Admin`](https://github.com/dav-Ste/Davids.Frontend.Admin)** | [![PR CI](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/codeql.yml) | — |
+## Orchestrated repositories & live CI status
 
-It orchestrates the following sibling repositories, each with its own standalone solution (`Davids.slnx` here is the aggregate development solution):
+Each component lives in its own standalone repository with an independent `.slnx` solution (`Davids.slnx` here is the aggregate development solution). Every badge below updates automatically from live GitHub Actions runs on `main`:
 
-- Davids Shared Host Defaults (`Davids.Shared`)
-- Davids Customer Identity OIDC Provider (`Davids.Services.Identity`)
-- Davids Admin Identity OIDC Provider (`Davids.Services.AdminIdentity`)
-- Davids Customers (`Davids.Services.Customers`)
-- Davids API Gateway & OIDC BFF (`Davids.APIGateway`)
-- Davids Admin Web Frontend (`Davids.Frontend.Admin`)
+| Repository | Role & Isolation Boundary | Default Port | Pull Request CI | CodeQL SAST |
+|---|---|---|---|---|
+| **[`Davids`](https://github.com/dav-Ste/Davids)** | `.NET 10` Aspire AppHost, Vault bootstrap, K8s/Istio manifests & aggregate security suite | Aspire Dashboard | [![PR CI](https://github.com/dav-Ste/Davids/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids/actions/workflows/codeql.yml) |
+| **[`Davids.Shared`](https://github.com/dav-Ste/Davids.Shared)** | `Davids.ServiceDefaults` (`OpenTelemetry`, `Serilog`, `DataProtection`, `/health`, resilience) | Shared library / NuGet | [![PR CI](https://github.com/dav-Ste/Davids.Shared/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Shared/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Shared/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Shared/actions/workflows/codeql.yml) |
+| **[`Davids.Services.Identity`](https://github.com/dav-Ste/Davids.Services.Identity)** | Customer OpenIddict `7.7.2` `RS256` OIDC Provider (`identitydb`, `role: user`) | `:5004` | [![PR CI](https://github.com/dav-Ste/Davids.Services.Identity/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.Identity/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Services.Identity/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.Identity/actions/workflows/codeql.yml) |
+| **[`Davids.Services.AdminIdentity`](https://github.com/dav-Ste/Davids.Services.AdminIdentity)** | Admin OpenIddict `7.7.2` `RS256` OIDC Provider (`adminidentitydb`, `role: admin`) | `:17325` | [![PR CI](https://github.com/dav-Ste/Davids.Services.AdminIdentity/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.AdminIdentity/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Services.AdminIdentity/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.AdminIdentity/actions/workflows/codeql.yml) |
+| **[`Davids.Services.Customers`](https://github.com/dav-Ste/Davids.Services.Customers)** | Customer profiles & order tracking (`customersdb`, public JWKS only — zero signing keys) | `:5002` | [![PR CI](https://github.com/dav-Ste/Davids.Services.Customers/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.Customers/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Services.Customers/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.Customers/actions/workflows/codeql.yml) |
+| **[`Davids.APIGateway`](https://github.com/dav-Ste/Davids.APIGateway)** | YARP `2.3.0` edge reverse proxy & confidential Admin OIDC BFF (zero signing keys) | `:17320` | [![PR CI](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/codeql.yml) |
+| **[`Davids.Frontend.Admin`](https://github.com/dav-Ste/Davids.Frontend.Admin)** | Passwordless Admin customer search & editing web UI (`AdminOnly` BFF gated) | `:17321` | [![PR CI](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/codeql.yml) |
 
 Authentication uses **Self-Hosted .NET OpenID Connect (`OpenIddict` `7.7.2`)** with **OAuth 2.1 Authorization Code + PKCE (`S256`)**, asymmetric **RS256** signing keys, public JWKS discovery (`/.well-known/openid-configuration` & `/.well-known/jwks`), single-use rotating refresh tokens with reuse detection, RFC 7009 revocation synced to Redis, and a confidential **Gateway OIDC Backend-for-Frontend (BFF)** (`davids_admin_bff` encrypted `HttpOnly` cookie) protecting `Davids.Frontend.Admin`. Resource servers (`Davids.Services.Customers` and `Davids.APIGateway`) hold **zero signing keys**.
 
@@ -52,6 +60,7 @@ Persistence uses **SQL Server** with **strict physical database isolation** acro
 - **Pre-rendered vector diagram**: [`docs/architecture-and-security.svg`](docs/architecture-and-security.svg)
 - **Editable diagram document (topology, OIDC PKCE/BFF sequence diagram, 5-stage security pipeline & PNG/SVG export commands)**: [`docs/ARCHITECTURE-AND-SECURITY-DIAGRAM.md`](docs/ARCHITECTURE-AND-SECURITY-DIAGRAM.md)
 - **Standalone Mermaid diagram source (`mmdc` / Mermaid Live Editor ready)**: [`docs/architecture-and-security.mmd`](docs/architecture-and-security.mmd)
+- **Continuous security testing & hardening playbook**: [`docs/SECURITY-TESTING-PLAYBOOK.md`](docs/SECURITY-TESTING-PLAYBOOK.md)
 
 ## Repository layout
 
@@ -87,13 +96,14 @@ Prerequisites:
 - PowerShell 7 (or Windows PowerShell 5.1+)
 - A Docker-compatible container runtime
 
-Use the GitHub user or organization that hosts the seven repositories in place of `<owner>`:
+Clone `Davids` and pull the six sibling repositories into the same parent workspace directory (replace `dav-Ste` if cloning from your own fork):
 
 ```powershell
-git clone https://github.com/<owner>/Davids.git
+git clone https://github.com/dav-Ste/Davids.git
 Set-Location Davids
-./scripts/Get-Projects.ps1 -GitHubOwner <owner>
+./scripts/Get-Projects.ps1 -GitHubOwner dav-Ste
 ./scripts/Setup.ps1
+./scripts/Start.ps1
 ```
 
 > **Windows downloaded `.zip` note (Mark of the Web):** If you extracted the workspace from a browser-downloaded `.zip` instead of cloning via `git`, Windows stamps a `Zone.Identifier` stream onto `.ps1` scripts and `.config\dotnet-tools.json` (causing PowerShell security prompts and blocking `dotnet tool restore`). Do **not** globally weaken PowerShell execution policy; instead, unblock the archive before extracting (`Unblock-File .\Davids-Workspace.zip`) or unblock the extracted workspace folder once:
@@ -127,6 +137,24 @@ Or open any standalone component solution:
 - `../Davids.Services.Customers/Davids.Services.Customers.slnx`
 - `../Davids.APIGateway/Davids.APIGateway.slnx`
 - `../Davids.Frontend.Admin/Davids.Frontend.Admin.slnx`
+
+## Local ports & endpoints at a glance
+
+| Resource / Service | Aspire Resource Name | Container / Default Port | Key Paths & Health Probes |
+|---|---|---|---|
+| **API Gateway & Admin OIDC BFF** | `api-gateway` | `:17320` | `/login`, `/auth/session`, `/gateway-info`, `/health` |
+| **Admin Web Frontend** | `frontend-admin` | `:17321` *(proxied via `:17320`)* | `/` (`AdminOnly` via Gateway), `/health` |
+| **Admin Identity OIDC Provider** | `admin-identity` | `:17325` | `/.well-known/openid-configuration`, `/.well-known/jwks`, `/health` |
+| **Customers API** | `customers` | `:5002` | `/customers`, `/health` |
+| **Customer Identity OIDC Provider** | `identity` | `:5004` | `/.well-known/openid-configuration`, `/.well-known/jwks`, `/sign-up`, `/health` |
+| **SQL Server** (`identitydb`, `adminidentitydb`, `customersdb`) | `sql` | `:1433` | TCP (`Encrypt=True`, 3 isolated databases) |
+| **Redis** (revoked JTI cache) | `cache` | `:6379` | TCP |
+| **RabbitMQ** (broker + Management UI) | `messaging` | `:5672` / `:15672` | AMQP + Management UI |
+| **HashiCorp Vault** (KV-v2 secrets) | `vault` | `:8200` | `/v1/sys/health`, `/ui` |
+| **Prometheus** (OTLP metrics + rules) | `prometheus` | `:9090` | `/api/v1/otlp/v1/metrics`, `/alerts` |
+| **Jaeger** (UI + OTLP traces) | `jaeger` | `:16686` / `:4318` | Jaeger UI (`:16686`), `/v1/traces` (`:4318`) |
+| **Grafana** (dashboards & Unified Alerting) | `grafana` | `:3000` | `/api/health`, pre-provisioned Prometheus & Jaeger datasources |
+| **Seq** (structured CLEF security audit logs) | `seq` | `:80` | Web UI & `/api/events/raw?clef` |
 
 ## Infrastructure credentials and how to access them
 
@@ -311,7 +339,7 @@ Every repository (`Davids`, `Davids.Shared`, `Davids.Services.Identity`, `Davids
   - `./scripts/security/local-dev-commit/Verify-Dependencies.ps1` parses the JSON output of `dotnet list Davids.slnx package --vulnerable --include-transitive --format json` and fails if any advisory is reported.
 - **Compile-time Roslyn security static analysis (`AnalysisModeSecurity=All`), strict C# nullability (`<Nullable>enable</Nullable>`), test categorization & Clean Architecture layer tests**:
   - `Davids.Shared/eng/Davids.Common.props` (imported by `Directory.Build.props` in every repository, with standalone single-repo fallback) enables `<Nullable>enable</Nullable>`, `<UseArtifactsOutput>true</UseArtifactsOutput>` (routing all `bin`/`obj`/`publish` outputs cleanly into `<RepoRoot>/artifacts/`), `<EnableNETAnalyzers>true</EnableNETAnalyzers>`, `<AnalysisLevel>latest</AnalysisLevel>`, and `<AnalysisModeSecurity>All</AnalysisModeSecurity>` alongside `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` across all 25 projects.
-  - Every xUnit test across all 7 test projects declares `[Trait("Category", "Unit")]` or `[Trait("Category", "Integration")]` (filterable via `./scripts/Test.ps1 -Category Unit` or `dotnet test --filter "Category=Unit"`), and zero-cost `System.Reflection` + MSBuild + EF Core `ArchitectureTests` enforce inward-only Clean Architecture layer boundaries (`Core -> Application -> Infrastructure -> Api`), service isolation, and `ModelSnapshot` parity (`!HasPendingModelChanges()`) across every repository.
+  - Every xUnit test across all 7 test projects declares `[Trait("Category", "Unit")]` or `[Trait("Category", "Integration")]` (filterable via `./scripts/Test.ps1 -Category Unit` or `dotnet test --filter "Category=Unit"`), and `System.Reflection` + MSBuild + EF Core `ArchitectureTests` enforce inward-only Clean Architecture layer boundaries (`Core -> Application -> Infrastructure -> Api`), service isolation, and `ModelSnapshot` parity (`!HasPendingModelChanges()`) across every repository.
 
 ## Pull Request CI security gates (`security/pull-request-ci` & `scripts/security/pull-request-ci`)
 
