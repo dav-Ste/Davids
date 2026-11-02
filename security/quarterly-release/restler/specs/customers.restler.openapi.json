@@ -7,8 +7,8 @@
   },
   "servers": [
     {
-      "url": "http://localhost:17320",
-      "description": "Davids YARP API Gateway"
+      "description": "Davids YARP API Gateway",
+      "url": "http://localhost:17320"
     }
   ],
   "paths": {
@@ -378,13 +378,13 @@
             "format": "uuid"
           },
           "fullName": {
-            "maxLength": 200,
+            "maxLength": 100,
             "minLength": 1,
             "pattern": "^[^\\u0000]*\\S[^\\u0000]*$",
             "type": "string"
           },
           "address": {
-            "maxLength": 500,
+            "maxLength": 250,
             "minLength": 1,
             "pattern": "^[^\\u0000]*\\S[^\\u0000]*$",
             "type": "string"
@@ -395,7 +395,6 @@
         "type": "object",
         "properties": {
           "completedOrders": {
-            "nullable": true,
             "type": "array",
             "items": {
               "type": "string",
@@ -407,22 +406,18 @@
             "format": "uuid"
           },
           "email": {
-            "nullable": true,
             "type": "string"
           },
           "fullName": {
-            "nullable": true,
             "type": "string"
           },
           "address": {
-            "nullable": true,
             "type": "string"
           },
           "isVip": {
             "type": "boolean"
           },
           "state": {
-            "nullable": true,
             "type": "string"
           },
           "createdAt": {
@@ -444,22 +439,18 @@
             "format": "uuid"
           },
           "email": {
-            "nullable": true,
             "type": "string"
           },
           "fullName": {
-            "nullable": true,
             "type": "string"
           },
           "address": {
-            "nullable": true,
             "type": "string"
           },
           "isVip": {
             "type": "boolean"
           },
           "state": {
-            "nullable": true,
             "type": "string"
           },
           "createdAt": {
@@ -481,7 +472,6 @@
             "format": "uuid"
           },
           "state": {
-            "nullable": true,
             "type": "string"
           }
         }
@@ -493,18 +483,14 @@
         ],
         "type": "object",
         "properties": {
-          "customerId": {
-            "type": "string",
-            "format": "uuid"
-          },
           "fullName": {
-            "maxLength": 200,
+            "maxLength": 100,
             "minLength": 1,
             "pattern": "^[^\\u0000]*\\S[^\\u0000]*$",
             "type": "string"
           },
           "address": {
-            "maxLength": 500,
+            "maxLength": 250,
             "minLength": 1,
             "pattern": "^[^\\u0000]*\\S[^\\u0000]*$",
             "type": "string"
@@ -513,8 +499,8 @@
             "maxLength": 254,
             "minLength": 6,
             "pattern": "^[A-Za-z0-9_%+\\-]{1,20}(?:\\.[A-Za-z0-9_%+\\-]{1,20}){0,2}@(?:[A-Za-z0-9](?:[A-Za-z0-9\\-]{0,30}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}$",
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "state": {
             "enum": [
@@ -524,8 +510,8 @@
               "suspicious",
               "locked"
             ],
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           }
         }
       }

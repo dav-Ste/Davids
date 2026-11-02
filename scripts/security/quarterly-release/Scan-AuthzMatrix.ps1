@@ -192,7 +192,9 @@ if ([string]::IsNullOrWhiteSpace($CustomerABearerToken)) {
     $CustomerABearerToken = Invoke-PkceTokenExchange -RoutePrefix 'identity' -ClientId 'davids-web' -RedirectUri $CustomerRedirectUri -Scope 'openid email profile roles offline_access davids-services' -Email $emailA -Password $passA
 }
 if ([string]::IsNullOrWhiteSpace($CustomerAId)) {
-    $CustomerAId = [string](Get-JwtPayloadHashtable -Jwt $CustomerABearerToken)['sub']
+    $CustomerAId = ([Guid]::Parse([string](Get-JwtPayloadHashtable -Jwt $CustomerABearerToken)['sub'])).ToString('D')
+} else {
+    $CustomerAId = ([Guid]::Parse($CustomerAId)).ToString('D')
 }
 
 if ([string]::IsNullOrWhiteSpace($CustomerBBearerToken)) {
@@ -204,7 +206,23 @@ if ([string]::IsNullOrWhiteSpace($CustomerBBearerToken)) {
     $CustomerBBearerToken = Invoke-PkceTokenExchange -RoutePrefix 'identity' -ClientId 'davids-web' -RedirectUri $CustomerRedirectUri -Scope 'openid email profile roles offline_access davids-services' -Email $emailB -Password $passB
 }
 if ([string]::IsNullOrWhiteSpace($CustomerBId)) {
-    $CustomerBId = [string](Get-JwtPayloadHashtable -Jwt $CustomerBBearerToken)['sub']
+    $CustomerBId = ([Guid]::Parse([string](Get-JwtPayloadHashtable -Jwt $CustomerBBearerToken)['sub'])).ToString('D')
+} else {
+    $CustomerBId = ([Guid]::Parse($CustomerBId)).ToString('D')
+}
+
+# Wait up to 15s for asynchronous SignedUp RabbitMQ outbox events to materialize Customer A & B in customersdb
+foreach ($pair in @(
+    @{ Id = $CustomerAId; Token = $CustomerABearerToken },
+    @{ Id = $CustomerBId; Token = $CustomerBBearerToken }
+)) {
+    for ($attempt = 1; $attempt -le 30; $attempt++) {
+        $probe = Invoke-WebRequest -Uri "$baseGateway/customers/$($pair.Id)" -Method Get -Headers @{ Authorization = "Bearer $($pair.Token)" } -SkipHttpErrorCheck
+        if ([int]$probe.StatusCode -eq 200) {
+            break
+        }
+        Start-Sleep -Milliseconds 500
+    }
 }
 
 if ([string]::IsNullOrWhiteSpace($AdminBearerToken)) {

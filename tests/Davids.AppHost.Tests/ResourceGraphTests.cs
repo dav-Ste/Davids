@@ -693,7 +693,7 @@ public sealed class ResourceGraphTests
         var stagingWorkflow = File.ReadAllText(stagingWorkflowPath);
         Assert.Contains("schemathesis/action@", stagingWorkflow, StringComparison.Ordinal);
         Assert.Contains("projectdiscovery/nuclei-action@", stagingWorkflow, StringComparison.Ordinal);
-        Assert.Contains("PortSwigger/dastardly-github-action@", stagingWorkflow, StringComparison.Ordinal);
+        Assert.Contains("Scan-Dastardly.ps1", stagingWorkflow, StringComparison.Ordinal);
 
         foreach (var script in new[]
         {

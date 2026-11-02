@@ -7,8 +7,8 @@
   },
   "servers": [
     {
-      "url": "http://localhost:17320",
-      "description": "Davids YARP API Gateway"
+      "description": "Davids YARP API Gateway",
+      "url": "http://localhost:17320"
     }
   ],
   "paths": {
@@ -375,40 +375,38 @@
             "format": "date-time"
           },
           "adminUserId": {
-            "nullable": true,
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "nullable": true
           },
           "email": {
-            "nullable": true,
             "type": "string"
           },
           "succeeded": {
             "type": "boolean"
           },
           "outcome": {
-            "nullable": true,
             "type": "string"
           },
           "failureReason": {
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "clientId": {
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "clientIpAddress": {
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "userAgent": {
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "correlationId": {
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           }
         }
       },
@@ -428,15 +426,12 @@
             "format": "uuid"
           },
           "email": {
-            "nullable": true,
             "type": "string"
           },
           "fullName": {
-            "nullable": true,
             "type": "string"
           },
           "role": {
-            "nullable": true,
             "type": "string"
           },
           "isActive": {
@@ -472,10 +467,10 @@
             "type": "string"
           },
           "fullName": {
-            "maxLength": 200,
+            "maxLength": 100,
             "pattern": "^[^\\u0000]*$",
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           }
         }
       }

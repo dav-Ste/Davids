@@ -195,7 +195,7 @@ if ([string]::IsNullOrWhiteSpace($AdminBearerToken)) {
 }
 
 $parsedGateway = [Uri]$GatewayUrl
-$containerTargetUrl = if ($parsedGateway.Host -in @('localhost', '127.0.0.1', '::1')) {
+$containerTargetUrl = if (-not $IsLinux -and $parsedGateway.Host -in @('localhost', '127.0.0.1', '::1')) {
     "$($parsedGateway.Scheme)://host.docker.internal:$($parsedGateway.Port)"
 } else {
     $GatewayUrl.TrimEnd('/')
@@ -218,11 +218,34 @@ $hydratedPlan = $planRaw.
     Replace('${ZAP_ADMIN_BEARER_HEADER}', "Bearer $($AdminBearerToken.Trim())")
 
 [System.IO.File]::WriteAllText($runtimePlanFile, $hydratedPlan, $utf8NoBom)
+if ($IsLinux) {
+    & chmod -R 0777 $OutputDirectory
+}
+
+& docker image inspect $ZapImage *> $null
+if ($LASTEXITCODE -ne 0) {
+    $retryDelays = @(5, 10, 20, 30)
+    $pulled = $false
+    for ($attempt = 1; $attempt -le ($retryDelays.Count + 1); $attempt++) {
+        Write-Host "Pulling OWASP ZAP image ($ZapImage) [attempt $attempt/$($retryDelays.Count + 1)]..."
+        & docker pull --platform linux/amd64 $ZapImage
+        if ($LASTEXITCODE -eq 0) {
+            $pulled = $true
+            break
+        }
+        if ($attempt -le $retryDelays.Count) {
+            Start-Sleep -Seconds $retryDelays[$attempt - 1]
+        }
+    }
+    if (-not $pulled) {
+        throw "Failed to pull OWASP ZAP image '$ZapImage' after $($retryDelays.Count + 1) attempts."
+    }
+}
 
 try {
     $dockerArgs = @('run', '--rm')
     if ($IsLinux) {
-        $dockerArgs += '--add-host=host.docker.internal:host-gateway'
+        $dockerArgs += '--network=host'
     }
     $dockerArgs += @(
         '-v', "${OutputDirectory}:/zap/wrk:rw",

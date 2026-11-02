@@ -146,6 +146,9 @@ if ($VerifyOnly) {
             if (-not ($pathKey -eq $target.Prefix -or $pathKey.StartsWith("$($target.Prefix)/"))) {
                 throw "Path '$pathKey' in $($target.OutputFile) does not match expected gateway prefix '$($target.Prefix)'."
             }
+            if ($pathKey -eq "$($target.Prefix)$($target.Prefix)" -or $pathKey.StartsWith("$($target.Prefix)$($target.Prefix)/")) {
+                throw "Doubled gateway prefix '$pathKey' detected in $($target.OutputFile)."
+            }
             if ($target.Name -eq 'admin-identity' -and $pathKey -eq '/admin-identity/sign-up') {
                 throw "Forbidden public admin sign-up path '/admin-identity/sign-up' present in $($target.OutputFile)."
             }
@@ -192,6 +195,8 @@ foreach ($target in $targets) {
 
         $mappedPath = if ($rawPath -eq '/') {
             $target.Prefix
+        } elseif ($rawPath -eq $target.Prefix -or $rawPath.StartsWith("$($target.Prefix)/")) {
+            $rawPath
         } else {
             "$($target.Prefix)$rawPath"
         }

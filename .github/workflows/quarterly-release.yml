@@ -28,36 +28,42 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ github.repository_owner }}/Davids.Shared
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
           path: Davids.Shared
 
       - name: Checkout Davids.Services.Identity
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ github.repository_owner }}/Davids.Services.Identity
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
           path: Davids.Services.Identity
 
       - name: Checkout Davids.Services.AdminIdentity
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ github.repository_owner }}/Davids.Services.AdminIdentity
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
           path: Davids.Services.AdminIdentity
 
       - name: Checkout Davids.Services.Customers
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ github.repository_owner }}/Davids.Services.Customers
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
           path: Davids.Services.Customers
 
       - name: Checkout Davids.APIGateway
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ github.repository_owner }}/Davids.APIGateway
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
           path: Davids.APIGateway
 
       - name: Checkout Davids.Frontend.Admin
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ github.repository_owner }}/Davids.Frontend.Admin
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
           path: Davids.Frontend.Admin
 
       - name: Setup .NET 10 SDK
@@ -92,14 +98,25 @@ jobs:
           else
             OTP_SQL="$(openssl rand -hex 16)Aa1!"
             echo "::add-mask::$OTP_SQL"
+            OTP_RABBIT="$(openssl rand -hex 16)Rb4!"
+            echo "::add-mask::$OTP_RABBIT"
             ADMIN_EMAIL="release.admin@davids.example"
             ADMIN_PASS="$(openssl rand -hex 16)Bb2!"
             echo "::add-mask::$ADMIN_PASS"
             BFF_SECRET="$(openssl rand -hex 24)Cc3!"
             echo "::add-mask::$BFF_SECRET"
 
+            ID_DP_KEY="$(openssl rand -hex 24)"
+            ADM_DP_KEY="$(openssl rand -hex 24)"
+            GW_DP_KEY="$(openssl rand -hex 24)"
+            echo "::add-mask::$ID_DP_KEY"
+            echo "::add-mask::$ADM_DP_KEY"
+            echo "::add-mask::$GW_DP_KEY"
+
             CUST_RSA_PEM="$(openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 2>/dev/null)"
+            CUST_ENC_PEM="$(openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 2>/dev/null)"
             ADMIN_RSA_PEM="$(openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 2>/dev/null)"
+            ADMIN_ENC_PEM="$(openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 2>/dev/null)"
 
             docker run -d --name davids-release-sql -p 127.0.0.1:1433:1433 \
               -e ACCEPT_EULA=Y -e "MSSQL_SA_PASSWORD=$OTP_SQL" \
@@ -108,68 +125,114 @@ jobs:
             docker run -d --name davids-release-redis -p 127.0.0.1:6379:6379 \
               redis:7-alpine
 
-            for i in $(seq 1 60); do
-              if (echo > /dev/tcp/127.0.0.1/1433) 2>/dev/null && (echo > /dev/tcp/127.0.0.1/6379) 2>/dev/null; then
+            docker run -d --name davids-release-rabbit -p 127.0.0.1:5672:5672 \
+              -e RABBITMQ_DEFAULT_USER=davids -e "RABBITMQ_DEFAULT_PASS=$OTP_RABBIT" \
+              rabbitmq:4.4.0-management-alpine
+
+            SQL_READY=0
+            for i in $(seq 1 90); do
+              if (echo > /dev/tcp/127.0.0.1/6379) 2>/dev/null && \
+                 docker exec davids-release-rabbit rabbitmq-diagnostics -q ping >/dev/null 2>&1 && \
+                 docker exec davids-release-sql sh -c 'if [ -x /opt/mssql-tools18/bin/sqlcmd ]; then /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1 -U sa -P "$MSSQL_SA_PASSWORD" -C -Q "SELECT 1" >/dev/null 2>&1; else /opt/mssql-tools/bin/sqlcmd -S 127.0.0.1 -U sa -P "$MSSQL_SA_PASSWORD" -Q "SELECT 1" >/dev/null 2>&1; fi'; then
+                SQL_READY=1
                 break
               fi
               sleep 1
             done
-            sleep 8
+            if [ "$SQL_READY" -ne 1 ]; then
+              echo "ERROR: SQL Server, Redis, or RabbitMQ failed to become ready within 90 seconds."
+              docker logs davids-release-sql || true
+              docker logs davids-release-rabbit || true
+              exit 1
+            fi
 
-            dotnet build ./Davids/Davids.slnx -c Release -warnaserror -m:2 -nr:false --tl:off
+            for sln in \
+              ./Davids.Shared/Davids.Shared.slnx \
+              ./Davids.Services.Identity/Davids.Services.Identity.slnx \
+              ./Davids.Services.AdminIdentity/Davids.Services.AdminIdentity.slnx \
+              ./Davids.Services.Customers/Davids.Services.Customers.slnx \
+              ./Davids.APIGateway/Davids.APIGateway.slnx \
+              ./Davids.Frontend.Admin/Davids.Frontend.Admin.slnx \
+              ./Davids/src/Davids.Bootstrap/Davids.Bootstrap.csproj; do
+              dotnet restore "$sln" --locked-mode -m:1 -nr:false --tl:off
+            done
+            dotnet restore ./Davids/Davids.slnx -m:1 -nr:false --tl:off
+            dotnet build ./Davids/Davids.slnx --no-restore -c Release -warnaserror -m:2 -nr:false --tl:off
 
             export ConnectionStrings__identitydb="Server=127.0.0.1,1433;Database=identitydb;User Id=sa;Password=${OTP_SQL};TrustServerCertificate=True;Encrypt=True"
             export ConnectionStrings__adminidentitydb="Server=127.0.0.1,1433;Database=adminidentitydb;User Id=sa;Password=${OTP_SQL};TrustServerCertificate=True;Encrypt=True"
             export ConnectionStrings__customersdb="Server=127.0.0.1,1433;Database=customersdb;User Id=sa;Password=${OTP_SQL};TrustServerCertificate=True;Encrypt=True"
             export ConnectionStrings__cache="127.0.0.1:6379"
+            export ConnectionStrings__messaging="amqp://davids:${OTP_RABBIT}@127.0.0.1:5672"
             export Redis__Enabled="true"
             export ASPNETCORE_ENVIRONMENT="Development"
             export Database__ApplyMigrations="true"
             export Http__AllowInsecureDevelopment="true"
+            export ForwardedHeaders__TrustLoopback="true"
+            export Messaging__Enabled="true"
 
             Oidc__Issuer="http://127.0.0.1:5004/" \
             Oidc__SigningKeyPem="$CUST_RSA_PEM" \
+            Oidc__EncryptionKeyPem="$CUST_ENC_PEM" \
+            DataProtection__MasterKey="$ID_DP_KEY" \
             RateLimiting__AuthPermitLimit="10000" \
               dotnet run --no-build -c Release --project ./Davids.Services.Identity/src/Davids.Services.Identity.Api --urls http://127.0.0.1:5004 > "$RUNNER_TEMP/quarterly-release-logs/identity.log" 2>&1 &
 
             Oidc__Issuer="http://127.0.0.1:17325/" \
             Oidc__SigningKeyPem="$ADMIN_RSA_PEM" \
-            Oidc__ClientSecret="$BFF_SECRET" \
+            Oidc__EncryptionKeyPem="$ADMIN_ENC_PEM" \
+            Oidc__BffClientSecret="$BFF_SECRET" \
+            DataProtection__MasterKey="$ADM_DP_KEY" \
             RateLimiting__AuthPermitLimit="10000" \
+            SeedAdmin__Enabled="true" \
+            SeedAdmin__Email="$ADMIN_EMAIL" \
+            SeedAdmin__Password="$ADMIN_PASS" \
               dotnet run --no-build -c Release --project ./Davids.Services.AdminIdentity/src/Davids.Services.AdminIdentity.Api --urls http://127.0.0.1:17325 > "$RUNNER_TEMP/quarterly-release-logs/admin-identity.log" 2>&1 &
 
+            CustomerOidc__Authority="http://127.0.0.1:5004" \
             CustomerOidc__Issuer="http://127.0.0.1:5004/" \
+            AdminOidc__Authority="http://127.0.0.1:17325" \
             AdminOidc__Issuer="http://127.0.0.1:17325/" \
               dotnet run --no-build -c Release --project ./Davids.Services.Customers/src/Davids.Services.Customers.Api --urls http://127.0.0.1:5002 > "$RUNNER_TEMP/quarterly-release-logs/customers.log" 2>&1 &
 
             dotnet run --no-build -c Release --project ./Davids.Frontend.Admin/src/Davids.Frontend.Admin --urls http://127.0.0.1:17321 > "$RUNNER_TEMP/quarterly-release-logs/frontend.log" 2>&1 &
 
-            CustomerOidc__Issuer="http://127.0.0.1:5004/" \
-            AdminOidc__Issuer="http://127.0.0.1:17325/" \
-            AdminOidc__BffClientSecret="$BFF_SECRET" \
-            RateLimiting__AdminAuthPermitLimit="10000" \
-            RateLimiting__CustomerAuthPermitLimit="10000" \
-            RateLimiting__ApiPermitLimit="50000" \
-            ReverseProxy__Clusters__identity__Destinations__d1__Address="http://127.0.0.1:5004" \
-            ReverseProxy__Clusters__admin-identity__Destinations__d1__Address="http://127.0.0.1:17325" \
-            ReverseProxy__Clusters__customers__Destinations__d1__Address="http://127.0.0.1:5002" \
-            ReverseProxy__Clusters__frontend__Destinations__d1__Address="http://127.0.0.1:17321" \
+            env \
+              CustomerOidc__Authority="http://127.0.0.1:5004" \
+              CustomerOidc__Issuer="http://127.0.0.1:5004/" \
+              AdminOidc__Authority="http://127.0.0.1:17325" \
+              AdminOidc__Issuer="http://127.0.0.1:17325/" \
+              AdminOidc__BffClientSecret="$BFF_SECRET" \
+              DataProtection__MasterKey="$GW_DP_KEY" \
+              RateLimiting__AdminAuthPermitLimit="10000" \
+              RateLimiting__CustomerAuthPermitLimit="10000" \
+              RateLimiting__ApiPermitLimit="50000" \
+              "ReverseProxy__Clusters__identity__Destinations__primary__Address=http://127.0.0.1:5004/" \
+              "ReverseProxy__Clusters__admin-identity__Destinations__primary__Address=http://127.0.0.1:17325/" \
+              "ReverseProxy__Clusters__customers__Destinations__primary__Address=http://127.0.0.1:5002/" \
+              "ReverseProxy__Clusters__frontend-admin__Destinations__primary__Address=http://127.0.0.1:17321/" \
               dotnet run --no-build -c Release --project ./Davids.APIGateway/src/Davids.APIGateway.Api --urls http://0.0.0.0:17320 > "$RUNNER_TEMP/quarterly-release-logs/gateway.log" 2>&1 &
 
+            STACK_READY=0
             for i in $(seq 1 90); do
               if curl -fsS http://127.0.0.1:17320/gateway-info >/dev/null 2>&1 && \
+                 curl -fsS http://127.0.0.1:17320/login >/dev/null 2>&1 && \
                  curl -fsS http://127.0.0.1:17320/identity/.well-known/openid-configuration >/dev/null 2>&1 && \
-                 curl -fsS http://127.0.0.1:17320/admin-identity/.well-known/openid-configuration >/dev/null 2>&1; then
+                 curl -fsS http://127.0.0.1:17320/admin-identity/.well-known/openid-configuration >/dev/null 2>&1 && \
+                 curl -fsS http://127.0.0.1:5002/health >/dev/null 2>&1; then
+                STACK_READY=1
                 break
               fi
               sleep 1
             done
-
-            dotnet run --no-build -c Release --project ./Davids/src/Davids.Bootstrap -- \
-              bootstrap-admin \
-              --connection-string "$ConnectionStrings__adminidentitydb" \
-              --email "$ADMIN_EMAIL" \
-              --password "$ADMIN_PASS"
+            if [ "$STACK_READY" -ne 1 ]; then
+              echo "ERROR: Ephemeral 5-service Davids stack failed readiness check within 90 seconds."
+              for logf in "$RUNNER_TEMP/quarterly-release-logs/"*.log; do
+                echo "===== $logf ====="
+                cat "$logf" || true
+              done
+              exit 1
+            fi
 
             pwsh -NoProfile -Command "& ./Davids/scripts/security/staging-nightly/Export-OpenApiSpecs.ps1 -VerifyOnly"
             GATEWAY_URL="http://localhost:17320"
@@ -214,21 +277,34 @@ jobs:
         run: |
           ./scripts/security/quarterly-release/Scan-Zap.ps1 -GatewayUrl "${{ steps.target.outputs.gateway_url }}" -OutputDirectory "./TestResults/quarterly-release/zap"
 
+      - name: Dump ephemeral service logs on failure
+        if: failure()
+        run: |
+          if [ -d "$RUNNER_TEMP/quarterly-release-logs" ]; then
+            for logf in "$RUNNER_TEMP/quarterly-release-logs/"*.log; do
+              [ -f "$logf" ] || continue
+              echo "===== $logf ====="
+              tail -n 120 "$logf" || true
+            done
+          fi
+
       - name: Upload Quarterly / Release AuthzMatrix SARIF to GitHub Code Scanning
         if: always() && hashFiles('Davids/TestResults/quarterly-release/authz/authz-matrix.sarif') != ''
+        continue-on-error: ${{ github.event.repository.private == true && vars.GHAS_ENABLED != 'true' }}
         uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           sarif_file: Davids/TestResults/quarterly-release/authz/authz-matrix.sarif
           category: authz-matrix-davids-release
 
       - name: Upload Quarterly / Release OWASP ZAP SARIF to GitHub Code Scanning
-        if: always() && hashFiles('Davids/TestResults/quarterly-release/zap/zap-quarterly-release.sarif') != ''
+        if: always() && hashFiles('Davids/TestResults/quarterly-release/zap/reports/zap-quarterly-release.sarif') != ''
+        continue-on-error: ${{ github.event.repository.private == true && vars.GHAS_ENABLED != 'true' }}
         uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
-          sarif_file: Davids/TestResults/quarterly-release/zap/zap-quarterly-release.sarif
+          sarif_file: Davids/TestResults/quarterly-release/zap/reports/zap-quarterly-release.sarif
           category: owasp-zap-davids-release
 
-      - name: Upload Quarterly / Release Release Security Reports (AuthzMatrix JSON/SARIF, RESTler Summary, ZAP SARIF/HTML)
+      - name: Upload Quarterly / Release Security Reports (AuthzMatrix JSON/SARIF, RESTler Summary, ZAP SARIF/HTML)
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

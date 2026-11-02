@@ -189,7 +189,7 @@ $effectiveHost = $targetUri.Host
 $effectivePort = $targetUri.Port
 $useSsl = $targetUri.Scheme -eq 'https'
 
-if (-not $useLocalRestler -and $targetUri.Host -in @('localhost', '127.0.0.1', '::1')) {
+if (-not $useLocalRestler -and -not $IsLinux -and $targetUri.Host -in @('localhost', '127.0.0.1', '::1')) {
     $effectiveHost = 'host.docker.internal'
 }
 
@@ -232,6 +232,31 @@ $engineSettings['time_budget'] = $TimeBudgetHours
     (Join-Path $workRoot 'engine-settings.runtime.json'),
     (($engineSettings | ConvertTo-Json -Depth 20) + "`n"),
     $utf8NoBom)
+if ($IsLinux) {
+    & chmod -R 0777 $OutputDirectory
+}
+
+if (-not $useLocalRestler) {
+    & docker image inspect $RestlerImage *> $null
+    if ($LASTEXITCODE -ne 0) {
+        $retryDelays = @(5, 10, 20, 30)
+        $pulled = $false
+        for ($attempt = 1; $attempt -le ($retryDelays.Count + 1); $attempt++) {
+            Write-Host "Pulling Microsoft RESTler image ($RestlerImage) [attempt $attempt/$($retryDelays.Count + 1)]..."
+            & docker pull --platform linux/amd64 $RestlerImage
+            if ($LASTEXITCODE -eq 0) {
+                $pulled = $true
+                break
+            }
+            if ($attempt -le $retryDelays.Count) {
+                Start-Sleep -Seconds $retryDelays[$attempt - 1]
+            }
+        }
+        if (-not $pulled) {
+            throw "Failed to pull Microsoft RESTler image '$RestlerImage' after $($retryDelays.Count + 1) attempts."
+        }
+    }
+}
 
 function Invoke-RestlerCommand {
     param(
@@ -262,7 +287,7 @@ function Invoke-RestlerCommand {
     } else {
         $dockerArgs = @('run', '--rm')
         if ($IsLinux) {
-            $dockerArgs += '--add-host=host.docker.internal:host-gateway'
+            $dockerArgs += '--network=host'
         }
         $dockerArgs += @(
             '-v', "${workRoot}:/restler-work",

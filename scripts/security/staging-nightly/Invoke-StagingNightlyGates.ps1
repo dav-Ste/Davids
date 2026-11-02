@@ -3,6 +3,9 @@ param(
     [string]$GatewayUrl = 'http://localhost:17320',
     [string]$CustomerBearerToken = $env:DAVIDS_CUSTOMER_BEARER_TOKEN,
     [string]$AdminBearerToken = $env:DAVIDS_ADMIN_BEARER_TOKEN,
+    [string]$AdminEmail = $env:DAVIDS_ADMIN_EMAIL,
+    [string]$AdminPassword = $env:DAVIDS_ADMIN_PASSWORD,
+    [string]$AdminBffClientSecret = $env:DAVIDS_ADMIN_BFF_CLIENT_SECRET,
     [switch]$AutoProvisionCustomerToken,
     [switch]$InstallTools,
     [switch]$SkipDastardlyContainer,
@@ -36,10 +39,13 @@ if ($ValidateOnly) {
 
 Write-Host '=== [2/4] Schemathesis Property-Based & Stateful OpenAPI Fuzzing ==='
 $stParams = @{
-    GatewayUrl          = $GatewayUrl
-    CustomerBearerToken = $CustomerBearerToken
-    AdminBearerToken    = $AdminBearerToken
-    OutputDirectory     = $OutputDirectory
+    GatewayUrl           = $GatewayUrl
+    CustomerBearerToken  = $CustomerBearerToken
+    AdminBearerToken     = $AdminBearerToken
+    AdminEmail           = $AdminEmail
+    AdminPassword        = $AdminPassword
+    AdminBffClientSecret = $AdminBffClientSecret
+    OutputDirectory      = $OutputDirectory
 }
 if ($AutoProvisionCustomerToken) {
     $stParams['AutoProvisionCustomerToken'] = $true

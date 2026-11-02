@@ -3,6 +3,9 @@ param(
     [string]$GatewayUrl = 'http://localhost:17320',
     [string]$CustomerBearerToken = $env:DAVIDS_CUSTOMER_BEARER_TOKEN,
     [string]$AdminBearerToken = $env:DAVIDS_ADMIN_BEARER_TOKEN,
+    [string]$AdminEmail = $env:DAVIDS_ADMIN_EMAIL,
+    [string]$AdminPassword = $env:DAVIDS_ADMIN_PASSWORD,
+    [string]$AdminBffClientSecret = $env:DAVIDS_ADMIN_BFF_CLIENT_SECRET,
     [switch]$AutoProvisionCustomerToken,
     [switch]$ValidateConfigOnly,
     [string]$OutputDirectory = ''
@@ -56,6 +59,91 @@ function New-PkcePair {
     }
 }
 
+function Invoke-PkceTokenMint {
+    param(
+        [Parameter(Mandatory)][string]$RoutePrefix,
+        [Parameter(Mandatory)][string]$ClientId,
+        [string]$ClientSecret = '',
+        [Parameter(Mandatory)][string]$RedirectUri,
+        [Parameter(Mandatory)][string]$Scope,
+        [Parameter(Mandatory)][string]$Email,
+        [Parameter(Mandatory)][string]$Password
+    )
+
+    $pkce = New-PkcePair
+    $state = 'schemathesis-' + [Guid]::NewGuid().ToString('N')
+    $queryPairs = @(
+        "client_id=$([Uri]::EscapeDataString($ClientId))",
+        "redirect_uri=$([Uri]::EscapeDataString($RedirectUri))",
+        "response_type=code",
+        "scope=$([Uri]::EscapeDataString($Scope))",
+        "code_challenge=$($pkce.Challenge)",
+        "code_challenge_method=S256",
+        "state=$state"
+    ) -join '&'
+
+    $session = [Microsoft.PowerShell.Commands.WebRequestSession]::new()
+    $getResp = Invoke-WebRequest -Uri "$normalizedGateway/$RoutePrefix/connect/authorize?$queryPairs" -Method Get -WebSession $session -MaximumRedirection 0 -SkipHttpErrorCheck -ErrorAction SilentlyContinue
+    if ($null -eq $getResp -or [int]$getResp.StatusCode -ne 200) {
+        $actualCode = if ($null -eq $getResp) { 0 } else { [int]$getResp.StatusCode }
+        throw "GET /$RoutePrefix/connect/authorize failed with HTTP $actualCode."
+    }
+
+    $match = [regex]::Match($getResp.Content, 'name="request_token"\s+value="([^"]*)"', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    if (-not $match.Success) {
+        throw "Missing hidden 'request_token' CSRF field in /$RoutePrefix/connect/authorize."
+    }
+    $requestToken = [System.Net.WebUtility]::HtmlDecode($match.Groups[1].Value)
+
+    $formBody = @{
+        client_id             = $ClientId
+        redirect_uri          = $RedirectUri
+        response_type         = 'code'
+        scope                 = $Scope
+        code_challenge        = $pkce.Challenge
+        code_challenge_method = 'S256'
+        state                 = $state
+        request_token         = $requestToken
+        email                 = $Email
+        password              = $Password
+    }
+    $postResp = Invoke-WebRequest -Uri "$normalizedGateway/$RoutePrefix/connect/authorize" -Method Post -Body $formBody -ContentType 'application/x-www-form-urlencoded' -WebSession $session -MaximumRedirection 0 -SkipHttpErrorCheck -ErrorAction SilentlyContinue
+    if ($null -eq $postResp -or [int]$postResp.StatusCode -notin @(302, 303)) {
+        $actualCode = if ($null -eq $postResp) { 0 } else { [int]$postResp.StatusCode }
+        throw "POST /$RoutePrefix/connect/authorize failed with HTTP $actualCode."
+    }
+
+    $locationHeader = [string]$postResp.Headers['Location']
+    $locationUri = if ($locationHeader.StartsWith('http', [StringComparison]::OrdinalIgnoreCase)) {
+        [Uri]$locationHeader
+    } else {
+        [Uri]::new([Uri]$normalizedGateway, $locationHeader)
+    }
+    $parsedQuery = [System.Web.HttpUtility]::ParseQueryString($locationUri.Query)
+    $code = [string]$parsedQuery['code']
+    if ([string]::IsNullOrWhiteSpace($code)) {
+        throw "Authorization code missing from /$RoutePrefix/connect/authorize redirect."
+    }
+
+    $tokenBody = @{
+        grant_type    = 'authorization_code'
+        client_id     = $ClientId
+        code          = $code
+        redirect_uri  = $RedirectUri
+        code_verifier = $pkce.Verifier
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ClientSecret)) {
+        $tokenBody['client_secret'] = $ClientSecret
+    }
+
+    $tokenPayload = Invoke-RestMethod -Uri "$normalizedGateway/$RoutePrefix/connect/token" -Method Post -Body $tokenBody -ContentType 'application/x-www-form-urlencoded'
+    $accessToken = [string]$tokenPayload.access_token
+    if ([string]::IsNullOrWhiteSpace($accessToken)) {
+        throw "Failed to obtain RS256 access_token from /$RoutePrefix/connect/token."
+    }
+    return $accessToken
+}
+
 if ($AutoProvisionCustomerToken -and [string]::IsNullOrWhiteSpace($CustomerBearerToken)) {
     Write-Host "Auto-provisioning ephemeral PKCE S256 customer RS256 access token against $normalizedGateway ..."
     $suffix = [Guid]::NewGuid().ToString('N').Substring(0, 10)
@@ -70,52 +158,28 @@ if ($AutoProvisionCustomerToken -and [string]::IsNullOrWhiteSpace($CustomerBeare
 
     Invoke-RestMethod -Uri "$normalizedGateway/identity/sign-up" -Method Post -ContentType 'application/json' -Body $signUpBody | Out-Null
 
-    $pkce = New-PkcePair
-    $redirectUri = 'http://localhost:17320/identity/callback'
-    $authorizeUrl = "$normalizedGateway/identity/connect/authorize?client_id=davids-customer-pkce&response_type=code&redirect_uri=$([Uri]::EscapeDataString($redirectUri))&scope=$([Uri]::EscapeDataString('openid profile email roles offline_access davids_api'))&code_challenge=$($pkce.Challenge)&code_challenge_method=S256&state=staging-nightly"
+    $CustomerBearerToken = Invoke-PkceTokenMint `
+        -RoutePrefix 'identity' `
+        -ClientId 'davids-web' `
+        -RedirectUri 'https://localhost/callback' `
+        -Scope 'openid email profile roles offline_access davids-services' `
+        -Email $email `
+        -Password $password
+}
 
-    $handler = [System.Net.Http.HttpClientHandler]::new()
-    $handler.AllowAutoRedirect = $false
-    $client = [System.Net.Http.HttpClient]::new($handler)
-    try {
-        $form = [System.Net.Http.FormUrlEncodedContent]::new(@{
-            email    = $email
-            password = $password
-        })
-        $authorizeResp = $client.PostAsync($authorizeUrl, $form).GetAwaiter().GetResult()
-        if ([int]$authorizeResp.StatusCode -ne 302 -or $null -eq $authorizeResp.Headers.Location) {
-            throw "Expected 302 authorization code redirect from /identity/connect/authorize, got $([int]$authorizeResp.StatusCode)."
-        }
-
-        $locationQuery = $authorizeResp.Headers.Location.Query.TrimStart('?') -split '&'
-        $code = ''
-        foreach ($pair in $locationQuery) {
-            $kv = $pair -split '=', 2
-            if ($kv.Length -eq 2 -and $kv[0] -eq 'code') {
-                $code = [Uri]::UnescapeDataString($kv[1])
-            }
-        }
-        if ([string]::IsNullOrWhiteSpace($code)) {
-            throw 'Authorization code missing from /identity/connect/authorize redirect.'
-        }
-
-        $tokenForm = [System.Net.Http.FormUrlEncodedContent]::new(@{
-            grant_type    = 'authorization_code'
-            client_id     = 'davids-customer-pkce'
-            code          = $code
-            redirect_uri  = $redirectUri
-            code_verifier = $pkce.Verifier
-        })
-        $tokenResp = $client.PostAsync("$normalizedGateway/identity/connect/token", $tokenForm).GetAwaiter().GetResult()
-        $tokenPayload = $tokenResp.Content.ReadAsStringAsync().GetAwaiter().GetResult() | ConvertFrom-Json
-        $CustomerBearerToken = [string]$tokenPayload.access_token
-        if ([string]::IsNullOrWhiteSpace($CustomerBearerToken)) {
-            throw 'Failed to obtain customer RS256 access_token from /identity/connect/token.'
-        }
-    } finally {
-        $client.Dispose()
-        $handler.Dispose()
-    }
+if ([string]::IsNullOrWhiteSpace($AdminBearerToken) -and
+    -not [string]::IsNullOrWhiteSpace($AdminEmail) -and
+    -not [string]::IsNullOrWhiteSpace($AdminPassword) -and
+    -not [string]::IsNullOrWhiteSpace($AdminBffClientSecret)) {
+    Write-Host "Minting PKCE S256 admin RS256 access token against $normalizedGateway ..."
+    $AdminBearerToken = Invoke-PkceTokenMint `
+        -RoutePrefix 'admin-identity' `
+        -ClientId 'davids-admin-bff' `
+        -ClientSecret $AdminBffClientSecret `
+        -RedirectUri 'https://localhost/signin-oidc' `
+        -Scope 'openid email profile roles offline_access davids-admin' `
+        -Email $AdminEmail `
+        -Password $AdminPassword
 }
 
 function Invoke-SchemathesisSuite {
@@ -147,10 +211,12 @@ function Invoke-SchemathesisSuite {
             throw "Schemathesis suite '$Label' failed with exit code $LASTEXITCODE."
         }
     } else {
-        $containerUrl = $normalizedGateway -replace '^(https?://)(localhost|127\.0\.0\.1)(:\d+)?', '$1host.docker.internal$3'
         $dockerArgs = @('run', '--rm')
         if ($IsLinux) {
-            $dockerArgs += '--add-host=host.docker.internal:host-gateway'
+            $dockerArgs += '--network=host'
+            $containerUrl = $normalizedGateway
+        } else {
+            $containerUrl = $normalizedGateway -replace '^(https?://)(localhost|127\.0\.0\.1)(:\d+)?', '$1host.docker.internal$3'
         }
         $dockerArgs += @(
             '--mount', "type=bind,source=$resolvedRepoRoot,target=/work,readonly",

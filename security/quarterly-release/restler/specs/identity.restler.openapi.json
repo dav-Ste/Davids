@@ -7,8 +7,8 @@
   },
   "servers": [
     {
-      "url": "http://localhost:17320",
-      "description": "Davids YARP API Gateway"
+      "description": "Davids YARP API Gateway",
+      "url": "http://localhost:17320"
     }
   ],
   "paths": {
@@ -359,15 +359,13 @@
             "nullable": true
           },
           "email": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "succeeded": {
             "type": "boolean"
           },
           "outcome": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "failureReason": {
             "type": "string",
@@ -440,12 +438,10 @@
             "format": "uuid"
           },
           "email": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "role": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "createdAt": {
             "type": "string",
@@ -455,8 +451,7 @@
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           }
         }
       }

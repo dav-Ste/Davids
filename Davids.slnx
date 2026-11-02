@@ -33,6 +33,7 @@
   <Folder Name="/Solution Items/Scripts/">
     <File Path="scripts/Get-Projects.ps1" />
     <File Path="scripts/Update-Projects.ps1" />
+    <File Path="scripts/Sync-GitHubWorkflows.ps1" />
     <File Path="scripts/Setup.ps1" />
     <File Path="scripts/Build.ps1" />
     <File Path="scripts/Test.ps1" />

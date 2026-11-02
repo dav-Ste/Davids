@@ -26,36 +26,42 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ github.repository_owner }}/Davids.Shared
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
           path: Davids.Shared
 
       - name: Checkout Davids.Services.Identity
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ github.repository_owner }}/Davids.Services.Identity
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
           path: Davids.Services.Identity
 
       - name: Checkout Davids.Services.AdminIdentity
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ github.repository_owner }}/Davids.Services.AdminIdentity
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
           path: Davids.Services.AdminIdentity
 
       - name: Checkout Davids.Services.Customers
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ github.repository_owner }}/Davids.Services.Customers
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
           path: Davids.Services.Customers
 
       - name: Checkout Davids.APIGateway
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ github.repository_owner }}/Davids.APIGateway
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
           path: Davids.APIGateway
 
       - name: Checkout Davids.Frontend.Admin
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ github.repository_owner }}/Davids.Frontend.Admin
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
           path: Davids.Frontend.Admin
 
       - name: Setup .NET 10 SDK
@@ -81,6 +87,7 @@ jobs:
           VAR_STAGING_URL: ${{ vars.STAGING_GATEWAY_URL }}
           STAGING_ADMIN_EMAIL: ${{ secrets.STAGING_ADMIN_EMAIL }}
           STAGING_ADMIN_PASSWORD: ${{ secrets.STAGING_ADMIN_PASSWORD }}
+          STAGING_ADMIN_BFF_SECRET: ${{ secrets.STAGING_ADMIN_BFF_SECRET }}
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/staging-nightly-logs" "$GITHUB_WORKSPACE/Davids/TestResults/staging-nightly"
@@ -92,12 +99,29 @@ jobs:
             DASTARDLY_URL="$GATEWAY_URL"
             ADMIN_EMAIL="$STAGING_ADMIN_EMAIL"
             ADMIN_PASS="$STAGING_ADMIN_PASSWORD"
+            BFF_SECRET="$STAGING_ADMIN_BFF_SECRET"
           else
             OTP_SQL="$(openssl rand -hex 16)Aa1!"
             echo "::add-mask::$OTP_SQL"
+            OTP_RABBIT="$(openssl rand -hex 16)Rb4!"
+            echo "::add-mask::$OTP_RABBIT"
             ADMIN_EMAIL="staging.admin@davids.example"
             ADMIN_PASS="$(openssl rand -hex 16)Bb2!"
             echo "::add-mask::$ADMIN_PASS"
+            BFF_SECRET="$(openssl rand -hex 24)Cc3!"
+            echo "::add-mask::$BFF_SECRET"
+
+            ID_DP_KEY="$(openssl rand -hex 24)"
+            ADM_DP_KEY="$(openssl rand -hex 24)"
+            GW_DP_KEY="$(openssl rand -hex 24)"
+            echo "::add-mask::$ID_DP_KEY"
+            echo "::add-mask::$ADM_DP_KEY"
+            echo "::add-mask::$GW_DP_KEY"
+
+            CUST_RSA_PEM="$(openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 2>/dev/null)"
+            CUST_ENC_PEM="$(openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 2>/dev/null)"
+            ADMIN_RSA_PEM="$(openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 2>/dev/null)"
+            ADMIN_ENC_PEM="$(openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 2>/dev/null)"
 
             docker run -d --name davids-staging-sql -p 127.0.0.1:1433:1433 \
               -e ACCEPT_EULA=Y -e "MSSQL_SA_PASSWORD=$OTP_SQL" \
@@ -106,60 +130,116 @@ jobs:
             docker run -d --name davids-staging-redis -p 127.0.0.1:6379:6379 \
               redis:7-alpine
 
-            for i in $(seq 1 60); do
-              if (echo > /dev/tcp/127.0.0.1/1433) 2>/dev/null && (echo > /dev/tcp/127.0.0.1/6379) 2>/dev/null; then
+            docker run -d --name davids-staging-rabbit -p 127.0.0.1:5672:5672 \
+              -e RABBITMQ_DEFAULT_USER=davids -e "RABBITMQ_DEFAULT_PASS=$OTP_RABBIT" \
+              rabbitmq:4.4.0-management-alpine
+
+            SQL_READY=0
+            for i in $(seq 1 90); do
+              if (echo > /dev/tcp/127.0.0.1/6379) 2>/dev/null && \
+                 docker exec davids-staging-rabbit rabbitmq-diagnostics -q ping >/dev/null 2>&1 && \
+                 docker exec davids-staging-sql sh -c 'if [ -x /opt/mssql-tools18/bin/sqlcmd ]; then /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1 -U sa -P "$MSSQL_SA_PASSWORD" -C -Q "SELECT 1" >/dev/null 2>&1; else /opt/mssql-tools/bin/sqlcmd -S 127.0.0.1 -U sa -P "$MSSQL_SA_PASSWORD" -Q "SELECT 1" >/dev/null 2>&1; fi'; then
+                SQL_READY=1
                 break
               fi
               sleep 1
             done
-            sleep 8
+            if [ "$SQL_READY" -ne 1 ]; then
+              echo "ERROR: SQL Server, Redis, or RabbitMQ failed to become ready within 90 seconds."
+              docker logs davids-staging-sql || true
+              docker logs davids-staging-rabbit || true
+              exit 1
+            fi
 
-            dotnet build ./Davids/Davids.slnx -c Release -warnaserror -m:2 -nr:false --tl:off
+            for sln in \
+              ./Davids.Shared/Davids.Shared.slnx \
+              ./Davids.Services.Identity/Davids.Services.Identity.slnx \
+              ./Davids.Services.AdminIdentity/Davids.Services.AdminIdentity.slnx \
+              ./Davids.Services.Customers/Davids.Services.Customers.slnx \
+              ./Davids.APIGateway/Davids.APIGateway.slnx \
+              ./Davids.Frontend.Admin/Davids.Frontend.Admin.slnx \
+              ./Davids/src/Davids.Bootstrap/Davids.Bootstrap.csproj; do
+              dotnet restore "$sln" --locked-mode -m:1 -nr:false --tl:off
+            done
+            dotnet restore ./Davids/Davids.slnx -m:1 -nr:false --tl:off
+            dotnet build ./Davids/Davids.slnx --no-restore -c Release -warnaserror -m:2 -nr:false --tl:off
 
             export ConnectionStrings__identitydb="Server=127.0.0.1,1433;Database=identitydb;User Id=sa;Password=${OTP_SQL};TrustServerCertificate=True;Encrypt=True"
             export ConnectionStrings__adminidentitydb="Server=127.0.0.1,1433;Database=adminidentitydb;User Id=sa;Password=${OTP_SQL};TrustServerCertificate=True;Encrypt=True"
             export ConnectionStrings__customersdb="Server=127.0.0.1,1433;Database=customersdb;User Id=sa;Password=${OTP_SQL};TrustServerCertificate=True;Encrypt=True"
-            export ConnectionStrings__redis="127.0.0.1:6379"
+            export ConnectionStrings__cache="127.0.0.1:6379"
+            export ConnectionStrings__messaging="amqp://davids:${OTP_RABBIT}@127.0.0.1:5672"
+            export Redis__Enabled="true"
             export ASPNETCORE_ENVIRONMENT="Development"
-            export RateLimiting__AuthPermitLimit="10000"
-            export RateLimiting__GeneralPermitLimit="50000"
+            export Database__ApplyMigrations="true"
+            export Http__AllowInsecureDevelopment="true"
+            export ForwardedHeaders__TrustLoopback="true"
+            export Messaging__Enabled="true"
 
-            dotnet run --no-build -c Release --project ./Davids.Services.Identity/src/Davids.Services.Identity.Api --urls http://127.0.0.1:5004 > "$RUNNER_TEMP/staging-nightly-logs/identity.log" 2>&1 &
-            dotnet run --no-build -c Release --project ./Davids.Services.AdminIdentity/src/Davids.Services.AdminIdentity.Api --urls http://127.0.0.1:17325 > "$RUNNER_TEMP/staging-nightly-logs/admin-identity.log" 2>&1 &
-            Customers__Oidc__MetadataAddress="http://127.0.0.1:5004/.well-known/openid-configuration" \
-            Customers__Oidc__AdminMetadataAddress="http://127.0.0.1:17325/.well-known/openid-configuration" \
-            Customers__Oidc__RequireHttpsMetadata="false" \
+            Oidc__Issuer="http://127.0.0.1:5004/" \
+            Oidc__SigningKeyPem="$CUST_RSA_PEM" \
+            Oidc__EncryptionKeyPem="$CUST_ENC_PEM" \
+            DataProtection__MasterKey="$ID_DP_KEY" \
+            RateLimiting__AuthPermitLimit="10000" \
+              dotnet run --no-build -c Release --project ./Davids.Services.Identity/src/Davids.Services.Identity.Api --urls http://127.0.0.1:5004 > "$RUNNER_TEMP/staging-nightly-logs/identity.log" 2>&1 &
+
+            Oidc__Issuer="http://127.0.0.1:17325/" \
+            Oidc__SigningKeyPem="$ADMIN_RSA_PEM" \
+            Oidc__EncryptionKeyPem="$ADMIN_ENC_PEM" \
+            Oidc__BffClientSecret="$BFF_SECRET" \
+            DataProtection__MasterKey="$ADM_DP_KEY" \
+            RateLimiting__AuthPermitLimit="10000" \
+            SeedAdmin__Enabled="true" \
+            SeedAdmin__Email="$ADMIN_EMAIL" \
+            SeedAdmin__Password="$ADMIN_PASS" \
+              dotnet run --no-build -c Release --project ./Davids.Services.AdminIdentity/src/Davids.Services.AdminIdentity.Api --urls http://127.0.0.1:17325 > "$RUNNER_TEMP/staging-nightly-logs/admin-identity.log" 2>&1 &
+
+            CustomerOidc__Authority="http://127.0.0.1:5004" \
+            CustomerOidc__Issuer="http://127.0.0.1:5004/" \
+            AdminOidc__Authority="http://127.0.0.1:17325" \
+            AdminOidc__Issuer="http://127.0.0.1:17325/" \
               dotnet run --no-build -c Release --project ./Davids.Services.Customers/src/Davids.Services.Customers.Api --urls http://127.0.0.1:5002 > "$RUNNER_TEMP/staging-nightly-logs/customers.log" 2>&1 &
+
             dotnet run --no-build -c Release --project ./Davids.Frontend.Admin/src/Davids.Frontend.Admin --urls http://127.0.0.1:17321 > "$RUNNER_TEMP/staging-nightly-logs/frontend.log" 2>&1 &
 
-            GatewayAuth__CustomerAuthority="http://127.0.0.1:5004" \
-            GatewayAuth__AdminAuthority="http://127.0.0.1:17325" \
-            GatewayAuth__AdminPublicAuthority="http://localhost:17320/admin-identity" \
-            GatewayAuth__RequireHttpsMetadata="false" \
-            ReverseProxy__Clusters__identity-cluster__Destinations__destination1__Address="http://127.0.0.1:5004" \
-            ReverseProxy__Clusters__admin-identity-cluster__Destinations__destination1__Address="http://127.0.0.1:17325" \
-            ReverseProxy__Clusters__customers-cluster__Destinations__destination1__Address="http://127.0.0.1:5002" \
-            ReverseProxy__Clusters__frontend-cluster__Destinations__destination1__Address="http://127.0.0.1:17321" \
+            env \
+              CustomerOidc__Authority="http://127.0.0.1:5004" \
+              CustomerOidc__Issuer="http://127.0.0.1:5004/" \
+              AdminOidc__Authority="http://127.0.0.1:17325" \
+              AdminOidc__Issuer="http://127.0.0.1:17325/" \
+              AdminOidc__BffClientSecret="$BFF_SECRET" \
+              DataProtection__MasterKey="$GW_DP_KEY" \
+              RateLimiting__AdminAuthPermitLimit="10000" \
+              RateLimiting__CustomerAuthPermitLimit="10000" \
+              RateLimiting__ApiPermitLimit="50000" \
+              "ReverseProxy__Clusters__identity__Destinations__primary__Address=http://127.0.0.1:5004/" \
+              "ReverseProxy__Clusters__admin-identity__Destinations__primary__Address=http://127.0.0.1:17325/" \
+              "ReverseProxy__Clusters__customers__Destinations__primary__Address=http://127.0.0.1:5002/" \
+              "ReverseProxy__Clusters__frontend-admin__Destinations__primary__Address=http://127.0.0.1:17321/" \
               dotnet run --no-build -c Release --project ./Davids.APIGateway/src/Davids.APIGateway.Api --urls http://0.0.0.0:17320 > "$RUNNER_TEMP/staging-nightly-logs/gateway.log" 2>&1 &
 
+            STACK_READY=0
             for i in $(seq 1 90); do
               if curl -fsS http://127.0.0.1:17320/gateway-info >/dev/null 2>&1 && \
+                 curl -fsS http://127.0.0.1:17320/login >/dev/null 2>&1 && \
                  curl -fsS http://127.0.0.1:17320/identity/.well-known/openid-configuration >/dev/null 2>&1 && \
-                 curl -fsS http://127.0.0.1:17320/admin-identity/.well-known/openid-configuration >/dev/null 2>&1; then
+                 curl -fsS http://127.0.0.1:17320/admin-identity/.well-known/openid-configuration >/dev/null 2>&1 && \
+                 curl -fsS http://127.0.0.1:5002/health >/dev/null 2>&1; then
+                STACK_READY=1
                 break
               fi
               sleep 1
             done
+            if [ "$STACK_READY" -ne 1 ]; then
+              echo "ERROR: Ephemeral 5-service Davids stack failed readiness check within 90 seconds."
+              for logf in "$RUNNER_TEMP/staging-nightly-logs/"*.log; do
+                echo "===== $logf ====="
+                cat "$logf" || true
+              done
+              exit 1
+            fi
 
-            dotnet run --no-build -c Release --project ./Davids/src/Davids.Bootstrap -- \
-              bootstrap-admin \
-              --connection-string "$ConnectionStrings__adminidentitydb" \
-              --email "$ADMIN_EMAIL" \
-              --password "$ADMIN_PASS"
-
-            pwsh -NoProfile -Command "& ./Davids/scripts/security/staging-nightly/Export-OpenApiSpecs.ps1 -GatewayUrl 'http://localhost:17320'"
-            git -C ./Davids diff --exit-code -- security/staging-nightly/openapi/
-
+            pwsh -NoProfile -Command "& ./Davids/scripts/security/staging-nightly/Export-OpenApiSpecs.ps1 -VerifyOnly"
             GATEWAY_URL="http://localhost:17320"
             DOCKER_BRIDGE_IP="$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}')"
             DASTARDLY_URL="http://${DOCKER_BRIDGE_IP}:17320"
@@ -168,52 +248,69 @@ jobs:
           echo "gateway_url=$GATEWAY_URL" >> "$GITHUB_OUTPUT"
           echo "dastardly_url=$DASTARDLY_URL" >> "$GITHUB_OUTPUT"
 
-          python3 - "$GATEWAY_URL" "$ADMIN_EMAIL" "$ADMIN_PASS" << 'PY'
-          import base64, hashlib, json, os, secrets, sys, urllib.parse, urllib.request
+          python3 - "$GATEWAY_URL" "$ADMIN_EMAIL" "$ADMIN_PASS" "$BFF_SECRET" << 'PY'
+          import base64, hashlib, html, http.cookiejar, json, os, re, secrets, sys, urllib.parse, urllib.request
 
-          gw, admin_email, admin_pass = sys.argv[1], sys.argv[2], sys.argv[3]
+          gw, admin_email, admin_pass, bff_secret = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 
           class NoRedirect(urllib.request.HTTPRedirectHandler):
               def redirect_request(self, req, fp, code, msg, headers, newurl):
                   return None
 
-          opener = urllib.request.build_opener(NoRedirect)
-
-          def mint_pkce(prefix, client_id, redirect_uri, scopes, email, password):
+          def mint_pkce(prefix, client_id, client_secret, redirect_uri, scopes, email, password):
+              jar = http.cookiejar.CookieJar()
+              opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar), NoRedirect)
               verifier = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode().rstrip("=")
               challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip("=")
-              q = urllib.parse.urlencode({
+              state = f"staging-{secrets.token_hex(8)}"
+              auth_params = {
                   "client_id": client_id,
-                  "response_type": "code",
                   "redirect_uri": redirect_uri,
+                  "response_type": "code",
                   "scope": scopes,
                   "code_challenge": challenge,
                   "code_challenge_method": "S256",
-                  "state": "staging-nightly",
-              })
+                  "state": state,
+              }
+              q = urllib.parse.urlencode(auth_params)
+              with opener.open(f"{gw}/{prefix}/connect/authorize?{q}") as gresp:
+                  form_html = gresp.read().decode("utf-8", errors="replace")
+              m = re.search(r'name="request_token"\s+value="([^"]*)"', form_html, re.IGNORECASE)
+              if not m:
+                  raise RuntimeError(f"Missing hidden request_token in GET /{prefix}/connect/authorize")
+              request_token = html.unescape(m.group(1))
+
+              post_fields = dict(auth_params)
+              post_fields["request_token"] = request_token
+              post_fields["email"] = email
+              post_fields["password"] = password
               req = urllib.request.Request(
-                  f"{gw}/{prefix}/connect/authorize?{q}",
-                  data=urllib.parse.urlencode({"email": email, "password": password}).encode(),
+                  f"{gw}/{prefix}/connect/authorize",
+                  data=urllib.parse.urlencode(post_fields).encode(),
                   headers={"Content-Type": "application/x-www-form-urlencoded"},
                   method="POST",
               )
               try:
                   opener.open(req)
-                  raise RuntimeError("Expected 302 redirect from /connect/authorize")
+                  raise RuntimeError(f"Expected 302/303 redirect from POST /{prefix}/connect/authorize")
               except urllib.error.HTTPError as e:
-                  if e.code != 302:
+                  if e.code not in (302, 303):
                       raise
                   loc = e.headers["Location"]
               code = urllib.parse.parse_qs(urllib.parse.urlparse(loc).query)["code"][0]
+
+              token_fields = {
+                  "grant_type": "authorization_code",
+                  "client_id": client_id,
+                  "code": code,
+                  "redirect_uri": redirect_uri,
+                  "code_verifier": verifier,
+              }
+              if client_secret:
+                  token_fields["client_secret"] = client_secret
               treq = urllib.request.Request(
                   f"{gw}/{prefix}/connect/token",
-                  data=urllib.parse.urlencode({
-                      "grant_type": "authorization_code",
-                      "client_id": client_id,
-                      "code": code,
-                      "redirect_uri": redirect_uri,
-                      "code_verifier": verifier,
-                  }).encode(),
+                  data=urllib.parse.urlencode(token_fields).encode(),
                   headers={"Content-Type": "application/x-www-form-urlencoded"},
                   method="POST",
               )
@@ -229,15 +326,44 @@ jobs:
               method="POST",
           )
           urllib.request.urlopen(sreq).read()
-          cust_tok = mint_pkce("identity", "davids-customer-pkce", "http://localhost:17320/identity/callback",
-                               "openid profile email roles offline_access davids_api", cust_email, cust_pass)
+          cust_tok = mint_pkce(
+              "identity",
+              "davids-web",
+              "",
+              "https://localhost/callback",
+              "openid email profile roles offline_access davids-services",
+              cust_email,
+              cust_pass,
+          )
           print(f"::add-mask::{cust_tok}")
+          cust_claims = json.loads(base64.urlsafe_b64decode(cust_tok.split(".")[1] + "==="))
+          cust_sub = cust_claims["sub"]
+          for _ in range(30):
+              try:
+                  creq = urllib.request.Request(
+                      f"{gw}/customers/{cust_sub}",
+                      headers={"Authorization": f"Bearer {cust_tok}"},
+                  )
+                  with urllib.request.urlopen(creq) as cresp:
+                      if cresp.status == 200:
+                          break
+              except urllib.error.HTTPError:
+                  pass
+              import time
+              time.sleep(0.5)
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
               fh.write(f"customer_bearer=Bearer {cust_tok}\n")
 
-          if admin_email and admin_pass:
-              adm_tok = mint_pkce("admin-identity", "davids-admin-cli", "http://localhost:17320/admin-cli/callback",
-                                  "openid profile email roles offline_access davids_api", admin_email, admin_pass)
+          if admin_email and admin_pass and bff_secret:
+              adm_tok = mint_pkce(
+                  "admin-identity",
+                  "davids-admin-bff",
+                  bff_secret,
+                  "https://localhost/signin-oidc",
+                  "openid email profile roles offline_access davids-admin",
+                  admin_email,
+                  admin_pass,
+              )
               print(f"::add-mask::{adm_tok}")
               with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
                   fh.write(f"admin_bearer=Bearer {adm_tok}\n")
@@ -247,7 +373,10 @@ jobs:
         shell: pwsh
         working-directory: ./Davids
         run: |
-          python3 -m pip install --quiet schemathesis==4.32.6
+          $venvDir = Join-Path $env:RUNNER_TEMP 'schemathesis-venv'
+          python3 -m venv $venvDir
+          & "$venvDir/bin/pip" install --quiet schemathesis==4.32.6
+          $env:PATH = "$venvDir/bin$([System.IO.Path]::PathSeparator)$env:PATH"
           ./scripts/security/staging-nightly/Scan-Schemathesis.ps1 -GatewayUrl "${{ steps.target.outputs.gateway_url }}"
 
       - name: Schemathesis Authenticated Customer OIDC RS256 + Stateful Fuzzing (Identity)
@@ -310,14 +439,27 @@ jobs:
         run: |
           ./scripts/security/staging-nightly/Scan-Nuclei.ps1 -GatewayUrl "${{ steps.target.outputs.gateway_url }}"
 
-      - name: PortSwigger Dastardly Web & BFF DAST Scan (/login)
-        uses: PortSwigger/dastardly-github-action@be689170753f3243af6c7e87c1eaa5b89d91205d # main (BURP_START_URL)
-        with:
-          target-url: "${{ steps.target.outputs.dastardly_url }}/login"
-          output-filename: "Davids/TestResults/staging-nightly/dastardly-login-report.xml"
+      # Run digest-pinned Dastardly with ECR pull backoff via Scan-Dastardly.ps1 (replaces Docker-action setup build of PortSwigger/dastardly-github-action@be689170753f3243af6c7e87c1eaa5b89d91205d)
+      - name: PortSwigger Dastardly Web & BFF DAST Scan
+        shell: pwsh
+        working-directory: ./Davids
+        run: |
+          ./scripts/security/staging-nightly/Scan-Dastardly.ps1 -GatewayUrl "${{ steps.target.outputs.gateway_url }}" -OutputDirectory "./TestResults/staging-nightly"
+
+      - name: Dump ephemeral service logs on failure
+        if: failure()
+        run: |
+          if [ -d "$RUNNER_TEMP/staging-nightly-logs" ]; then
+            for logf in "$RUNNER_TEMP/staging-nightly-logs/"*.log; do
+              [ -f "$logf" ] || continue
+              echo "===== $logf ====="
+              tail -n 120 "$logf" || true
+            done
+          fi
 
       - name: Upload Nuclei SARIF to GitHub Code Scanning
         if: always() && hashFiles('Davids/TestResults/staging-nightly/nuclei-vulns.sarif') != ''
+        continue-on-error: ${{ github.event.repository.private == true && vars.GHAS_ENABLED != 'true' }}
         uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           sarif_file: Davids/TestResults/staging-nightly/nuclei-vulns.sarif

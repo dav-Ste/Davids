@@ -63,10 +63,27 @@ if (-not $SkipReachabilityCheck) {
 $dastardlyImage = [string]$seedsDoc.image
 & $dockerCmd.Source image inspect $dastardlyImage *> $null
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Pulling PortSwigger Dastardly container image ($dastardlyImage)..."
-    $pullOutput = & $dockerCmd.Source pull --platform linux/amd64 $dastardlyImage 2>&1
-    if ($LASTEXITCODE -ne 0) {
+    $retryDelays = @(5, 10, 20, 30)
+    $pullSucceeded = $false
+    $pullText = ''
+    for ($attempt = 1; $attempt -le ($retryDelays.Count + 1); $attempt++) {
+        Write-Host "Pulling PortSwigger Dastardly container image ($dastardlyImage) [attempt $attempt/$($retryDelays.Count + 1)]..."
+        $pullOutput = & $dockerCmd.Source pull --platform linux/amd64 $dastardlyImage 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            $pullSucceeded = $true
+            break
+        }
         $pullText = ($pullOutput | Out-String).Trim()
+        if ($pullText -match 'failed to register layer|input/output error|fchmodat2|no space left on device') {
+            break
+        }
+        if ($attempt -le $retryDelays.Count) {
+            $delaySec = $retryDelays[$attempt - 1]
+            Write-Warning "Transient registry error pulling '$dastardlyImage' (attempt $attempt); retrying in ${delaySec}s: $pullText"
+            Start-Sleep -Seconds $delaySec
+        }
+    }
+    if (-not $pullSucceeded) {
         if ($pullText -match 'failed to register layer|input/output error|fchmodat2|no space left on device') {
             throw @"
 Docker failed to unpack the PortSwigger Dastardly image into its Linux storage backend (Docker Engine / WSL2 layer I/O error, NOT a scan failure):
@@ -100,9 +117,13 @@ if ($IsLinux) {
     chmod 0777 $resolvedOutputDir
 }
 
-# On Windows/macOS Docker Desktop, host.docker.internal is built-in and routes to host localhost;
-# overriding it with --add-host=host.docker.internal:host-gateway points to the Linux VM bridge instead of Windows localhost.
-$containerGateway = $normalizedGateway -replace '^(https?://)(localhost|127\.0\.0\.1)(:\d+)?', '$1host.docker.internal$3'
+# On Linux Docker Engine, --network=host connects directly to localhost and preserves the exact Host/Origin header;
+# on Windows/macOS Docker Desktop VM, host.docker.internal routes to host localhost.
+$containerGateway = if ($IsLinux) {
+    $normalizedGateway
+} else {
+    $normalizedGateway -replace '^(https?://)(localhost|127\.0\.0\.1)(:\d+)?', '$1host.docker.internal$3'
+}
 
 $totalFailures = 0
 foreach ($seed in $seedsDoc.targets) {
@@ -116,7 +137,7 @@ foreach ($seed in $seedsDoc.targets) {
     Write-Host "=== PortSwigger Dastardly: $seedId ($targetUrl) ==="
     $dockerArgs = @('run', '--rm', '--platform', 'linux/amd64')
     if ($IsLinux) {
-        $dockerArgs += '--add-host=host.docker.internal:host-gateway'
+        $dockerArgs += '--network=host'
     }
     $dockerArgs += @(
         '--mount', "type=bind,source=$resolvedOutputDir,target=/dastardly",

@@ -14,6 +14,7 @@ permissions:
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
+    if: github.event.repository.private != true || vars.GHAS_ENABLED == 'true'
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -37,36 +38,42 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ github.repository_owner }}/Davids.Shared
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
           path: Davids.Shared
 
       - name: Checkout Davids.Services.Identity
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ github.repository_owner }}/Davids.Services.Identity
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
           path: Davids.Services.Identity
 
       - name: Checkout Davids.Services.AdminIdentity
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ github.repository_owner }}/Davids.Services.AdminIdentity
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
           path: Davids.Services.AdminIdentity
 
       - name: Checkout Davids.Services.Customers
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ github.repository_owner }}/Davids.Services.Customers
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
           path: Davids.Services.Customers
 
       - name: Checkout Davids.APIGateway
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ github.repository_owner }}/Davids.APIGateway
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
           path: Davids.APIGateway
 
       - name: Checkout Davids.Frontend.Admin
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ github.repository_owner }}/Davids.Frontend.Admin
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
           path: Davids.Frontend.Admin
 
       - name: Setup .NET 10 SDK
@@ -85,6 +92,17 @@ jobs:
       - name: Build Davids.slnx for CodeQL extraction
         if: matrix.language == 'csharp'
         run: |
+          set -euo pipefail
+          for sln in \
+            ./Davids.Shared/Davids.Shared.slnx \
+            ./Davids.Services.Identity/Davids.Services.Identity.slnx \
+            ./Davids.Services.AdminIdentity/Davids.Services.AdminIdentity.slnx \
+            ./Davids.Services.Customers/Davids.Services.Customers.slnx \
+            ./Davids.APIGateway/Davids.APIGateway.slnx \
+            ./Davids.Frontend.Admin/Davids.Frontend.Admin.slnx \
+            ./Davids/src/Davids.Bootstrap/Davids.Bootstrap.csproj; do
+            dotnet restore "$sln" --locked-mode -m:1 -nr:false --tl:off
+          done
           dotnet restore ./Davids/Davids.slnx -m:1 -nr:false --tl:off
           dotnet build ./Davids/Davids.slnx --no-restore -c Release -warnaserror -m:2 -nr:false --tl:off
 
