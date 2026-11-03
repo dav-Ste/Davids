@@ -14,7 +14,8 @@ $repos = @(
     'Davids.Services.AdminIdentity',
     'Davids.Services.Customers',
     'Davids.APIGateway',
-    'Davids.Frontend.Admin'
+    'Davids.Frontend.Admin',
+    'Davids.Frontend.Web'
 )
 
 # Pinned Istio 1.31.3 istioctl artifacts and official SHA-256 digests.

@@ -40,7 +40,11 @@ flowchart TB
             end
 
             subgraph RepoFE["Repo: Davids.Frontend.Admin (:17321)"]
-                FESvc["Davids.Frontend.Admin<br/>Customer Search & Editing Web UI<br/>Strict CSP (script-src 'self'), X-Frame-Options: DENY<br/>Reachable exclusively via Gateway AdminOnly BFF"]
+                FESvc["Davids.Frontend.Admin<br/>Workforce Customer, CIAM, IAM & Audit UI<br/>Strict CSP (script-src 'self'), X-Frame-Options: DENY<br/>Reachable exclusively via Gateway Workforce BFF"]
+            end
+
+            subgraph RepoWeb["Repo: Davids.Frontend.Web (:17322)"]
+                WebSvc["Davids.Frontend.Web<br/>Customer Self-Service Web Portal (/portal)<br/>Profile, Password/Email Rotation & Personal Audits<br/>Reachable exclusively via Gateway Customer BFF"]
             end
         end
     end
@@ -84,19 +88,22 @@ flowchart TB
     AdminBrowser ==>|"HTTPS TLS 1.3<br/>HttpOnly BFF Cookie + CSRF"| IstioEdge
     IstioEdge ==>|"mTLS"| GW
 
-    GW ==>|"/identity/* (mTLS)"| IdSvc
+    GW ==>|"/identity/* & /customer-accounts/* (mTLS)"| IdSvc
     GW ==>|"/admin-identity/* & OIDC PKCE BFF (mTLS)"| AdminIdSvc
     GW ==>|"/customers/* (mTLS)"| CustSvc
-    GW ==>|"AdminOnly BFF -> UI (mTLS)"| FESvc
+    GW ==>|"Workforce BFF -> UI (mTLS)"| FESvc
+    GW ==>|"Customer BFF -> /portal UI (mTLS)"| WebSvc
 
     CustSvc -.->|"Public JWKS (/.well-known/jwks)<br/>RS256 signature verification"| IdSvc
     CustSvc -.->|"Public JWKS (/.well-known/jwks)<br/>RS256 signature verification"| AdminIdSvc
+    IdSvc -.->|"Public JWKS (/.well-known/jwks)<br/>AdminBearer verification"| AdminIdSvc
 
-    Shared -.->|"Referenced by all 5 services"| GW
+    Shared -.->|"Referenced by all 6 services"| GW
     Shared -.-> IdSvc
     Shared -.-> AdminIdSvc
     Shared -.-> CustSvc
     Shared -.-> FESvc
+    Shared -.-> WebSvc
 
     IdSvc -->|"EF Core (exclusive)"| DbId
     AdminIdSvc -->|"EF Core (exclusive)"| DbAdmin
@@ -130,7 +137,7 @@ flowchart TB
 
     class CustClient,AdminBrowser,IstioEdge edge
     class GW gateway
-    class IdSvc,AdminIdSvc,CustSvc,FESvc service
+    class IdSvc,AdminIdSvc,CustSvc,FESvc,WebSvc service
     class Shared shared
     class DbId,DbAdmin,DbCust,Redis,Rabbit,Vault data
     class Prom,Jaeger,Grafana,Seq obs

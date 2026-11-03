@@ -13,7 +13,8 @@ $requiredRepos = @(
     'Davids.Services.AdminIdentity',
     'Davids.Services.Customers',
     'Davids.APIGateway',
-    'Davids.Frontend.Admin'
+    'Davids.Frontend.Admin',
+    'Davids.Frontend.Web'
 )
 $missing = @($requiredRepos | Where-Object { -not (Test-Path (Join-Path $workspaceRoot $_)) })
 if ($missing.Count -gt 0) {
@@ -195,6 +196,7 @@ try {
         '../Davids.Services.Customers/Davids.Services.Customers.slnx',
         '../Davids.APIGateway/Davids.APIGateway.slnx',
         '../Davids.Frontend.Admin/Davids.Frontend.Admin.slnx',
+        '../Davids.Frontend.Web/Davids.Frontend.Web.slnx',
         'src/Davids.Bootstrap/Davids.Bootstrap.csproj'
     )
     foreach ($sln in $lockedSolutions) {

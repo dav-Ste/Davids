@@ -25,4 +25,8 @@
     <Project Path="../../Davids.Services.Customers/src/Davids.Services.Customers.Api/Davids.Services.Customers.Api.csproj" />
     <Project Path="../../Davids.Services.Customers/tests/Davids.Services.Customers.Tests/Davids.Services.Customers.Tests.csproj" />
   </Folder>
+  <Folder Name="/Frontend/">
+    <Project Path="../../Davids.Frontend.Web/src/Davids.Frontend.Web/Davids.Frontend.Web.csproj" />
+    <Project Path="../../Davids.Frontend.Web/tests/Davids.Frontend.Web.Tests/Davids.Frontend.Web.Tests.csproj" />
+  </Folder>
 </Solution>

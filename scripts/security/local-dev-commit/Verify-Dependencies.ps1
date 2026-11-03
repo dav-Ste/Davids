@@ -16,7 +16,8 @@ $repos = @(
     (Join-Path $workspaceRoot 'Davids.Services.AdminIdentity'),
     (Join-Path $workspaceRoot 'Davids.Services.Customers'),
     (Join-Path $workspaceRoot 'Davids.APIGateway'),
-    (Join-Path $workspaceRoot 'Davids.Frontend.Admin')
+    (Join-Path $workspaceRoot 'Davids.Frontend.Admin'),
+    (Join-Path $workspaceRoot 'Davids.Frontend.Web')
 )
 
 Push-Location $repoRoot

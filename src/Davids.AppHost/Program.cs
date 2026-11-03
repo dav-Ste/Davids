@@ -51,6 +51,10 @@ var adminIdentity = builder.AddProject<Projects.Davids_Services_AdminIdentity_Ap
     .WithHttpHealthCheck("/health");
 adminIdentity.WithEnvironment("Oidc__Issuer", ReferenceExpression.Create($"{adminIdentity.GetEndpoint("http")}/"));
 
+identity.WithEnvironment("AdminOidc__Authority", ReferenceExpression.Create($"{adminIdentity.GetEndpoint("http")}"))
+    .WithEnvironment("AdminOidc__Issuer", ReferenceExpression.Create($"{adminIdentity.GetEndpoint("http")}/"))
+    .WaitFor(adminIdentity);
+
 if (Enabled("SeedAdmin"))
 {
     var devAdminPassword = builder.AddParameter(
@@ -88,6 +92,7 @@ var customers = builder.AddProject<Projects.Davids_Services_Customers_Api>("cust
     .WithHttpHealthCheck("/health");
 
 IResourceBuilder<ProjectResource>? frontendAdmin = null;
+IResourceBuilder<ProjectResource>? frontendWeb = null;
 IResourceBuilder<ProjectResource>? apiGateway = null;
 
 if (Enabled("ApiGateway"))
@@ -102,6 +107,8 @@ if (Enabled("ApiGateway"))
 
     frontendAdmin = builder.AddProject<Projects.Davids_Frontend_Admin>("frontend-admin")
         .WithHttpHealthCheck("/health");
+    frontendWeb = builder.AddProject<Projects.Davids_Frontend_Web>("frontend-web")
+        .WithHttpHealthCheck("/health");
     apiGateway = builder.AddProject<Projects.Davids_APIGateway_Api>("api-gateway")
         .WithEnvironment("CustomerOidc__Authority", ReferenceExpression.Create($"{identity.GetEndpoint("http")}"))
         .WithEnvironment("CustomerOidc__Issuer", ReferenceExpression.Create($"{identity.GetEndpoint("http")}/"))
@@ -115,11 +122,18 @@ if (Enabled("ApiGateway"))
             ReferenceExpression.Create($"{customers.GetEndpoint("http")}/"))
         .WithEnvironment("ReverseProxy__Clusters__frontend-admin__Destinations__primary__Address",
             ReferenceExpression.Create($"{frontendAdmin.GetEndpoint("http")}/"))
+        .WithEnvironment("ReverseProxy__Clusters__frontend-web__Destinations__primary__Address",
+            ReferenceExpression.Create($"{frontendWeb.GetEndpoint("http")}/"))
         .WaitFor(frontendAdmin)
+        .WaitFor(frontendWeb)
         .WaitFor(identity)
         .WaitFor(adminIdentity)
         .WaitFor(customers)
         .WithHttpHealthCheck("/health");
+
+    identity
+        .WithEnvironment("Oidc__GatewayRedirectUri", ReferenceExpression.Create($"{apiGateway.GetEndpoint("http")}/signin-customer-oidc"))
+        .WithEnvironment("Oidc__GatewayPostLogoutRedirectUri", ReferenceExpression.Create($"{apiGateway.GetEndpoint("http")}/portal/login"));
 
     adminIdentity
         .WithEnvironment("Oidc__GatewayRedirectUri", ReferenceExpression.Create($"{apiGateway.GetEndpoint("http")}/signin-oidc"))
@@ -215,6 +229,8 @@ if (Enabled("Jaeger"))
         .WithEnvironment("Telemetry__Jaeger__Endpoint", jaegerEndpoint);
     frontendAdmin?.WithEnvironment("Telemetry__Jaeger__Enabled", "true")
         .WithEnvironment("Telemetry__Jaeger__Endpoint", jaegerEndpoint);
+    frontendWeb?.WithEnvironment("Telemetry__Jaeger__Enabled", "true")
+        .WithEnvironment("Telemetry__Jaeger__Endpoint", jaegerEndpoint);
 }
 if (Enabled("Seq"))
 {
@@ -233,12 +249,15 @@ if (Enabled("Seq"))
         .WithEnvironment("LoggingSinks__Seq__Url", seq.GetEndpoint("http"));
     frontendAdmin?.WithEnvironment("LoggingSinks__Seq__Enabled", "true")
         .WithEnvironment("LoggingSinks__Seq__Url", seq.GetEndpoint("http"));
+    frontendWeb?.WithEnvironment("LoggingSinks__Seq__Enabled", "true")
+        .WithEnvironment("LoggingSinks__Seq__Url", seq.GetEndpoint("http"));
 }
 identity.WithEnvironment("LoggingSinks__File__Enabled", Enabled("FileLogging").ToString());
 adminIdentity.WithEnvironment("LoggingSinks__File__Enabled", Enabled("FileLogging").ToString());
 customers.WithEnvironment("LoggingSinks__File__Enabled", Enabled("FileLogging").ToString());
 apiGateway?.WithEnvironment("LoggingSinks__File__Enabled", Enabled("FileLogging").ToString());
 frontendAdmin?.WithEnvironment("LoggingSinks__File__Enabled", Enabled("FileLogging").ToString());
+frontendWeb?.WithEnvironment("LoggingSinks__File__Enabled", Enabled("FileLogging").ToString());
 if (Enabled("Prometheus"))
 {
     prometheus = builder.AddContainer("prometheus", "prom/prometheus", "v3.15.0")
@@ -255,6 +274,8 @@ if (Enabled("Prometheus"))
     apiGateway?.WithEnvironment("Telemetry__Prometheus__Enabled", "true")
         .WithEnvironment("Telemetry__Prometheus__Endpoint", prometheusEndpoint);
     frontendAdmin?.WithEnvironment("Telemetry__Prometheus__Enabled", "true")
+        .WithEnvironment("Telemetry__Prometheus__Endpoint", prometheusEndpoint);
+    frontendWeb?.WithEnvironment("Telemetry__Prometheus__Enabled", "true")
         .WithEnvironment("Telemetry__Prometheus__Endpoint", prometheusEndpoint);
 }
 if (Enabled("Grafana"))
@@ -313,6 +334,8 @@ if (Enabled("InfluxDB", false))
         .WithEnvironment("Telemetry__InfluxDB__Endpoint", influxEndpoint);
     frontendAdmin?.WithEnvironment("Telemetry__InfluxDB__Enabled", "true")
         .WithEnvironment("Telemetry__InfluxDB__Endpoint", influxEndpoint);
+    frontendWeb?.WithEnvironment("Telemetry__InfluxDB__Enabled", "true")
+        .WithEnvironment("Telemetry__InfluxDB__Endpoint", influxEndpoint);
 }
 if (Enabled("Elasticsearch", false))
 {
@@ -332,6 +355,8 @@ if (Enabled("Elasticsearch", false))
     apiGateway?.WithEnvironment("LoggingSinks__Elasticsearch__Enabled", "true")
         .WithEnvironment("LoggingSinks__Elasticsearch__Url", elastic.GetEndpoint("http")).WaitFor(elastic);
     frontendAdmin?.WithEnvironment("LoggingSinks__Elasticsearch__Enabled", "true")
+        .WithEnvironment("LoggingSinks__Elasticsearch__Url", elastic.GetEndpoint("http")).WaitFor(elastic);
+    frontendWeb?.WithEnvironment("LoggingSinks__Elasticsearch__Enabled", "true")
         .WithEnvironment("LoggingSinks__Elasticsearch__Url", elastic.GetEndpoint("http")).WaitFor(elastic);
     builder.AddContainer("kibana", "docker.elastic.co/kibana/kibana", "9.5.5")
         .WithEnvironment("ELASTICSEARCH_HOSTS", ReferenceExpression.Create($"[\"{elastic.GetEndpoint("http")}\"]"))

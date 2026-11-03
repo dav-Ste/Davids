@@ -12,7 +12,8 @@ $repos = @(
     'Davids.Services.AdminIdentity',
     'Davids.Services.Customers',
     'Davids.APIGateway',
-    'Davids.Frontend.Admin'
+    'Davids.Frontend.Admin',
+    'Davids.Frontend.Web'
 )
 
 $gitleaks = $null

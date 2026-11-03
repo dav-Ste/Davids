@@ -101,6 +101,13 @@ jobs:
           token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
           path: Davids.Frontend.Admin
 
+      - name: Checkout Davids.Frontend.Web
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Frontend.Web
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
+          path: Davids.Frontend.Web
+
       - name: Setup .NET 10 SDK
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
@@ -117,6 +124,7 @@ jobs:
             '../Davids.Services.Customers/Davids.Services.Customers.slnx',
             '../Davids.APIGateway/Davids.APIGateway.slnx',
             '../Davids.Frontend.Admin/Davids.Frontend.Admin.slnx',
+            '../Davids.Frontend.Web/Davids.Frontend.Web.slnx',
             'src/Davids.Bootstrap/Davids.Bootstrap.csproj'
           )) {
             dotnet restore $sln --locked-mode -m:1 -nr:false --tl:off

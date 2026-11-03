@@ -76,6 +76,7 @@ public sealed class ResourceGraphTests
             "admin-identity",
             "customers",
             "frontend-admin",
+            "frontend-web",
             "api-gateway",
             "sql",
             "identitydb",
@@ -128,6 +129,7 @@ public sealed class ResourceGraphTests
         Assert.Contains("sql", names);
         Assert.DoesNotContain("api-gateway", names);
         Assert.DoesNotContain("frontend-admin", names);
+        Assert.DoesNotContain("frontend-web", names);
         Assert.DoesNotContain("grafana", names);
         Assert.DoesNotContain("vault-bootstrap", names);
         Assert.DoesNotContain("influx-collector", names);
@@ -178,6 +180,9 @@ public sealed class ResourceGraphTests
         Assert.Equal("secret/data/davids/gateway", gatewayEnv["Vault__KvPath"]);
 
         Assert.True(identityEnv.ContainsKey("Oidc__Issuer"));
+        Assert.True(identityEnv.ContainsKey("AdminOidc__Authority"));
+        Assert.True(identityEnv.ContainsKey("Oidc__GatewayRedirectUri"));
+        Assert.True(identityEnv.ContainsKey("Oidc__GatewayPostLogoutRedirectUri"));
         Assert.True(adminIdentityEnv.ContainsKey("Oidc__Issuer"));
         Assert.True(adminIdentityEnv.ContainsKey("Oidc__GatewayRedirectUri"));
         Assert.True(adminIdentityEnv.ContainsKey("Oidc__GatewayPostLogoutRedirectUri"));
@@ -189,6 +194,7 @@ public sealed class ResourceGraphTests
 
         Assert.True(gatewayEnv.ContainsKey("CustomerOidc__Authority"));
         Assert.True(gatewayEnv.ContainsKey("AdminOidc__Authority"));
+        Assert.True(gatewayEnv.ContainsKey("ReverseProxy__Clusters__frontend-web__Destinations__primary__Address"));
         Assert.DoesNotContain(gatewayEnv.Keys, k => k.Contains("SigningKey", StringComparison.OrdinalIgnoreCase));
 
         Assert.True(bootstrapEnv.ContainsKey("OIDC_SIGNING_KEY"));
@@ -256,7 +262,8 @@ public sealed class ResourceGraphTests
             "Davids.Services.AdminIdentity",
             "Davids.Services.Customers",
             "Davids.APIGateway",
-            "Davids.Frontend.Admin"
+            "Davids.Frontend.Admin",
+            "Davids.Frontend.Web"
         };
 
         var commonPropsPath = Path.Combine(workspaceRoot, "Davids.Shared", "eng", "Davids.Common.props");
@@ -451,7 +458,8 @@ public sealed class ResourceGraphTests
             "Davids.Services.AdminIdentity",
             "Davids.Services.Customers",
             "Davids.APIGateway",
-            "Davids.Frontend.Admin"
+            "Davids.Frontend.Admin",
+            "Davids.Frontend.Web"
         };
 
         var shaPinnedUsesRegex = new Regex(@"^\s*-?\s*uses:\s*([^\s#]+)", RegexOptions.Compiled);
@@ -474,7 +482,7 @@ public sealed class ResourceGraphTests
             Assert.True(File.Exists(codeqlWorkflowPath), $"Missing CodeQL workflow in {repo}.");
             var codeqlWorkflow = File.ReadAllText(codeqlWorkflowPath);
             Assert.Contains("language: csharp", codeqlWorkflow, StringComparison.Ordinal);
-            if (repo is "Davids" or "Davids.Frontend.Admin")
+            if (repo is "Davids" or "Davids.Frontend.Admin" or "Davids.Frontend.Web")
             {
                 Assert.Contains("language: javascript-typescript", codeqlWorkflow, StringComparison.Ordinal);
             }
@@ -782,13 +790,13 @@ public sealed class ResourceGraphTests
         Assert.Contains("mcr.microsoft.com/restlerfuzzer/restler:", scanRestlerScript, StringComparison.Ordinal);
         Assert.Contains("@sha256:", scanRestlerScript, StringComparison.Ordinal);
 
-        // 4. Cross-role Authorization Matrix (31 Autorize cases) + Burp Suite Community Edition config & guide.
+        // 4. Cross-role Authorization Matrix (45 Autorize cases) + Burp Suite Community Edition config & guide.
         var authzDir = Path.Combine(releaseDir, "authz");
         var matrixPath = Path.Combine(authzDir, "authz-matrix.json");
         Assert.True(File.Exists(matrixPath), "Missing security/quarterly-release/authz/authz-matrix.json.");
         using (var matrixDoc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(matrixPath)))
         {
-            Assert.Equal(31, matrixDoc.RootElement.GetProperty("cases").GetArrayLength());
+            Assert.Equal(45, matrixDoc.RootElement.GetProperty("cases").GetArrayLength());
         }
         Assert.True(File.Exists(Path.Combine(authzDir, "burp-community-project-options.json")));
         var burpGuide = File.ReadAllText(Path.Combine(authzDir, "BURP-COMMUNITY-GUIDE.md"));
@@ -979,7 +987,8 @@ public sealed class ResourceGraphTests
             "Davids.Services.AdminIdentity",
             "Davids.Services.Customers",
             "Davids.APIGateway",
-            "Davids.Frontend.Admin"
+            "Davids.Frontend.Admin",
+            "Davids.Frontend.Web"
         };
 
         var allCsprojFiles = repositories
@@ -988,7 +997,7 @@ public sealed class ResourceGraphTests
             .OrderBy(p => p, StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(25, allCsprojFiles.Length);
+        Assert.Equal(27, allCsprojFiles.Length);
 
         foreach (var csproj in allCsprojFiles)
         {
@@ -1048,7 +1057,7 @@ public sealed class ResourceGraphTests
                     Assert.True(r is "Davids.APIGateway.Infrastructure" or "Davids.ServiceDefaults",
                         $"Violation in {projectName}: unexpected ProjectReference '{r}'."));
             }
-            else if (projectName == "Davids.Frontend.Admin")
+            else if (projectName is "Davids.Frontend.Admin" or "Davids.Frontend.Web")
             {
                 Assert.Equal(["Davids.ServiceDefaults"], projectRefs);
             }

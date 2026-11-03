@@ -145,6 +145,157 @@
         ]
       }
     },
+    "/customers/me": {
+      "get": {
+        "tags": [
+          "Davids.Services.Customers.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDetailsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing or invalid RS256 Bearer access token."
+          },
+          "403": {
+            "description": "Caller lacks permission for this customer resource."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Davids.Services.Customers.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMyCustomerProfile"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDetailsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing or invalid RS256 Bearer access token."
+          },
+          "403": {
+            "description": "Caller lacks permission for this customer resource."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/customers/change-audits": {
+      "get": {
+        "tags": [
+          "Davids.Services.Customers.Api"
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "targetCustomerId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "actorSub",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomerProfileChangeAuditDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing or invalid RS256 Bearer access token."
+          },
+          "403": {
+            "description": "Caller lacks permission for this customer resource."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
     "/customers/{customerId}": {
       "get": {
         "tags": [
@@ -288,6 +439,65 @@
           },
           "404": {
             "description": "Not Found"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing or invalid RS256 Bearer access token."
+          },
+          "403": {
+            "description": "Caller lacks permission for this customer resource."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/customers/{customerId}/change-audits": {
+      "get": {
+        "tags": [
+          "Davids.Services.Customers.Api"
+        ],
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomerProfileChangeAuditDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
           },
           "429": {
             "description": "Rate limit exceeded."
@@ -464,6 +674,94 @@
           }
         }
       },
+      "CustomerProfileChangeAuditDto": {
+        "required": [
+          "id",
+          "service",
+          "action",
+          "targetType",
+          "targetId",
+          "targetLabel",
+          "actorSub",
+          "actorEmail",
+          "actorRole",
+          "actorAuthority",
+          "changes",
+          "correlationId",
+          "occurredAtUtc"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "service": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "targetType": {
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string"
+          },
+          "targetLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorSub": {
+            "type": "string"
+          },
+          "actorEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorRole": {
+            "type": "string"
+          },
+          "actorAuthority": {
+            "type": "string"
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerProfileFieldChangeDto"
+            }
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "occurredAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CustomerProfileFieldChangeDto": {
+        "required": [
+          "field",
+          "oldValue",
+          "newValue"
+        ],
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "oldValue": {
+            "type": "string",
+            "nullable": true
+          },
+          "newValue": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
       "CustomerStateDto": {
         "type": "object",
         "properties": {
@@ -512,6 +810,27 @@
             ],
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "UpdateMyCustomerProfile": {
+        "required": [
+          "fullName",
+          "address"
+        ],
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[^\\u0000]*\\S[^\\u0000]*$",
+            "type": "string"
+          },
+          "address": {
+            "maxLength": 250,
+            "minLength": 1,
+            "pattern": "^[^\\u0000]*\\S[^\\u0000]*$",
+            "type": "string"
           }
         }
       }

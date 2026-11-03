@@ -102,3 +102,61 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261103213640_AddCustomerProfileChangeAudits'
+)
+BEGIN
+    CREATE TABLE [CustomerProfileChangeAuditLogs] (
+        [Id] uniqueidentifier NOT NULL,
+        [OccurredAtUtc] datetime2 NOT NULL,
+        [TargetCustomerId] uniqueidentifier NOT NULL,
+        [TargetEmail] nvarchar(320) NOT NULL,
+        [Action] nvarchar(64) NOT NULL,
+        [ActorSub] nvarchar(64) NOT NULL,
+        [ActorEmail] nvarchar(320) NULL,
+        [ActorRole] nvarchar(32) NOT NULL,
+        [ActorAuthority] nvarchar(32) NOT NULL,
+        [ChangedFieldsJson] nvarchar(max) NOT NULL,
+        [CorrelationId] nvarchar(128) NULL,
+        CONSTRAINT [PK_CustomerProfileChangeAuditLogs] PRIMARY KEY ([Id])
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261103213640_AddCustomerProfileChangeAudits'
+)
+BEGIN
+    CREATE INDEX [IX_CustomerProfileChangeAuditLogs_ActorSub_OccurredAtUtc] ON [CustomerProfileChangeAuditLogs] ([ActorSub], [OccurredAtUtc]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261103213640_AddCustomerProfileChangeAudits'
+)
+BEGIN
+    CREATE INDEX [IX_CustomerProfileChangeAuditLogs_OccurredAtUtc] ON [CustomerProfileChangeAuditLogs] ([OccurredAtUtc]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261103213640_AddCustomerProfileChangeAudits'
+)
+BEGIN
+    CREATE INDEX [IX_CustomerProfileChangeAuditLogs_TargetCustomerId_OccurredAtUtc] ON [CustomerProfileChangeAuditLogs] ([TargetCustomerId], [OccurredAtUtc]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261103213640_AddCustomerProfileChangeAudits'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261103213640_AddCustomerProfileChangeAudits', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

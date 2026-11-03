@@ -315,6 +315,148 @@
       "path": "/identity/users/{{custAId}}?injected_query_string=123",
       "actor": "customerA",
       "expectedStatuses": [400]
+    },
+    {
+      "id": "AUTHZ-032",
+      "category": "Unauthenticated-Boundary",
+      "description": "Unauthenticated caller cannot read Customer BFF /api/customer/me",
+      "method": "GET",
+      "path": "/api/customer/me",
+      "actor": "unauthenticated",
+      "expectedStatuses": [401]
+    },
+    {
+      "id": "AUTHZ-033",
+      "category": "Customer-Self-Service",
+      "description": "Customer A can read own /customers/me self-service profile",
+      "method": "GET",
+      "path": "/customers/me",
+      "actor": "customerA",
+      "expectedStatuses": [200]
+    },
+    {
+      "id": "AUTHZ-034",
+      "category": "Customer-Self-Service",
+      "description": "Customer A can update own /customers/me profile without privilege escalation",
+      "method": "PUT",
+      "path": "/customers/me",
+      "actor": "customerA",
+      "jsonBody": {
+        "fullName": "Customer A Self Service",
+        "address": "42 Self Service Terrace"
+      },
+      "expectedStatuses": [200, 204]
+    },
+    {
+      "id": "AUTHZ-035",
+      "category": "Customer-Self-Service",
+      "description": "Customer A can read own /identity/me/change-audits history",
+      "method": "GET",
+      "path": "/identity/me/change-audits",
+      "actor": "customerA",
+      "expectedStatuses": [200]
+    },
+    {
+      "id": "AUTHZ-036",
+      "category": "Vertical-Privilege-Escalation",
+      "description": "Customer A cannot access employee /customer-accounts/users/{custBId}",
+      "method": "GET",
+      "path": "/customer-accounts/users/{{custBId}}",
+      "actor": "customerA",
+      "expectedStatuses": [401, 403]
+    },
+    {
+      "id": "AUTHZ-037",
+      "category": "Vertical-Privilege-Escalation",
+      "description": "Customer A cannot read workforce /customers/change-audits trail",
+      "method": "GET",
+      "path": "/customers/change-audits",
+      "actor": "customerA",
+      "expectedStatuses": [401, 403]
+    },
+    {
+      "id": "AUTHZ-038",
+      "category": "Vertical-Privilege-Escalation",
+      "description": "Raw Customer Bearer token cannot access cookie-bound Customer BFF /api/customer/me",
+      "method": "GET",
+      "path": "/api/customer/me",
+      "actor": "customerA",
+      "expectedStatuses": [401, 403]
+    },
+    {
+      "id": "AUTHZ-039",
+      "category": "Workforce-RBAC-Support",
+      "description": "Support employee can browse /customers",
+      "method": "GET",
+      "path": "/customers",
+      "actor": "support",
+      "expectedStatuses": [200]
+    },
+    {
+      "id": "AUTHZ-040",
+      "category": "Workforce-RBAC-Support",
+      "description": "Support employee can unlock customer account via POST /customer-accounts/users/{custBId}/unlock",
+      "method": "POST",
+      "path": "/customer-accounts/users/{{custBId}}/unlock",
+      "actor": "support",
+      "expectedStatuses": [200, 204]
+    },
+    {
+      "id": "AUTHZ-041",
+      "category": "Workforce-RBAC-Support",
+      "description": "Support employee cannot provision workforce accounts via POST /admin-identity/users",
+      "method": "POST",
+      "path": "/admin-identity/users",
+      "actor": "support",
+      "jsonBody": {
+        "email": "escalated.support@davids.example",
+        "password": "__RUNTIME_TEST_PASSWORD__",
+        "fullName": "Escalated Support",
+        "role": "admin"
+      },
+      "expectedStatuses": [403]
+    },
+    {
+      "id": "AUTHZ-042",
+      "category": "Workforce-RBAC-Auditor",
+      "description": "Auditor employee can read /customers directory",
+      "method": "GET",
+      "path": "/customers",
+      "actor": "auditor",
+      "expectedStatuses": [200]
+    },
+    {
+      "id": "AUTHZ-043",
+      "category": "Workforce-RBAC-Auditor",
+      "description": "Auditor employee can read /customers/change-audits trail",
+      "method": "GET",
+      "path": "/customers/change-audits",
+      "actor": "auditor",
+      "expectedStatuses": [200]
+    },
+    {
+      "id": "AUTHZ-044",
+      "category": "Workforce-RBAC-Auditor",
+      "description": "Auditor employee cannot mutate Customer B via PUT /customers/{custBId}",
+      "method": "PUT",
+      "path": "/customers/{{custBId}}",
+      "actor": "auditor",
+      "jsonBody": {
+        "customerId": "{{custBId}}",
+        "fullName": "Auditor Forbidden Edit",
+        "address": "1 Read Only Way",
+        "isVip": false
+      },
+      "expectedStatuses": [403]
+    },
+    {
+      "id": "AUTHZ-045",
+      "category": "Workforce-RBAC-Auditor",
+      "description": "Auditor employee cannot unlock customer account via POST /customer-accounts/users/{custBId}/unlock",
+      "method": "POST",
+      "path": "/customer-accounts/users/{{custBId}}/unlock",
+      "actor": "auditor",
+      "expectedStatuses": [403]
     }
   ]
 }

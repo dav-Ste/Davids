@@ -1,6 +1,6 @@
 # Davids Platform — Infrastructure, Project Relationships & Security Architecture Diagram
 
-This document provides the **editable diagram sources** and **conversion instructions** for visualizing the seven `.NET 10` repositories, their internal project layers, `.NET Aspire` / Kubernetes + Istio infrastructure dependencies, and every security boundary across the platform.
+This document provides the **editable diagram sources** and **conversion instructions** for visualizing the eight `.NET 10` repositories, their internal project layers, `.NET Aspire` / Kubernetes + Istio infrastructure dependencies, and every security boundary across the platform.
 
 A pre-rendered, high-resolution vector image is maintained alongside this document at [`docs/architecture-and-security.svg`](architecture-and-security.svg) (and already embedded in [`README.md`](../README.md)), while the standalone Mermaid source is saved at [`docs/architecture-and-security.mmd`](architecture-and-security.mmd).
 
@@ -32,44 +32,48 @@ A pre-rendered, high-resolution vector image is maintained alongside this docume
 
 ---
 
-## 1. Full Infrastructure, 7-Repository Topology & Runtime Security Boundaries
+## 1. Full Infrastructure, 8-Repository Topology & Runtime Security Boundaries
 
 ```mermaid
 flowchart TB
     subgraph Edge["External Clients & TLS 1.3 Ingress Perimeter"]
         direction LR
-        CustClient["Customer Client ('davids-web')<br/>OAuth 2.1 Auth Code + PKCE S256<br/>Bearer RS256 JWT (role=user, aud=davids-services)"]
-        AdminBrowser["Administrator Browser<br/>Zero tokens in browser JavaScript<br/>Encrypted HttpOnly '__Host-Davids.Admin.Bff' cookie<br/>+ X-Requested-With: DavidsAdmin + Origin CSRF check"]
+        CustClient["Customer Browser / Client ('davids-web')<br/>Customer OIDC BFF ('davids_customer_bff' + X-Requested-With: DavidsWeb)<br/>or PKCE S256 RS256 JWT (role=user, aud=davids-services)"]
+        AdminBrowser["Workforce Browser (admin / support / auditor)<br/>Zero tokens in browser JavaScript<br/>Encrypted HttpOnly 'davids_admin_bff' cookie<br/>+ X-Requested-With: DavidsAdmin + Origin CSRF check"]
         IstioEdge["Istio 1.31.3 IngressGateway<br/>TLS 1.3 minProtocolVersion · DENY /openapi & /admin-identity/sign-up"]
     end
 
     subgraph Mesh["Kubernetes Namespace 'davids' — Istio STRICT mTLS (ISTIO_MUTUAL :8080) + Kyverno v1.19.2 + Cosign Signed Digests + Falco/Tetragon eBPF"]
         direction TB
 
-        subgraph RepoGateway["Repo: Davids.APIGateway (:17320) — YARP 2.3.0 Edge & Confidential OIDC BFF (Zero Signing Keys)"]
-            GW["Davids.APIGateway.Api -> Davids.APIGateway.Infrastructure<br/>• Correlation ID & W3C TraceContext propagation<br/>• Dual-Authority RS256 JWT validation via public JWKS<br/>• Redis JTI revocation check & sliding-window rate limits<br/>• Confidential OIDC BFF (/login, /signin-oidc, /logout) + AdminOnly gate"]
+        subgraph RepoGateway["Repo: Davids.APIGateway (:17320) — YARP 2.3.0 Edge & Dual OIDC BFFs (Zero Signing Keys)"]
+            GW["Davids.APIGateway.Api -> Davids.APIGateway.Infrastructure<br/>• Correlation ID, W3C TraceContext & verified X-Auth-* headers<br/>• Dual-Authority RS256 JWT validation via public JWKS<br/>• Redis JTI revocation check & sliding-window rate limits<br/>• Dual PKCE S256 BFFs (/auth/* Admin + /customer-auth/* Customer)"]
         end
 
         subgraph RepoShared["Repo: Davids.Shared (NuGet / Project Reference)"]
-            Shared["Davids.ServiceDefaults<br/>OpenTelemetry (Traces, Metrics, 'Davids.Security.Audit' meter)<br/>Serilog -> Seq · Health/Readiness · Resilience"]
+            Shared["Davids.ServiceDefaults<br/>OpenTelemetry (Traces, Metrics, 'Davids.Security.Audit' + change_audit)<br/>WorkforceRoles · ChangeAuditDiffBuilder · Serilog -> Seq"]
         end
 
-        subgraph BackendRepos["Backend & Admin UI Repositories — Istio AuthorizationPolicy ALLOW ONLY Principal 'cluster.local/ns/davids/sa/davids-api-gateway'"]
+        subgraph BackendRepos["Backend & Web UI Repositories — Istio AuthorizationPolicy ALLOW ONLY Principal 'cluster.local/ns/davids/sa/davids-api-gateway'"]
             direction LR
             subgraph RepoId["Repo: Davids.Services.Identity (:5004)"]
-                IdSvc["Api -> Application + Infrastructure -> Core<br/>Customer OpenIddict 7.7.2 OIDC Provider<br/>Asymmetric RS256 signing + RSA-OAEP encryption<br/>PKCE S256 · Single-use refresh rotation · RFC 7009 revocation"]
+                IdSvc["Api -> Application + Infrastructure -> Core<br/>Customer OpenIddict 7.7.2 OIDC & CIAM<br/>PUT /me/{password,email} + email_changed outbox<br/>AdminBearer unlock/recovery + CustomerChangeAuditLogs"]
             end
 
             subgraph RepoAdminId["Repo: Davids.Services.AdminIdentity (:17325)"]
-                AdminIdSvc["Api -> Application + Infrastructure -> Core<br/>Admin OpenIddict 7.7.2 OIDC Provider (role=admin)<br/>Separate RS256 keypair, issuer & 'davids-admin-bff' client<br/>Account lockout + AdminLoginAuditLogs"]
+                AdminIdSvc["Api -> Application + Infrastructure -> Core<br/>Workforce OpenIddict 7.7.2 OIDC (admin/support/auditor)<br/>PUT /me/password · PUT /users/{id} (last-admin guard)<br/>Account lockout/unlock + AdminChangeAuditLogs"]
             end
 
             subgraph RepoCust["Repo: Davids.Services.Customers (:5002)"]
-                CustSvc["Api -> Application + Infrastructure -> Core<br/>Customer Profiles & Completed Orders<br/>Zero signing keys (validates public JWKS only)<br/>Self-service (/customers/me) vs AdminOnly search/edit"]
+                CustSvc["Api -> Application + Infrastructure -> Core<br/>Customer Profiles & Completed Orders (Zero signing keys)<br/>Self-service GET/PUT /customers/me + email_changed inbox<br/>WorkforceRead/Mutate RBAC + CustomerProfileChangeAuditLogs"]
             end
 
             subgraph RepoFE["Repo: Davids.Frontend.Admin (:17321)"]
-                FESvc["Davids.Frontend.Admin<br/>Customer Search & Editing Web UI<br/>Strict CSP (script-src 'self'), X-Frame-Options: DENY<br/>Reachable exclusively via Gateway AdminOnly BFF"]
+                FESvc["Davids.Frontend.Admin<br/>Workforce Customer, CIAM, IAM & Audit UI<br/>Strict CSP (script-src 'self'), X-Frame-Options: DENY<br/>Reachable via Gateway Workforce BFF"]
+            end
+
+            subgraph RepoWeb["Repo: Davids.Frontend.Web (:17322)"]
+                WebSvc["Davids.Frontend.Web<br/>Customer Self-Service Web Portal (/portal)<br/>Registration, Profile, Password/Email & Personal Audits<br/>Reachable via Gateway Customer BFF"]
             end
         end
     end
@@ -99,19 +103,22 @@ flowchart TB
     AdminBrowser ==>|"HTTPS TLS 1.3 · HttpOnly BFF Cookie + CSRF"| IstioEdge
     IstioEdge ==>|"mTLS"| GW
 
-    GW ==>|"/identity/* (mTLS)"| IdSvc
-    GW ==>|"/admin-identity/* & OIDC PKCE BFF (mTLS)"| AdminIdSvc
+    GW ==>|"/identity/* & /customer-accounts/* (mTLS)"| IdSvc
+    GW ==>|"/admin-identity/* & Admin OIDC PKCE BFF (mTLS)"| AdminIdSvc
     GW ==>|"/customers/* (mTLS)"| CustSvc
-    GW ==>|"AdminOnly BFF -> UI (mTLS)"| FESvc
+    GW ==>|"Workforce BFF -> Admin UI (mTLS)"| FESvc
+    GW ==>|"Customer BFF -> /portal Web UI (mTLS)"| WebSvc
 
     CustSvc -.->|"Public JWKS (/.well-known/jwks)"| IdSvc
     CustSvc -.->|"Public JWKS (/.well-known/jwks)"| AdminIdSvc
+    IdSvc -.->|"Public JWKS (/.well-known/jwks)"| AdminIdSvc
 
     Shared -.-> GW
     Shared -.-> IdSvc
     Shared -.-> AdminIdSvc
     Shared -.-> CustSvc
     Shared -.-> FESvc
+    Shared -.-> WebSvc
 
     IdSvc -->|"EF Core (exclusive)"| DbId
     AdminIdSvc -->|"EF Core (exclusive)"| DbAdmin
@@ -219,5 +226,7 @@ flowchart LR
 - **`Davids.Services.Customers` (`Davids.Services.Customers.slnx` — Customer Domain & Order Tracking Service, `:5002`)**:
   - Clean layers: `Api` -> `Application` + `Infrastructure` -> `Core` (+ `Davids.ServiceDefaults`); `Davids.Services.Customers.Application` is the backend CQRS/application layer.
   - Holds **zero signing keys**, validating `CustomerBearer` and `AdminBearer` `RS256` JWTs via public JWKS discovery, consuming RabbitMQ events into **`customersdb`**, restricting customers to their own profile while requiring `AdminOnly` (`role = admin` from `AdminIdentity`) for customer search, listing, and editing.
-- **`Davids.Frontend.Admin` (`Davids.Frontend.Admin.slnx` — Administrator Customer Search & Editing Web UI, `:17321`)**:
-  - Serves the administrator interface behind strict Content-Security-Policy (`default-src 'self'; script-src 'self'; frame-ancestors 'none'`), reachable only through `Davids.APIGateway` after `AdminOnly` BFF session verification and restricted in-cluster by Istio `AuthorizationPolicy` exclusively to principal `cluster.local/ns/davids/sa/davids-api-gateway`.
+- **`Davids.Frontend.Admin` (`Davids.Frontend.Admin.slnx` — Workforce Customer, CIAM, IAM & Audit Web UI, `:17321`)**:
+  - Serves the workforce interface (`admin`, `support`, `auditor`) behind strict Content-Security-Policy (`default-src 'self'; script-src 'self'; frame-ancestors 'none'`), reachable only through `Davids.APIGateway` after `davids_admin_bff` session verification and restricted in-cluster by Istio `AuthorizationPolicy` exclusively to principal `cluster.local/ns/davids/sa/davids-api-gateway`.
+- **`Davids.Frontend.Web` (`Davids.Frontend.Web.slnx` — Customer Self-Service Web Portal, `:17322`)**:
+  - Serves the customer self-service portal (`/portal` and `/portal/login`) behind `CustomerBffCookie` (`davids_customer_bff`, PKCE `S256` + `X-Requested-With: DavidsWeb` CSRF protection), providing self-service registration, profile completion/editing (`GET/PUT /customers/me`), password & email rotation (`PUT /identity/me/{password,email}`), and personal login & change-audit history with zero browser token storage.

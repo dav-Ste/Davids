@@ -14,7 +14,8 @@ $repos = @(
     'Davids.Services.AdminIdentity',
     'Davids.Services.Customers',
     'Davids.APIGateway',
-    'Davids.Frontend.Admin'
+    'Davids.Frontend.Admin',
+    'Davids.Frontend.Web'
 )
 
 # Pinned Gitleaks v8.30.1 release artifacts and official SHA-256 digests (supply-chain verified).

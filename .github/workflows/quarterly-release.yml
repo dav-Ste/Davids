@@ -66,6 +66,13 @@ jobs:
           token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
           path: Davids.Frontend.Admin
 
+      - name: Checkout Davids.Frontend.Web
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Frontend.Web
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
+          path: Davids.Frontend.Web
+
       - name: Setup .NET 10 SDK
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
@@ -166,6 +173,7 @@ jobs:
               ./Davids.Services.Customers/Davids.Services.Customers.slnx \
               ./Davids.APIGateway/Davids.APIGateway.slnx \
               ./Davids.Frontend.Admin/Davids.Frontend.Admin.slnx \
+              ./Davids.Frontend.Web/Davids.Frontend.Web.slnx \
               ./Davids/src/Davids.Bootstrap/Davids.Bootstrap.csproj; do
               dotnet restore "$sln" --locked-mode -m:1 -nr:false --tl:off
             done
@@ -187,6 +195,8 @@ jobs:
             Oidc__Issuer="http://127.0.0.1:5004/" \
             Oidc__SigningKeyPem="$CUST_RSA_PEM" \
             Oidc__EncryptionKeyPem="$CUST_ENC_PEM" \
+            AdminOidc__Authority="http://127.0.0.1:17325" \
+            AdminOidc__Issuer="http://127.0.0.1:17325/" \
             DataProtection__MasterKey="$ID_DP_KEY" \
             RateLimiting__AuthPermitLimit="10000" \
               dotnet run --no-build -c Release --project ./Davids.Services.Identity/src/Davids.Services.Identity.Api --urls http://127.0.0.1:5004 > "$RUNNER_TEMP/quarterly-release-logs/identity.log" 2>&1 &
@@ -210,6 +220,8 @@ jobs:
 
             dotnet run --no-build -c Release --project ./Davids.Frontend.Admin/src/Davids.Frontend.Admin --urls http://127.0.0.1:17321 > "$RUNNER_TEMP/quarterly-release-logs/frontend.log" 2>&1 &
 
+            dotnet run --no-build -c Release --project ./Davids.Frontend.Web/src/Davids.Frontend.Web --urls http://127.0.0.1:17322 > "$RUNNER_TEMP/quarterly-release-logs/frontend-web.log" 2>&1 &
+
             env \
               CustomerOidc__Authority="http://127.0.0.1:5004" \
               CustomerOidc__Issuer="http://127.0.0.1:5004/" \
@@ -224,12 +236,14 @@ jobs:
               "ReverseProxy__Clusters__admin-identity__Destinations__primary__Address=http://127.0.0.1:17325/" \
               "ReverseProxy__Clusters__customers__Destinations__primary__Address=http://127.0.0.1:5002/" \
               "ReverseProxy__Clusters__frontend-admin__Destinations__primary__Address=http://127.0.0.1:17321/" \
+              "ReverseProxy__Clusters__frontend-web__Destinations__primary__Address=http://127.0.0.1:17322/" \
               dotnet run --no-build -c Release --project ./Davids.APIGateway/src/Davids.APIGateway.Api --urls http://0.0.0.0:17320 > "$RUNNER_TEMP/quarterly-release-logs/gateway.log" 2>&1 &
 
             STACK_READY=0
             for i in $(seq 1 90); do
               if curl -fsS http://127.0.0.1:17320/gateway-info >/dev/null 2>&1 && \
                  curl -fsS http://127.0.0.1:17320/login >/dev/null 2>&1 && \
+                 curl -fsS http://127.0.0.1:17320/portal/login >/dev/null 2>&1 && \
                  curl -fsS http://127.0.0.1:17320/identity/.well-known/openid-configuration >/dev/null 2>&1 && \
                  curl -fsS http://127.0.0.1:17320/admin-identity/.well-known/openid-configuration >/dev/null 2>&1 && \
                  curl -fsS http://127.0.0.1:5002/health >/dev/null 2>&1; then

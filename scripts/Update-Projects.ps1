@@ -7,7 +7,8 @@ $repositories = @(
     'Davids.Services.AdminIdentity',
     'Davids.Services.Customers',
     'Davids.APIGateway',
-    'Davids.Frontend.Admin'
+    'Davids.Frontend.Admin',
+    'Davids.Frontend.Web'
 )
 
 foreach ($name in $repositories) {

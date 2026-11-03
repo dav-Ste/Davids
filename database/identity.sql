@@ -352,3 +352,61 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261103213124_AddCustomerChangeAudits'
+)
+BEGIN
+    CREATE TABLE [CustomerChangeAuditLogs] (
+        [Id] uniqueidentifier NOT NULL,
+        [OccurredAtUtc] datetime2 NOT NULL,
+        [TargetUserId] uniqueidentifier NOT NULL,
+        [TargetEmail] nvarchar(320) NOT NULL,
+        [Action] nvarchar(64) NOT NULL,
+        [ActorSub] nvarchar(64) NOT NULL,
+        [ActorEmail] nvarchar(320) NULL,
+        [ActorRole] nvarchar(32) NOT NULL,
+        [ActorAuthority] nvarchar(32) NOT NULL,
+        [ChangedFieldsJson] nvarchar(max) NOT NULL,
+        [CorrelationId] nvarchar(128) NULL,
+        CONSTRAINT [PK_CustomerChangeAuditLogs] PRIMARY KEY ([Id])
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261103213124_AddCustomerChangeAudits'
+)
+BEGIN
+    CREATE INDEX [IX_CustomerChangeAuditLogs_ActorSub_OccurredAtUtc] ON [CustomerChangeAuditLogs] ([ActorSub], [OccurredAtUtc]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261103213124_AddCustomerChangeAudits'
+)
+BEGIN
+    CREATE INDEX [IX_CustomerChangeAuditLogs_OccurredAtUtc] ON [CustomerChangeAuditLogs] ([OccurredAtUtc]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261103213124_AddCustomerChangeAudits'
+)
+BEGIN
+    CREATE INDEX [IX_CustomerChangeAuditLogs_TargetUserId_OccurredAtUtc] ON [CustomerChangeAuditLogs] ([TargetUserId], [OccurredAtUtc]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261103213124_AddCustomerChangeAudits'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261103213124_AddCustomerChangeAudits', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

@@ -39,13 +39,14 @@ Each component lives in its own standalone repository with an independent `.slnx
 |---|---|---|---|---|
 | **[`Davids`](https://github.com/dav-Ste/Davids)** | `.NET 10` Aspire AppHost, Vault bootstrap, K8s/Istio manifests & aggregate security suite | Aspire Dashboard | [![PR CI](https://github.com/dav-Ste/Davids/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids/actions/workflows/codeql.yml) |
 | **[`Davids.Shared`](https://github.com/dav-Ste/Davids.Shared)** | `Davids.ServiceDefaults` (`OpenTelemetry`, `Serilog`, `DataProtection`, `/health`, resilience) | Shared library / NuGet | [![PR CI](https://github.com/dav-Ste/Davids.Shared/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Shared/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Shared/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Shared/actions/workflows/codeql.yml) |
-| **[`Davids.Services.Identity`](https://github.com/dav-Ste/Davids.Services.Identity)** | Customer OpenIddict `7.7.2` `RS256` OIDC Provider (`identitydb`, `role: user`) | `:5004` | [![PR CI](https://github.com/dav-Ste/Davids.Services.Identity/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.Identity/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Services.Identity/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.Identity/actions/workflows/codeql.yml) |
-| **[`Davids.Services.AdminIdentity`](https://github.com/dav-Ste/Davids.Services.AdminIdentity)** | Admin OpenIddict `7.7.2` `RS256` OIDC Provider (`adminidentitydb`, `role: admin`) | `:17325` | [![PR CI](https://github.com/dav-Ste/Davids.Services.AdminIdentity/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.AdminIdentity/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Services.AdminIdentity/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.AdminIdentity/actions/workflows/codeql.yml) |
-| **[`Davids.Services.Customers`](https://github.com/dav-Ste/Davids.Services.Customers)** | Customer profiles & order tracking (`customersdb`, public JWKS only — zero signing keys) | `:5002` | [![PR CI](https://github.com/dav-Ste/Davids.Services.Customers/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.Customers/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Services.Customers/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.Customers/actions/workflows/codeql.yml) |
-| **[`Davids.APIGateway`](https://github.com/dav-Ste/Davids.APIGateway)** | YARP `2.3.0` edge reverse proxy & confidential Admin OIDC BFF (zero signing keys) | `:17320` | [![PR CI](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/codeql.yml) |
-| **[`Davids.Frontend.Admin`](https://github.com/dav-Ste/Davids.Frontend.Admin)** | Passwordless Admin customer search & editing web UI (`AdminOnly` BFF gated) | `:17321` | [![PR CI](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/codeql.yml) |
+| **[`Davids.Services.Identity`](https://github.com/dav-Ste/Davids.Services.Identity)** | Customer OpenIddict `7.7.2` `RS256` OIDC Provider & CIAM (`identitydb`, `role: user`) | `:5004` | [![PR CI](https://github.com/dav-Ste/Davids.Services.Identity/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.Identity/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Services.Identity/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.Identity/actions/workflows/codeql.yml) |
+| **[`Davids.Services.AdminIdentity`](https://github.com/dav-Ste/Davids.Services.AdminIdentity)** | Workforce OpenIddict `7.7.2` `RS256` OIDC Provider (`adminidentitydb`, `admin`/`support`/`auditor`) | `:17325` | [![PR CI](https://github.com/dav-Ste/Davids.Services.AdminIdentity/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.AdminIdentity/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Services.AdminIdentity/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.AdminIdentity/actions/workflows/codeql.yml) |
+| **[`Davids.Services.Customers`](https://github.com/dav-Ste/Davids.Services.Customers)** | Customer profiles, self-service & order tracking (`customersdb`, public JWKS only — zero signing keys) | `:5002` | [![PR CI](https://github.com/dav-Ste/Davids.Services.Customers/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.Customers/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Services.Customers/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.Customers/actions/workflows/codeql.yml) |
+| **[`Davids.APIGateway`](https://github.com/dav-Ste/Davids.APIGateway)** | YARP `2.3.0` edge reverse proxy & dual Admin/Customer OIDC BFFs (zero signing keys) | `:17320` | [![PR CI](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/codeql.yml) |
+| **[`Davids.Frontend.Admin`](https://github.com/dav-Ste/Davids.Frontend.Admin)** | Passwordless Workforce RBAC (`admin`/`support`/`auditor`) customer, IAM & audit web UI | `:17321` | [![PR CI](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/codeql.yml) |
+| **[`Davids.Frontend.Web`](https://github.com/dav-Ste/Davids.Frontend.Web)** | Customer Self-Service Web Portal (`CustomerBffCookie` PKCE `S256` BFF via `/portal`) | `:17322` | [![PR CI](https://github.com/dav-Ste/Davids.Frontend.Web/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Frontend.Web/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Frontend.Web/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Frontend.Web/actions/workflows/codeql.yml) |
 
-Authentication uses **Self-Hosted .NET OpenID Connect (`OpenIddict` `7.7.2`)** with **OAuth 2.1 Authorization Code + PKCE (`S256`)**, asymmetric **RS256** signing keys, public JWKS discovery (`/.well-known/openid-configuration` & `/.well-known/jwks`), single-use rotating refresh tokens with reuse detection, RFC 7009 revocation synced to Redis, and a confidential **Gateway OIDC Backend-for-Frontend (BFF)** (`davids_admin_bff` encrypted `HttpOnly` cookie) protecting `Davids.Frontend.Admin`. Resource servers (`Davids.Services.Customers` and `Davids.APIGateway`) hold **zero signing keys**.
+Authentication uses **Self-Hosted .NET OpenID Connect (`OpenIddict` `7.7.2`)** with **OAuth 2.1 Authorization Code + PKCE (`S256`)**, asymmetric **RS256** signing keys, public JWKS discovery (`/.well-known/openid-configuration` & `/.well-known/jwks`), single-use rotating refresh tokens with reuse detection, RFC 7009 revocation synced to Redis, and **two isolated Gateway OIDC Backend-for-Frontend (BFF) cookies** (`davids_admin_bff` for workforce employees `admin`/`support`/`auditor` on `Davids.Frontend.Admin` and `davids_customer_bff` for customers on `Davids.Frontend.Web`). Resource servers (`Davids.Services.Customers` and `Davids.APIGateway`) hold **zero signing keys**.
 
 Persistence uses **SQL Server** with **strict physical database isolation** across three separate databases:
 
@@ -70,22 +71,24 @@ Clone this infrastructure repository and the sibling repositories into the **sam
 <workspace>/
   Davids/                          # this repository; Aspire + Davids.slnx
   Davids.Shared/                   # shared Davids.ServiceDefaults + Davids.Shared.slnx
-  Davids.Services.Identity/        # Customer OIDC Provider (identitydb, role: user) + Davids.Services.Identity.slnx
-  Davids.Services.AdminIdentity/   # Admin OIDC Provider (adminidentitydb, role: admin) + Davids.Services.AdminIdentity.slnx
+  Davids.Services.Identity/        # Customer OIDC Provider & CIAM (identitydb, role: user) + Davids.Services.Identity.slnx
+  Davids.Services.AdminIdentity/   # Workforce OIDC Provider (adminidentitydb, admin/support/auditor) + Davids.Services.AdminIdentity.slnx
   Davids.Services.Customers/       # Customers API (customersdb, RS256 JWKS) + Davids.Services.Customers.slnx
-  Davids.APIGateway/               # YARP edge gateway + OIDC BFF + Davids.APIGateway.slnx
-  Davids.Frontend.Admin/           # Admin Web frontend + Davids.Frontend.Admin.slnx
+  Davids.APIGateway/               # YARP edge gateway + dual OIDC BFFs + Davids.APIGateway.slnx
+  Davids.Frontend.Admin/           # Workforce Admin Web frontend + Davids.Frontend.Admin.slnx
+  Davids.Frontend.Web/             # Customer Self-Service Web Portal + Davids.Frontend.Web.slnx
 ```
 
-`Davids.AppHost` references the five application hosts by relative path:
+`Davids.AppHost` references the six application hosts by relative path:
 
 - `Davids.Services.Identity` (`identity`)
 - `Davids.Services.AdminIdentity` (`admin-identity`)
 - `Davids.Services.Customers` (`customers`)
 - `Davids.APIGateway` (`api-gateway`)
 - `Davids.Frontend.Admin` (`frontend-admin`)
+- `Davids.Frontend.Web` (`frontend-web`)
 
-All five application hosts reference `Davids.ServiceDefaults` from the sibling `Davids.Shared` repository, so any individual service can also be cloned beside `Davids.Shared` alone and built, tested, or run standalone without cloning `Davids`.
+All six application hosts reference `Davids.ServiceDefaults` from the sibling `Davids.Shared` repository, so any individual service can also be cloned beside `Davids.Shared` alone and built, tested, or run standalone without cloning `Davids`.
 
 ## First-time setup
 
@@ -120,14 +123,15 @@ Set-Location Davids
 - `Davids.Services.Customers`
 - `Davids.APIGateway`
 - `Davids.Frontend.Admin`
+- `Davids.Frontend.Web`
 
 To fast-forward clean Git checkouts later, run `./scripts/Update-Projects.ps1`.
 
-Open `Davids.slnx` to work on Aspire and all 25 projects together (including Solution Items for build props, workflows, Kubernetes manifests, and security configs), open a focused vertical `.slnx` slice that keeps `Davids.AppHost` loaded for `F5` debugging:
+Open `Davids.slnx` to work on Aspire and all 27 projects together (including Solution Items for build props, workflows, Kubernetes manifests, and security configs), open a focused vertical `.slnx` slice that keeps `Davids.AppHost` loaded for `F5` debugging:
 
 - `solutions/Davids.Orchestration.slnx` (`AppHost`, `Bootstrap`, and `AppHost.Tests`)
 - `solutions/Davids.AdminVertical.slnx` (`AppHost`, `Bootstrap`, `ServiceDefaults`, `APIGateway`, `AdminIdentity`, and `Frontend.Admin`)
-- `solutions/Davids.CustomerVertical.slnx` (`AppHost`, `Bootstrap`, `ServiceDefaults`, `APIGateway`, `Identity`, and `Customers`)
+- `solutions/Davids.CustomerVertical.slnx` (`AppHost`, `Bootstrap`, `ServiceDefaults`, `APIGateway`, `Identity`, `Customers`, and `Frontend.Web`)
 
 Or open any standalone component solution:
 
@@ -137,16 +141,18 @@ Or open any standalone component solution:
 - `../Davids.Services.Customers/Davids.Services.Customers.slnx`
 - `../Davids.APIGateway/Davids.APIGateway.slnx`
 - `../Davids.Frontend.Admin/Davids.Frontend.Admin.slnx`
+- `../Davids.Frontend.Web/Davids.Frontend.Web.slnx`
 
 ## Local ports & endpoints at a glance
 
 | Resource / Service | Aspire Resource Name | Container / Default Port | Key Paths & Health Probes |
 |---|---|---|---|
-| **API Gateway & Admin OIDC BFF** | `api-gateway` | `:17320` | `/login`, `/auth/session`, `/gateway-info`, `/health` |
-| **Admin Web Frontend** | `frontend-admin` | `:17321` *(proxied via `:17320`)* | `/` (`AdminOnly` via Gateway), `/health` |
-| **Admin Identity OIDC Provider** | `admin-identity` | `:17325` | `/.well-known/openid-configuration`, `/.well-known/jwks`, `/health` |
-| **Customers API** | `customers` | `:5002` | `/customers`, `/health` |
-| **Customer Identity OIDC Provider** | `identity` | `:5004` | `/.well-known/openid-configuration`, `/.well-known/jwks`, `/sign-up`, `/health` |
+| **API Gateway & Dual OIDC BFFs** | `api-gateway` | `:17320` | `/login`, `/auth/session`, `/portal`, `/customer-auth/session`, `/gateway-info`, `/health` |
+| **Admin Web Frontend** | `frontend-admin` | `:17321` *(proxied via `:17320`)* | `/` (workforce RBAC `admin`/`support`/`auditor` via Gateway), `/health` |
+| **Customer Web Portal** | `frontend-web` | `:17322` *(proxied via `:17320/portal`)* | `/portal`, `/portal/login` (`CustomerBffCookie` via Gateway), `/health` |
+| **Admin Identity OIDC Provider** | `admin-identity` | `:17325` | `/.well-known/openid-configuration`, `/.well-known/jwks`, `/change-audits`, `/health` |
+| **Customers API** | `customers` | `:5002` | `/customers`, `/customers/me`, `/customers/change-audits`, `/health` |
+| **Customer Identity OIDC Provider** | `identity` | `:5004` | `/.well-known/openid-configuration`, `/.well-known/jwks`, `/sign-up`, `/me/change-audits`, `/health` |
 | **SQL Server** (`identitydb`, `adminidentitydb`, `customersdb`) | `sql` | `:1433` | TCP (`Encrypt=True`, 3 isolated databases) |
 | **Redis** (revoked JTI cache) | `cache` | `:6379` | TCP |
 | **RabbitMQ** (broker + Management UI) | `messaging` | `:5672` / `:15672` | AMQP + Management UI |
@@ -424,14 +430,15 @@ Every repository includes SHA-pinned GitHub Actions security workflows (`.github
 
 ## Validation and limitations
 
-The six standalone service/shared solutions (`Davids.Shared.slnx`, `Davids.Services.Identity.slnx`, `Davids.Services.AdminIdentity.slnx`, `Davids.Services.Customers.slnx`, `Davids.APIGateway.slnx`, `Davids.Frontend.Admin.slnx`) and `Davids.Bootstrap` were restored in locked mode (`--locked-mode`), `Davids.slnx` was restored with NuGet-supplied host-OS DCP and Aspire Dashboard binaries (`AspireUseCliBundle=false`, so Visual Studio `F5` and `dotnet run` launch without requiring a standalone Aspire CLI installation), all 7 repositories passed `Gitleaks` (`0` leaks), custom `Semgrep` SAST (`0` findings), `istioctl 1.31.3 analyze` (`0` issues), `Checkov` (`0` failed checks across `550` Kubernetes, `240` Dockerfile, and `1,016` GitHub Actions assertions), `Grype` (`0` vulnerabilities), `Trivy` (`0` `HIGH`/`CRITICAL` vulnerabilities or misconfigurations), NuGet transitive vulnerability auditing (`0` advisories), live `Schemathesis v4.32.6` OpenAPI 3.1 fuzzing & stateful testing (`3,386 / 3,386` generated test cases passed across `7 / 7` suites, `0` failures), live `Nuclei v3.11.1` security regression testing (`5 / 5` posture assertions matched across `4` templates, `0` vulnerability findings across `6` templates), live `Microsoft RESTler` stateful API fuzzing (`0` bug buckets across `2,015` stateful requests), live Cross-Role Authorization & Cryptographic Boundary verification (`42 / 42` checks passed), and live Kyverno (`18 / 18` policy tests passed), Istio `STRICT` mTLS, Falco/Tetragon eBPF, and `promtool` (`7` alert rules unit-tested) verification, and all solutions were built in `Release` with `-warnaserror` (0 warnings, 0 errors) and tested (**123 tests passed**):
+The seven standalone service/frontend/shared solutions (`Davids.Shared.slnx`, `Davids.Services.Identity.slnx`, `Davids.Services.AdminIdentity.slnx`, `Davids.Services.Customers.slnx`, `Davids.APIGateway.slnx`, `Davids.Frontend.Admin.slnx`, `Davids.Frontend.Web.slnx`) and `Davids.Bootstrap` were restored in locked mode (`--locked-mode`), `Davids.slnx` was restored with NuGet-supplied host-OS DCP and Aspire Dashboard binaries (`AspireUseCliBundle=false`, so Visual Studio `F5` and `dotnet run` launch without requiring a standalone Aspire CLI installation), all 8 repositories passed `Gitleaks` (`0` leaks), custom `Semgrep` SAST (`0` findings), `istioctl 1.31.3 analyze` (`0` issues), `Checkov` (`0` failed checks), `Grype` (`0` vulnerabilities), `Trivy` (`0` `HIGH`/`CRITICAL` vulnerabilities or misconfigurations), NuGet transitive vulnerability auditing (`0` advisories), OpenAPI `3.1.1` & `3.0.3` gateway contract verification (`12` Identity, `9` AdminIdentity, and `7` Customers gateway paths), Cross-Role Authorization Matrix (`45` BOLA/IDOR/BFLA/Workforce-RBAC cases + `11` cryptographic JWT/OIDC attacks), and Kyverno, Istio `STRICT` mTLS, Falco/Tetragon eBPF, and `promtool` (`8` alert rules) verification, and all solutions were built in `Release` with `-warnaserror` (0 warnings, 0 errors) and tested (**139 tests passed**):
 
-- `Davids.Shared.slnx`: 8 tests (`Davids.ServiceDefaults.Tests`)
-- `Davids.Services.Identity.slnx`: 27 tests (`Davids.Services.Identity.Tests`)
-- `Davids.Services.AdminIdentity.slnx`: 17 tests (`Davids.Services.AdminIdentity.Tests`)
-- `Davids.Services.Customers.slnx`: 14 tests (`Davids.Services.Customers.Tests`)
-- `Davids.APIGateway.slnx`: 36 tests (`Davids.APIGateway.Tests`)
-- `Davids.Frontend.Admin.slnx`: 9 tests (`Davids.Frontend.Admin.Tests`)
+- `Davids.Shared.slnx`: 9 tests (`Davids.ServiceDefaults.Tests`)
+- `Davids.Services.Identity.slnx`: 28 tests (`Davids.Services.Identity.Tests`)
+- `Davids.Services.AdminIdentity.slnx`: 18 tests (`Davids.Services.AdminIdentity.Tests`)
+- `Davids.Services.Customers.slnx`: 15 tests (`Davids.Services.Customers.Tests`)
+- `Davids.APIGateway.slnx`: 38 tests (`Davids.APIGateway.Tests`)
+- `Davids.Frontend.Admin.slnx`: 10 tests (`Davids.Frontend.Admin.Tests`)
+- `Davids.Frontend.Web.slnx`: 9 tests (`Davids.Frontend.Web.Tests`)
 - `Davids.slnx` (AppHost DCP/Dashboard metadata, resource graph, architecture/nullability/package hygiene, OIDC wiring & Local Dev / PR CI / Staging Nightly / Quarterly Release / Production Cluster security gate verification): 12 tests (`Davids.AppHost.Tests`)
 
 No Docker runtime is available inside the sandbox environment, so container-based runners (`Dastardly`, containerized `OWASP ZAP`, and Dockerized `RESTler`) execute on a Docker-enabled workstation or GitHub Actions runner.

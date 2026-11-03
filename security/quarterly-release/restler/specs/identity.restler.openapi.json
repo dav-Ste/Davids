@@ -245,6 +245,58 @@
         ]
       }
     },
+    "/identity/me/change-audits": {
+      "get": {
+        "tags": [
+          "Davids.Services.Identity.Api"
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "maximum": 200,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomerChangeAuditDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked Bearer access token."
+          },
+          "403": {
+            "description": "Authenticated caller is not authorized for this resource."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
     "/identity/users/{userId}": {
       "get": {
         "tags": [
@@ -295,6 +347,73 @@
         ]
       }
     },
+    "/identity/change-audits": {
+      "get": {
+        "tags": [
+          "Davids.Services.Identity.Api"
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "maximum": 200,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "targetUserId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "actorSub",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomerChangeAuditDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked Bearer access token."
+          },
+          "403": {
+            "description": "Authenticated caller is not authorized for this resource."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
     "/identity/sign-up": {
       "post": {
         "tags": [
@@ -325,10 +444,331 @@
           }
         }
       }
+    },
+    "/identity/me/password": {
+      "put": {
+        "tags": [
+          "Davids.Services.Identity.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeCustomerPassword"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked Bearer access token."
+          },
+          "403": {
+            "description": "Authenticated caller is not authorized for this resource."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/identity/me/email": {
+      "put": {
+        "tags": [
+          "Davids.Services.Identity.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeCustomerEmail"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked Bearer access token."
+          },
+          "403": {
+            "description": "Authenticated caller is not authorized for this resource."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/identity/users/{userId}/unlock": {
+      "post": {
+        "tags": [
+          "Davids.Services.Identity.Api"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked Bearer access token."
+          },
+          "403": {
+            "description": "Authenticated caller is not authorized for this resource."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/identity/users/{userId}/email": {
+      "put": {
+        "tags": [
+          "Davids.Services.Identity.Api"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmployeeUpdateCustomerEmail"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked Bearer access token."
+          },
+          "403": {
+            "description": "Authenticated caller is not authorized for this resource."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
     }
   },
   "components": {
     "schemas": {
+      "ChangeCustomerEmail": {
+        "required": [
+          "currentPassword",
+          "newEmail"
+        ],
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string"
+          },
+          "newEmail": {
+            "type": "string"
+          }
+        }
+      },
+      "ChangeCustomerPassword": {
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string"
+          },
+          "newPassword": {
+            "type": "string"
+          }
+        }
+      },
+      "CustomerChangeAuditDto": {
+        "required": [
+          "id",
+          "service",
+          "action",
+          "targetType",
+          "targetId",
+          "targetLabel",
+          "actorSub",
+          "actorEmail",
+          "actorRole",
+          "actorAuthority",
+          "changes",
+          "correlationId",
+          "occurredAtUtc"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "service": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "targetType": {
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string"
+          },
+          "targetLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorSub": {
+            "type": "string"
+          },
+          "actorEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorRole": {
+            "type": "string"
+          },
+          "actorAuthority": {
+            "type": "string"
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerFieldChangeDto"
+            }
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "occurredAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CustomerFieldChangeDto": {
+        "required": [
+          "field",
+          "oldValue",
+          "newValue"
+        ],
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "oldValue": {
+            "type": "string",
+            "nullable": true
+          },
+          "newValue": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "EmployeeUpdateCustomerEmail": {
+        "required": [
+          "newEmail"
+        ],
+        "type": "object",
+        "properties": {
+          "newEmail": {
+            "type": "string"
+          }
+        }
+      },
       "LoginAuditDto": {
         "required": [
           "id",
@@ -452,6 +892,14 @@
             "items": {
               "type": "string"
             }
+          },
+          "lockoutEndUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "isLockedOut": {
+            "type": "boolean"
           }
         }
       }

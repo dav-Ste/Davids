@@ -15,6 +15,7 @@ $expectedWorkflows = [ordered]@{
     'Davids.Services.Customers'     = @('codeql.yml', 'pull-request-ci.yml')
     'Davids.APIGateway'             = @('codeql.yml', 'pull-request-ci.yml')
     'Davids.Frontend.Admin'         = @('codeql.yml', 'pull-request-ci.yml')
+    'Davids.Frontend.Web'           = @('codeql.yml', 'pull-request-ci.yml')
 }
 
 $allowedDavidsRootScripts = [System.Collections.Generic.HashSet[string]]::new(

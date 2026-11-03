@@ -68,8 +68,19 @@ spec:
             component: api-gateway-bff
             lifecycle: production-cluster
           annotations:
-            summary: "Elevated Administrator BFF CSRF rejections at Davids.APIGateway"
+            summary: "Elevated BFF CSRF rejections at Davids.APIGateway"
             description: "Davids.APIGateway blocked {{ $value | printf \"%.0f\" }} cookie-authenticated state-changing requests missing valid X-Requested-With / Origin headers in 5m."
+
+        - alert: DavidsWorkforcePrivilegeChangeBurst
+          expr: sum(increase(davids_security_change_audit_total{service="admin-identity",action=~"admin_user_created|admin_user_updated"}[5m])) >= 5
+          for: 0m
+          labels:
+            severity: warning
+            component: admin-identity
+            lifecycle: production-cluster
+          annotations:
+            summary: "Burst of workforce RBAC account creations or role mutations in Davids.Services.AdminIdentity"
+            description: "AdminIdentity recorded {{ $value | printf \"%.0f\" }} workforce user/role change-audit events in 5m. Review AdminChangeAuditLogs."
 
     - name: davids.security.cluster.runtime
       interval: 30s

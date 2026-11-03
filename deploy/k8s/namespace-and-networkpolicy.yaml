@@ -55,6 +55,7 @@ spec:
           - admin-identity
           - customers
           - frontend-admin
+          - frontend-web
   policyTypes:
     - Ingress
   ingress:

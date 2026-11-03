@@ -14,7 +14,8 @@ $repos = @(
     'Davids.Services.AdminIdentity',
     'Davids.Services.Customers',
     'Davids.APIGateway',
-    'Davids.Frontend.Admin'
+    'Davids.Frontend.Admin',
+    'Davids.Frontend.Web'
 )
 
 # Pinned Grype v0.121.0 and Trivy v0.76.1 release artifacts and official SHA-256 digests.

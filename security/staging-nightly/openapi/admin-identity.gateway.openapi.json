@@ -198,6 +198,45 @@
         ]
       }
     },
+    "/admin-identity/me/password": {
+      "put": {
+        "tags": [
+          "Davids.Services.AdminIdentity.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeAdminPassword"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked administrator Bearer token."
+          },
+          "403": {
+            "description": "Caller does not hold the admin role."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
     "/admin-identity/users": {
       "get": {
         "tags": [
@@ -346,10 +385,286 @@
           }
         ]
       }
+    },
+    "/admin-identity/change-audits": {
+      "get": {
+        "tags": [
+          "Davids.Services.AdminIdentity.Api"
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "maximum": 500,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "targetUserId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "actorUserId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminChangeAuditDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked administrator Bearer token."
+          },
+          "403": {
+            "description": "Caller does not hold the admin role."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/admin-identity/users/{userId}": {
+      "put": {
+        "tags": [
+          "Davids.Services.AdminIdentity.Api"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminUser"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked administrator Bearer token."
+          },
+          "403": {
+            "description": "Caller does not hold the admin role."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/admin-identity/users/{userId}/unlock": {
+      "post": {
+        "tags": [
+          "Davids.Services.AdminIdentity.Api"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked administrator Bearer token."
+          },
+          "403": {
+            "description": "Caller does not hold the admin role."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
     }
   },
   "components": {
     "schemas": {
+      "AdminChangeAuditDto": {
+        "required": [
+          "id",
+          "service",
+          "action",
+          "targetType",
+          "targetId",
+          "targetLabel",
+          "actorSub",
+          "actorEmail",
+          "actorRole",
+          "actorAuthority",
+          "changes",
+          "correlationId",
+          "occurredAtUtc"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "service": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "targetType": {
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string"
+          },
+          "targetLabel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actorSub": {
+            "type": "string"
+          },
+          "actorEmail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actorRole": {
+            "type": "string"
+          },
+          "actorAuthority": {
+            "type": "string"
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminFieldChangeDto"
+            }
+          },
+          "correlationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "occurredAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AdminFieldChangeDto": {
+        "required": [
+          "field",
+          "oldValue",
+          "newValue"
+        ],
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "oldValue": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "newValue": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "AdminLoginAuditDto": {
         "required": [
           "id",
@@ -452,6 +767,31 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "lockoutEndUtc": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "isLockedOut": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ChangeAdminPassword": {
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string"
+          },
+          "newPassword": {
+            "type": "string"
           }
         }
       },
@@ -481,6 +821,35 @@
           "fullName": {
             "maxLength": 100,
             "pattern": "^[^\\u0000]*$",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "UpdateAdminUser": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isActive": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "fullName": {
             "type": [
               "null",
               "string"

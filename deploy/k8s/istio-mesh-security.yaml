@@ -101,6 +101,8 @@ spec:
         - key: request.auth.claims[role]
           notValues:
             - "admin"
+            - "support"
+            - "auditor"
 ---
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
@@ -121,6 +123,9 @@ spec:
         - key: request.auth.claims[role]
           notValues:
             - "user"
+            - "admin"
+            - "support"
+            - "auditor"
 ---
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
@@ -164,7 +169,7 @@ spec:
       to:
         - operation:
             methods: ["POST"]
-            paths: ["/sign-up", "/connect/token", "/connect/revocation"]
+            paths: ["/sign-up", "/connect/token", "/connect/revocation", "/users/*/unlock"]
         - operation:
             methods: ["GET", "POST"]
             paths: ["/connect/authorize", "/connect/userinfo", "/connect/logout"]
@@ -173,7 +178,10 @@ spec:
             paths: ["/.well-known/*"]
         - operation:
             methods: ["GET"]
-            paths: ["/me", "/me/login-audits", "/users/*"]
+            paths: ["/me", "/me/login-audits", "/me/change-audits", "/change-audits", "/users/*"]
+        - operation:
+            methods: ["PUT"]
+            paths: ["/me/password", "/me/email", "/users/*/email"]
 ---
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
@@ -193,7 +201,7 @@ spec:
       to:
         - operation:
             methods: ["POST"]
-            paths: ["/connect/token", "/connect/revocation"]
+            paths: ["/connect/token", "/connect/revocation", "/users/*/unlock"]
         - operation:
             methods: ["GET", "POST"]
             paths: ["/connect/authorize", "/connect/userinfo", "/connect/logout", "/users"]
@@ -202,10 +210,10 @@ spec:
             paths: ["/.well-known/*"]
         - operation:
             methods: ["GET"]
-            paths: ["/me", "/login-audits", "/users/*"]
+            paths: ["/me", "/login-audits", "/change-audits", "/users/*"]
         - operation:
             methods: ["PUT"]
-            paths: ["/users/*"]
+            paths: ["/me/password", "/users/*"]
 ---
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
@@ -241,6 +249,26 @@ spec:
   selector:
     matchLabels:
       app: frontend-admin
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/davids/sa/davids-api-gateway"
+      to:
+        - operation:
+            methods: ["GET", "HEAD"]
+            paths: ["/*"]
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-gateway-to-frontend-web
+  namespace: davids
+spec:
+  selector:
+    matchLabels:
+      app: frontend-web
   action: ALLOW
   rules:
     - from:

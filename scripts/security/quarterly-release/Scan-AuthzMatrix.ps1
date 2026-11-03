@@ -7,6 +7,8 @@ param(
     [string]$CustomerBBearerToken = $env:DAVIDS_RELEASE_SHADOW_CUSTOMER_TOKEN,
     [string]$CustomerBId = $env:DAVIDS_RELEASE_SHADOW_CUSTOMER_ID,
     [string]$AdminBearerToken = $env:DAVIDS_RELEASE_ADMIN_TOKEN,
+    [string]$SupportBearerToken = $env:DAVIDS_RELEASE_SUPPORT_TOKEN,
+    [string]$AuditorBearerToken = $env:DAVIDS_RELEASE_AUDITOR_TOKEN,
     [string]$AdminEmail = $env:DAVIDS_RELEASE_ADMIN_EMAIL,
     [string]$AdminPassword = $env:DAVIDS_RELEASE_ADMIN_PASSWORD,
     [string]$AdminBffClientId = 'davids-admin-bff',
@@ -44,7 +46,7 @@ foreach ($case in $matrix.cases) {
     if (-not $seenIds.Add([string]$case.id)) {
         throw "Duplicate case id '$($case.id)' in $MatrixPath."
     }
-    if ($case.actor -notin @('unauthenticated', 'customerA', 'customerB', 'admin')) {
+    if ($case.actor -notin @('unauthenticated', 'customerA', 'customerB', 'admin', 'support', 'auditor')) {
         throw "Unsupported actor '$($case.actor)' in case '$($case.id)'."
     }
 }
@@ -225,11 +227,48 @@ foreach ($pair in @(
     }
 }
 
+# Complete Customer A registration so /customers/me self-service profile updates succeed with HTTP 200/204
+$null = Invoke-WebRequest -Uri "$baseGateway/customers" -Method Post -ContentType 'application/json' -Headers @{ Authorization = "Bearer $CustomerABearerToken" } -Body (@{
+    customerId = $CustomerAId
+    fullName   = 'Release Customer A'
+    address    = '10 Release Terrace'
+} | ConvertTo-Json) -SkipHttpErrorCheck
+
 if ([string]::IsNullOrWhiteSpace($AdminBearerToken)) {
     if ([string]::IsNullOrWhiteSpace($AdminEmail) -or [string]::IsNullOrWhiteSpace($AdminPassword) -or [string]::IsNullOrWhiteSpace($AdminBffClientSecret)) {
         throw 'Provide -AdminBearerToken (or DAVIDS_RELEASE_ADMIN_TOKEN), or supply -AdminEmail, -AdminPassword, and -AdminBffClientSecret.'
     }
     $AdminBearerToken = Invoke-PkceTokenExchange -RoutePrefix 'admin-identity' -ClientId $AdminBffClientId -ClientSecret $AdminBffClientSecret -RedirectUri $AdminRedirectUri -Scope 'openid email profile roles offline_access davids-admin' -Email $AdminEmail -Password $AdminPassword
+}
+
+if ([string]::IsNullOrWhiteSpace($SupportBearerToken)) {
+    if ([string]::IsNullOrWhiteSpace($AdminBffClientSecret)) {
+        throw 'Provide -SupportBearerToken (or DAVIDS_RELEASE_SUPPORT_TOKEN) or -AdminBffClientSecret so a disposable support employee token can be minted.'
+    }
+    $supportEmail = "release.support.$([Guid]::NewGuid().ToString('N').Substring(0, 8))@davids.example"
+    $supportPass = "ReleaseSupport!" + [Guid]::NewGuid().ToString('N').Substring(0, 10) + "#Zz9"
+    Invoke-RestMethod -Uri "$baseGateway/admin-identity/users" -Method Post -ContentType 'application/json' -Headers @{ Authorization = "Bearer $($AdminBearerToken.Trim())" } -Body (@{
+        email    = $supportEmail
+        password = $supportPass
+        fullName = 'Release Support Agent'
+        role     = 'support'
+    } | ConvertTo-Json) | Out-Null
+    $SupportBearerToken = Invoke-PkceTokenExchange -RoutePrefix 'admin-identity' -ClientId $AdminBffClientId -ClientSecret $AdminBffClientSecret -RedirectUri $AdminRedirectUri -Scope 'openid email profile roles offline_access davids-admin' -Email $supportEmail -Password $supportPass
+}
+
+if ([string]::IsNullOrWhiteSpace($AuditorBearerToken)) {
+    if ([string]::IsNullOrWhiteSpace($AdminBffClientSecret)) {
+        throw 'Provide -AuditorBearerToken (or DAVIDS_RELEASE_AUDITOR_TOKEN) or -AdminBffClientSecret so a disposable auditor employee token can be minted.'
+    }
+    $auditorEmail = "release.auditor.$([Guid]::NewGuid().ToString('N').Substring(0, 8))@davids.example"
+    $auditorPass = "ReleaseAuditor!" + [Guid]::NewGuid().ToString('N').Substring(0, 10) + "#Zz9"
+    Invoke-RestMethod -Uri "$baseGateway/admin-identity/users" -Method Post -ContentType 'application/json' -Headers @{ Authorization = "Bearer $($AdminBearerToken.Trim())" } -Body (@{
+        email    = $auditorEmail
+        password = $auditorPass
+        fullName = 'Release Security Auditor'
+        role     = 'auditor'
+    } | ConvertTo-Json) | Out-Null
+    $AuditorBearerToken = Invoke-PkceTokenExchange -RoutePrefix 'admin-identity' -ClientId $AdminBffClientId -ClientSecret $AdminBffClientSecret -RedirectUri $AdminRedirectUri -Scope 'openid email profile roles offline_access davids-admin' -Email $auditorEmail -Password $auditorPass
 }
 
 # Create disposable customer account for PKCE downgrade, code-replay, and RFC 7009 token revocation probes
@@ -287,6 +326,8 @@ foreach ($case in $matrix.cases) {
         'customerA' { $headers['Authorization'] = "Bearer $($CustomerABearerToken.Trim())" }
         'customerB' { $headers['Authorization'] = "Bearer $($CustomerBBearerToken.Trim())" }
         'admin'     { $headers['Authorization'] = "Bearer $($AdminBearerToken.Trim())" }
+        'support'   { $headers['Authorization'] = "Bearer $($SupportBearerToken.Trim())" }
+        'auditor'   { $headers['Authorization'] = "Bearer $($AuditorBearerToken.Trim())" }
     }
 
     $invokeParams = @{

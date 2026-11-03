@@ -22,7 +22,8 @@ $repositories = @(
     @{ Name = 'Davids.Services.AdminIdentity'; Solution = 'Davids.Services.AdminIdentity.slnx' },
     @{ Name = 'Davids.Services.Customers'; Solution = 'Davids.Services.Customers.slnx' },
     @{ Name = 'Davids.APIGateway'; Solution = 'Davids.APIGateway.slnx' },
-    @{ Name = 'Davids.Frontend.Admin'; Solution = 'Davids.Frontend.Admin.slnx' }
+    @{ Name = 'Davids.Frontend.Admin'; Solution = 'Davids.Frontend.Admin.slnx' },
+    @{ Name = 'Davids.Frontend.Web'; Solution = 'Davids.Frontend.Web.slnx' }
 )
 
 foreach ($repository in $repositories) {

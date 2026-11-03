@@ -325,3 +325,68 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261103212324_AddWorkforceRbacAndChangeAudits'
+)
+BEGIN
+    ALTER TABLE [AdminUsers] ADD [Role] nvarchar(32) NOT NULL DEFAULT N'admin';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261103212324_AddWorkforceRbacAndChangeAudits'
+)
+BEGIN
+    CREATE TABLE [AdminChangeAuditLogs] (
+        [Id] uniqueidentifier NOT NULL,
+        [OccurredAtUtc] datetime2 NOT NULL,
+        [TargetAdminUserId] uniqueidentifier NOT NULL,
+        [TargetEmail] nvarchar(320) NOT NULL,
+        [Action] nvarchar(64) NOT NULL,
+        [ActorAdminUserId] uniqueidentifier NOT NULL,
+        [ActorEmail] nvarchar(320) NULL,
+        [ActorRole] nvarchar(32) NOT NULL,
+        [ChangedFieldsJson] nvarchar(max) NOT NULL,
+        [CorrelationId] nvarchar(128) NULL,
+        CONSTRAINT [PK_AdminChangeAuditLogs] PRIMARY KEY ([Id])
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261103212324_AddWorkforceRbacAndChangeAudits'
+)
+BEGIN
+    CREATE INDEX [IX_AdminChangeAuditLogs_ActorAdminUserId_OccurredAtUtc] ON [AdminChangeAuditLogs] ([ActorAdminUserId], [OccurredAtUtc]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261103212324_AddWorkforceRbacAndChangeAudits'
+)
+BEGIN
+    CREATE INDEX [IX_AdminChangeAuditLogs_OccurredAtUtc] ON [AdminChangeAuditLogs] ([OccurredAtUtc]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261103212324_AddWorkforceRbacAndChangeAudits'
+)
+BEGIN
+    CREATE INDEX [IX_AdminChangeAuditLogs_TargetAdminUserId_OccurredAtUtc] ON [AdminChangeAuditLogs] ([TargetAdminUserId], [OccurredAtUtc]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261103212324_AddWorkforceRbacAndChangeAudits'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261103212324_AddWorkforceRbacAndChangeAudits', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

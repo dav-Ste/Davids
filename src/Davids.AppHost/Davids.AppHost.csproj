@@ -14,6 +14,7 @@
     <ProjectReference Include="../../../Davids.Services.Customers/src/Davids.Services.Customers.Api/Davids.Services.Customers.Api.csproj" />
     <ProjectReference Include="../../../Davids.APIGateway/src/Davids.APIGateway.Api/Davids.APIGateway.Api.csproj" />
     <ProjectReference Include="../../../Davids.Frontend.Admin/src/Davids.Frontend.Admin/Davids.Frontend.Admin.csproj" />
+    <ProjectReference Include="../../../Davids.Frontend.Web/src/Davids.Frontend.Web/Davids.Frontend.Web.csproj" />
     <ProjectReference Include="../Davids.Bootstrap/Davids.Bootstrap.csproj" />
   </ItemGroup>
   <ItemGroup>

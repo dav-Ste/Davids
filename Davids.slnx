@@ -144,5 +144,7 @@
   <Folder Name="/Frontend/">
     <Project Path="../Davids.Frontend.Admin/src/Davids.Frontend.Admin/Davids.Frontend.Admin.csproj" />
     <Project Path="../Davids.Frontend.Admin/tests/Davids.Frontend.Admin.Tests/Davids.Frontend.Admin.Tests.csproj" />
+    <Project Path="../Davids.Frontend.Web/src/Davids.Frontend.Web/Davids.Frontend.Web.csproj" />
+    <Project Path="../Davids.Frontend.Web/tests/Davids.Frontend.Web.Tests/Davids.Frontend.Web.Tests.csproj" />
   </Folder>
 </Solution>
