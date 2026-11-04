@@ -267,7 +267,8 @@ if (-not [string]::IsNullOrWhiteSpace($CustomerBearerToken)) {
         -Label 'Identity OpenAPI (Authenticated Customer RS256 + Stateful)' `
         -SpecRelativePath 'security/staging-nightly/openapi/identity.gateway.openapi.json' `
         -ReportFileName 'schemathesis-auth-identity.junit.xml' `
-        -BearerToken $CustomerBearerToken
+        -BearerToken $CustomerBearerToken `
+        -ExtraArgs @('--include-path-regex', '^/identity/')
 
     Invoke-SchemathesisSuite `
         -Label 'Customers POST /customers (Authenticated Customer RS256 + Stateful)' `
@@ -275,12 +276,26 @@ if (-not [string]::IsNullOrWhiteSpace($CustomerBearerToken)) {
         -ReportFileName 'schemathesis-auth-customers-user.junit.xml' `
         -BearerToken $CustomerBearerToken `
         -ExtraArgs @('--include-method', 'POST')
+
+    Invoke-SchemathesisSuite `
+        -Label 'Customers Self-Service /customers/me (Authenticated Customer RS256 + Stateful)' `
+        -SpecRelativePath 'security/staging-nightly/openapi/customers.gateway.openapi.json' `
+        -ReportFileName 'schemathesis-auth-customers-me.junit.xml' `
+        -BearerToken $CustomerBearerToken `
+        -ExtraArgs @('--include-path', '/customers/me')
 } else {
     Write-Warning 'Skipping authenticated Customer Schemathesis suites (supply -CustomerBearerToken, DAVIDS_CUSTOMER_BEARER_TOKEN, or -AutoProvisionCustomerToken).'
 }
 
 # 3. Authenticated Admin RS256 Bearer fuzzing + stateful API state-machine testing
 if (-not [string]::IsNullOrWhiteSpace($AdminBearerToken)) {
+    Invoke-SchemathesisSuite `
+        -Label 'Customer-Accounts Workforce Operations (Authenticated Admin RS256)' `
+        -SpecRelativePath 'security/staging-nightly/openapi/identity.gateway.openapi.json' `
+        -ReportFileName 'schemathesis-auth-customer-accounts-admin.junit.xml' `
+        -BearerToken $AdminBearerToken `
+        -ExtraArgs @('--include-path-regex', '^/customer-accounts/')
+
     Invoke-SchemathesisSuite `
         -Label 'AdminIdentity OpenAPI (Authenticated Admin RS256)' `
         -SpecRelativePath 'security/staging-nightly/openapi/admin-identity.gateway.openapi.json' `
@@ -292,7 +307,7 @@ if (-not [string]::IsNullOrWhiteSpace($AdminBearerToken)) {
         -SpecRelativePath 'security/staging-nightly/openapi/customers.gateway.openapi.json' `
         -ReportFileName 'schemathesis-auth-customers-admin.junit.xml' `
         -BearerToken $AdminBearerToken `
-        -ExtraArgs @('--exclude-method', 'POST')
+        -ExtraArgs @('--exclude-method', 'POST', '--exclude-path', '/customers/me')
 } else {
     Write-Warning 'Skipping authenticated Admin Schemathesis suites (supply -AdminBearerToken or DAVIDS_ADMIN_BEARER_TOKEN).'
 }

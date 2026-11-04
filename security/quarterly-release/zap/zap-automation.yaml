@@ -11,6 +11,8 @@ env:
         - "${ZAP_TARGET_URL}.*"
       excludePaths:
         - "${ZAP_TARGET_URL}/logout.*"
+        - "${ZAP_TARGET_URL}/auth/logout.*"
+        - "${ZAP_TARGET_URL}/customer-auth/logout.*"
         - "${ZAP_TARGET_URL}/identity/connect/logout.*"
         - "${ZAP_TARGET_URL}/identity/connect/revocation.*"
         - "${ZAP_TARGET_URL}/admin-identity/connect/logout.*"
@@ -69,14 +71,26 @@ jobs:
         matchString: "Authorization"
         matchRegex: false
         replacementString: "${ZAP_CUSTOMER_BEARER_HEADER}"
-      - description: "Inject Admin RS256 Bearer token for Admin Identity management routes"
-        url: "^${ZAP_TARGET_URL}/admin-identity/(me|users|audit)(/.*|\\?.*)?$"
+      - description: "Inject Admin RS256 Bearer token for Workforce Customer-Accounts routes"
+        url: "^${ZAP_TARGET_URL}/customer-accounts(/.*|\\?.*)?$"
         matchType: "req_header"
         matchString: "Authorization"
         matchRegex: false
         replacementString: "${ZAP_ADMIN_BEARER_HEADER}"
+      - description: "Inject Admin RS256 Bearer token for Admin Identity management routes"
+        url: "^${ZAP_TARGET_URL}/admin-identity/(me|users|login-audits|change-audits|audit)(/.*|\\?.*)?$"
+        matchType: "req_header"
+        matchString: "Authorization"
+        matchRegex: false
+        replacementString: "${ZAP_ADMIN_BEARER_HEADER}"
+      - description: "Inject Customer RS256 Bearer token for Customer Self-Service Profile routes"
+        url: "^${ZAP_TARGET_URL}/customers/me(/.*|\\?.*)?$"
+        matchType: "req_header"
+        matchString: "Authorization"
+        matchRegex: false
+        replacementString: "${ZAP_CUSTOMER_BEARER_HEADER}"
       - description: "Inject Admin RS256 Bearer token for Customers management routes"
-        url: "^${ZAP_TARGET_URL}/customers(/.*|\\?.*)?$"
+        url: "^${ZAP_TARGET_URL}/customers(/(?!me(?:/|$|\\?)).*|\\?.*)?$"
         matchType: "req_header"
         matchString: "Authorization"
         matchRegex: false
@@ -88,6 +102,9 @@ jobs:
     requests:
       - url: "${ZAP_TARGET_URL}/login"
         name: "Admin-BFF-Login-Entry"
+        method: "GET"
+      - url: "${ZAP_TARGET_URL}/portal/login"
+        name: "Customer-BFF-Login-Entry"
         method: "GET"
       - url: "${ZAP_TARGET_URL}/identity/.well-known/openid-configuration"
         name: "Customer-OIDC-Discovery"
@@ -124,6 +141,14 @@ jobs:
     parameters:
       context: "Davids-Gateway"
       url: "${ZAP_TARGET_URL}/login"
+      maxDuration: 3
+      parseComments: true
+      parseRobotsTxt: false
+
+  - type: spider
+    parameters:
+      context: "Davids-Gateway"
+      url: "${ZAP_TARGET_URL}/portal/login"
       maxDuration: 3
       parseComments: true
       parseRobotsTxt: false

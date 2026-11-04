@@ -31,6 +31,54 @@
       "consumer_endpoint": "/customers/{customerId}/state/{state}",
       "consumer_method": "PUT",
       "consumer_param": "customerId"
+    },
+    {
+      "producer_endpoint": "/customers",
+      "producer_method": "GET",
+      "producer_resource_name": "[0]/id",
+      "consumer_endpoint": "/customers/{customerId}/change-audits",
+      "consumer_method": "GET",
+      "consumer_param": "customerId"
+    },
+    {
+      "producer_endpoint": "/customers",
+      "producer_method": "GET",
+      "producer_resource_name": "[0]/id",
+      "consumer_endpoint": "/customer-accounts/users/{userId}",
+      "consumer_method": "GET",
+      "consumer_param": "userId"
+    },
+    {
+      "producer_endpoint": "/customers",
+      "producer_method": "GET",
+      "producer_resource_name": "[0]/id",
+      "consumer_endpoint": "/customer-accounts/users/{userId}/unlock",
+      "consumer_method": "POST",
+      "consumer_param": "userId"
+    },
+    {
+      "producer_endpoint": "/customers",
+      "producer_method": "GET",
+      "producer_resource_name": "[0]/id",
+      "consumer_endpoint": "/customer-accounts/users/{userId}/email",
+      "consumer_method": "PUT",
+      "consumer_param": "userId"
+    },
+    {
+      "producer_endpoint": "/admin-identity/users",
+      "producer_method": "GET",
+      "producer_resource_name": "[0]/id",
+      "consumer_endpoint": "/admin-identity/users/{userId}",
+      "consumer_method": "PUT",
+      "consumer_param": "userId"
+    },
+    {
+      "producer_endpoint": "/admin-identity/users",
+      "producer_method": "GET",
+      "producer_resource_name": "[0]/id",
+      "consumer_endpoint": "/admin-identity/users/{userId}/unlock",
+      "consumer_method": "POST",
+      "consumer_param": "userId"
     }
   ]
 }

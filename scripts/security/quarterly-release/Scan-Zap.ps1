@@ -265,7 +265,7 @@ function ConvertTo-GitHubCodeScanningSarif {
                     if ($rawUri -match '^https?://') {
                         $anchorPath = if ($rawUri -match '/admin-identity(/|$|\?)') {
                             'Davids/security/quarterly-release/restler/specs/admin-identity.restler.openapi.json'
-                        } elseif ($rawUri -match '/identity(/|$|\?)') {
+                        } elseif ($rawUri -match '/(identity|customer-accounts)(/|$|\?)') {
                             'Davids/security/quarterly-release/restler/specs/identity.restler.openapi.json'
                         } elseif ($rawUri -match '/customers(/|$|\?)') {
                             'Davids/security/quarterly-release/restler/specs/customers.restler.openapi.json'

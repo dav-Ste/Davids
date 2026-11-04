@@ -217,10 +217,68 @@ foreach ($domain in @(
     $domainDir = Join-Path $workRoot $domain.Subdir
     New-Item -ItemType Directory -Path (Join-Path $domainDir 'specs') -Force | Out-Null
     foreach ($specName in @('identity.restler.openapi.json', 'admin-identity.restler.openapi.json', 'customers.restler.openapi.json')) {
-        Copy-Item -LiteralPath (Join-Path $restlerConfigDir "specs/$specName") -Destination (Join-Path $domainDir "specs/$specName") -Force
+        $specObj = Get-Content -LiteralPath (Join-Path $restlerConfigDir "specs/$specName") -Raw | ConvertFrom-Json -AsHashtable
+        if ($specName -eq 'identity.restler.openapi.json') {
+            $filteredPaths = [ordered]@{}
+            foreach ($pEntry in $specObj['paths'].GetEnumerator()) {
+                $pk = [string]$pEntry.Key
+                if ($domain.Subdir -eq 'CustomerDomain' -and ($pk -eq '/identity' -or $pk.StartsWith('/identity/'))) {
+                    $filteredPaths[$pk] = $pEntry.Value
+                } elseif ($domain.Subdir -eq 'AdminDomain' -and ($pk -eq '/customer-accounts' -or $pk.StartsWith('/customer-accounts/'))) {
+                    $filteredPaths[$pk] = $pEntry.Value
+                }
+            }
+            $specObj['paths'] = $filteredPaths
+        } elseif ($specName -eq 'customers.restler.openapi.json') {
+            $filteredPaths = [ordered]@{}
+            foreach ($pEntry in $specObj['paths'].GetEnumerator()) {
+                $pk = [string]$pEntry.Key
+                if ($domain.Subdir -eq 'CustomerDomain') {
+                    if ($pk -in @('/customers/change-audits', '/customers/{customerId}/state/{state}')) {
+                        continue
+                    }
+                    if ($pk -eq '/customers') {
+                        $custOnlyOps = [ordered]@{}
+                        if ($pEntry.Value.ContainsKey('post')) {
+                            $custOnlyOps['post'] = $pEntry.Value['post']
+                        }
+                        $filteredPaths[$pk] = $custOnlyOps
+                        continue
+                    }
+                    if ($pk -eq '/customers/{customerId}') {
+                        $custOnlyOps = [ordered]@{}
+                        if ($pEntry.Value.ContainsKey('get')) {
+                            $custOnlyOps['get'] = $pEntry.Value['get']
+                        }
+                        $filteredPaths[$pk] = $custOnlyOps
+                        continue
+                    }
+                    $filteredPaths[$pk] = $pEntry.Value
+                } else {
+                    if ($pk -eq '/customers/me') {
+                        continue
+                    }
+                    if ($pk -eq '/customers') {
+                        $adminOnlyOps = [ordered]@{}
+                        if ($pEntry.Value.ContainsKey('get')) {
+                            $adminOnlyOps['get'] = $pEntry.Value['get']
+                        }
+                        $filteredPaths[$pk] = $adminOnlyOps
+                        continue
+                    }
+                    $filteredPaths[$pk] = $pEntry.Value
+                }
+            }
+            $specObj['paths'] = $filteredPaths
+        }
+        [System.IO.File]::WriteAllText((Join-Path $domainDir "specs/$specName"), (($specObj | ConvertTo-Json -Depth 100) + "`n"), $utf8NoBom)
     }
     Copy-Item -LiteralPath (Join-Path $restlerConfigDir $domain.Annotations) -Destination (Join-Path $domainDir $domain.Annotations) -Force
-    [System.IO.File]::WriteAllText((Join-Path $domainDir 'dict.runtime.json'), $dictHydrated, $utf8NoBom)
+    $domainDict = $dictHydrated | ConvertFrom-Json -AsHashtable
+    if ($domain.Subdir -eq 'AdminDomain') {
+        $domainDict['restler_custom_payload']['role'] = @('support', 'auditor')
+    }
+    [System.IO.File]::WriteAllText((Join-Path $domainDir 'dict.runtime.json'), (($domainDict | ConvertTo-Json -Depth 32) + "`n"), $utf8NoBom)
     $cfgRaw = Get-Content -LiteralPath (Join-Path $restlerConfigDir $domain.CompileCfg) -Raw
     $cfgHydrated = $cfgRaw.Replace('dict.template.json', 'dict.runtime.json')
     [System.IO.File]::WriteAllText((Join-Path $domainDir $domain.CompileCfg), $cfgHydrated, $utf8NoBom)

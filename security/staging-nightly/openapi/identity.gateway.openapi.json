@@ -173,6 +173,9 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request"
+          },
           "404": {
             "description": "Not Found"
           },
@@ -347,7 +350,57 @@
         ]
       }
     },
-    "/identity/change-audits": {
+    "/customer-accounts/users/{userId}": {
+      "get": {
+        "tags": [
+          "Davids.Services.Identity.Api"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked Bearer access token."
+          },
+          "403": {
+            "description": "Authenticated caller is not authorized for this resource."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/customer-accounts/change-audits": {
       "get": {
         "tags": [
           "Davids.Services.Identity.Api"
@@ -357,7 +410,7 @@
             "name": "limit",
             "in": "query",
             "schema": {
-              "maximum": 200,
+              "maximum": 500,
               "minimum": 1,
               "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
@@ -376,6 +429,8 @@
             "name": "actorSub",
             "in": "query",
             "schema": {
+              "maxLength": 128,
+              "pattern": "^[^\\u0000]*$",
               "type": "string"
             }
           }
@@ -513,6 +568,9 @@
           "400": {
             "description": "Bad Request"
           },
+          "409": {
+            "description": "Conflict"
+          },
           "429": {
             "description": "Rate limit exceeded."
           },
@@ -530,7 +588,7 @@
         ]
       }
     },
-    "/identity/users/{userId}/unlock": {
+    "/customer-accounts/users/{userId}/unlock": {
       "post": {
         "tags": [
           "Davids.Services.Identity.Api"
@@ -557,6 +615,9 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request"
+          },
           "404": {
             "description": "Not Found"
           },
@@ -577,7 +638,7 @@
         ]
       }
     },
-    "/identity/users/{userId}/email": {
+    "/customer-accounts/users/{userId}/email": {
       "put": {
         "tags": [
           "Davids.Services.Identity.Api"
@@ -620,6 +681,9 @@
           "404": {
             "description": "Not Found"
           },
+          "409": {
+            "description": "Conflict"
+          },
           "429": {
             "description": "Rate limit exceeded."
           },
@@ -648,9 +712,15 @@
         "type": "object",
         "properties": {
           "currentPassword": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[^\\u0000]*\\S[^\\u0000]*$",
             "type": "string"
           },
           "newEmail": {
+            "maxLength": 254,
+            "minLength": 6,
+            "pattern": "^[A-Za-z0-9_%+\\-]{1,20}(?:\\.[A-Za-z0-9_%+\\-]{1,20}){0,2}@(?:[A-Za-z0-9](?:[A-Za-z0-9\\-]{0,30}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}$",
             "type": "string"
           }
         }
@@ -663,9 +733,15 @@
         "type": "object",
         "properties": {
           "currentPassword": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[^\\u0000]*\\S[^\\u0000]*$",
             "type": "string"
           },
           "newPassword": {
+            "maxLength": 128,
+            "minLength": 12,
+            "pattern": "^[^\\u0000]*\\S[^\\u0000]*$",
             "type": "string"
           }
         }
@@ -775,6 +851,9 @@
         "type": "object",
         "properties": {
           "newEmail": {
+            "maxLength": 254,
+            "minLength": 6,
+            "pattern": "^[A-Za-z0-9_%+\\-]{1,20}(?:\\.[A-Za-z0-9_%+\\-]{1,20}){0,2}@(?:[A-Za-z0-9](?:[A-Za-z0-9\\-]{0,30}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}$",
             "type": "string"
           }
         }

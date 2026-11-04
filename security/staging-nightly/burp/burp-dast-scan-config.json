@@ -11,7 +11,9 @@
     "recordedLoginSequence": "security/staging-nightly/burp/burp-recorded-admin-bff-login.template.json",
     "sessionPreservationExclusions": [
       "/auth/logout",
+      "/customer-auth/logout",
       "/signout-callback-oidc",
+      "/identity/connect/logout",
       "/admin-identity/connect/logout"
     ]
   },
@@ -23,16 +25,21 @@
           "advanced_mode": true,
           "include": [
             { "protocol": "any", "file": "^/login$" },
+            { "protocol": "any", "file": "^/portal(/.*)?$" },
             { "protocol": "any", "file": "^/$" },
             { "protocol": "any", "file": "^/gateway-info$" },
-            { "protocol": "any", "file": "^/auth/me$" },
+            { "protocol": "any", "file": "^/auth/(me|session)$" },
+            { "protocol": "any", "file": "^/customer-auth/session$" },
             { "protocol": "any", "file": "^/customers(/.*)?$" },
+            { "protocol": "any", "file": "^/customer-accounts(/.*)?$" },
             { "protocol": "any", "file": "^/identity(/.*)?$" },
             { "protocol": "any", "file": "^/admin-identity(/.*)?$" }
           ],
           "exclude": [
             { "protocol": "any", "file": "^/auth/logout$" },
+            { "protocol": "any", "file": "^/customer-auth/logout$" },
             { "protocol": "any", "file": "^/signout-callback-oidc$" },
+            { "protocol": "any", "file": "^/identity/connect/logout$" },
             { "protocol": "any", "file": "^/admin-identity/connect/logout$" },
             { "protocol": "any", "file": "^/(health|alive)$" }
           ]

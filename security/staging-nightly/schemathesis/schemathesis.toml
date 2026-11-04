@@ -37,3 +37,35 @@ include-path-regex = "(^|/identity)/sign-up$"
 
 [operations.checks]
 positive_data_acceptance.enabled = false
+
+# Self-service password and email rotation endpoints require re-verification of the caller's live
+# currentPassword; synthetic generated passwords must always return 400 (invalid_credentials).
+[[operations]]
+include-path-regex = "/me/(password|email)$"
+
+[operations.checks]
+positive_data_acceptance.enabled = false
+
+# Customer registration completion (POST /customers) is a one-shot state transition from Incomplete -> Valid;
+# repeating POST /customers for an already-registered customer intentionally returns 400.
+[[operations]]
+include-path-regex = "^/customers$"
+include-method = "POST"
+
+[operations.checks]
+positive_data_acceptance.enabled = false
+
+# Resource-by-UUID endpoints reject non-owner synthetic UUIDs with 403 (CustomerBearer tenant isolation)
+# or unseeded random UUIDs with 404 (AdminBearer); OpenAPI stateful links exercise valid owner/seeded UUIDs.
+[[operations]]
+include-path-regex = "^/(identity|admin-identity|customer-accounts)/users/\\{userId\\}"
+
+[operations.checks]
+positive_data_acceptance.enabled = false
+
+[[operations]]
+include-path-regex = "^/customers/\\{customerId\\}"
+
+[operations.checks]
+positive_data_acceptance.enabled = false
+

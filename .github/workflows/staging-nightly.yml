@@ -419,7 +419,7 @@ jobs:
           coverage-report-path: "./Davids/TestResults/staging-nightly/coverage-identity.html"
           coverage-artifact-name: "schemathesis-coverage-identity"
           coverage-pr-comment: "false"
-          args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-identity.junit.xml --warnings off"
+          args: "--include-path-regex ^/identity/ --report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-identity.junit.xml --warnings off"
 
       - name: Schemathesis Authenticated Customer OIDC RS256 + Stateful Fuzzing (Customers POST)
         uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
@@ -433,6 +433,33 @@ jobs:
           coverage-artifact-name: "schemathesis-coverage-customers-user"
           coverage-pr-comment: "false"
           args: "--include-method POST --report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-customers-user.junit.xml --warnings off"
+
+      - name: Schemathesis Authenticated Customer OIDC RS256 + Stateful Fuzzing (Customers Self-Service)
+        uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
+        with:
+          version: "4.32.6"
+          schema: "./Davids/security/staging-nightly/openapi/customers.gateway.openapi.json"
+          base-url: ${{ steps.target.outputs.gateway_url }}
+          config-file: "./Davids/security/staging-nightly/schemathesis/schemathesis.toml"
+          authorization: ${{ steps.target.outputs.customer_bearer }}
+          coverage-report-path: "./Davids/TestResults/staging-nightly/coverage-customers-me.html"
+          coverage-artifact-name: "schemathesis-coverage-customers-me"
+          coverage-pr-comment: "false"
+          args: "--include-path /customers/me --report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-customers-me.junit.xml --warnings off"
+
+      - name: Schemathesis Authenticated Admin OIDC RS256 Fuzzing (Customer Accounts)
+        if: steps.target.outputs.admin_bearer != ''
+        uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
+        with:
+          version: "4.32.6"
+          schema: "./Davids/security/staging-nightly/openapi/identity.gateway.openapi.json"
+          base-url: ${{ steps.target.outputs.gateway_url }}
+          config-file: "./Davids/security/staging-nightly/schemathesis/schemathesis.toml"
+          authorization: ${{ steps.target.outputs.admin_bearer }}
+          coverage-report-path: "./Davids/TestResults/staging-nightly/coverage-customer-accounts-admin.html"
+          coverage-artifact-name: "schemathesis-coverage-customer-accounts-admin"
+          coverage-pr-comment: "false"
+          args: "--include-path-regex ^/customer-accounts/ --report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-customer-accounts-admin.junit.xml --warnings off"
 
       - name: Schemathesis Authenticated Admin OIDC RS256 Fuzzing (AdminIdentity)
         if: steps.target.outputs.admin_bearer != ''
@@ -460,7 +487,7 @@ jobs:
           coverage-report-path: "./Davids/TestResults/staging-nightly/coverage-customers-admin.html"
           coverage-artifact-name: "schemathesis-coverage-customers-admin"
           coverage-pr-comment: "false"
-          args: "--exclude-method POST --report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-customers-admin.junit.xml --warnings off"
+          args: "--exclude-method POST --exclude-path /customers/me --report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-customers-admin.junit.xml --warnings off"
 
       - name: ProjectDiscovery Nuclei Posture Assertions & Vulnerability Regression
         shell: pwsh

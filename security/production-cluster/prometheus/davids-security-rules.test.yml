@@ -17,6 +17,8 @@ tests:
         values: '0+0x10'
       - series: 'davids_security_token_revoked_total{domain="customer",source="rfc7009_revocation"}'
         values: '0+1x10'
+      - series: 'davids_security_change_audit_total{service="admin-identity",action="admin_user_updated",actor_authority="admin"}'
+        values: '0+0x10'
     alert_rule_test:
       - eval_time: 5m
         alertname: DavidsAdminAccountLockoutDetected
@@ -33,8 +35,11 @@ tests:
       - eval_time: 5m
         alertname: DavidsAdminBffCsrfRejectionSpike
         exp_alerts: []
+      - eval_time: 5m
+        alertname: DavidsWorkforcePrivilegeChangeBurst
+        exp_alerts: []
 
-  # Scenario 2: Simulated credential stuffing, admin lockout, OIDC replay cascade, 429 flood, CSRF attack, eBPF intrusion & Kyverno block -> all 7 alerts fire.
+  # Scenario 2: Simulated credential stuffing, admin lockout, OIDC replay cascade, 429 flood, CSRF attack, workforce privilege burst, eBPF intrusion & Kyverno block -> all 8 alerts fire.
   - interval: 1m
     input_series:
       - series: 'davids_security_login_audit_total{domain="admin",outcome="account_locked",succeeded="false"}'
@@ -47,6 +52,8 @@ tests:
         values: '0+60x8'
       - series: 'davids_security_bff_csrf_rejected_total{service="davids-api-gateway",endpoint="/auth/logout"}'
         values: '0 2 6 8 8 8'
+      - series: 'davids_security_change_audit_total{service="admin-identity",action="admin_user_updated",actor_authority="admin"}'
+        values: '0 1 4 6 6 6'
       - series: 'tetragon_policy_events_total{policy="davids-enforce-no-shells-or-nettools"}'
         values: '0 0 1 1 1 1'
       - series: 'kyverno_policy_results_total{policy_name="davids-pod-security-and-mesh-admission",policy_namespace="",resource_namespace="davids",rule_result="fail",rule_type="validate"}'
@@ -102,8 +109,18 @@ tests:
               component: api-gateway-bff
               lifecycle: production-cluster
             exp_annotations:
-              summary: "Elevated Administrator BFF CSRF rejections at Davids.APIGateway"
+              summary: "Elevated BFF CSRF rejections at Davids.APIGateway"
               description: "Davids.APIGateway blocked 8 cookie-authenticated state-changing requests missing valid X-Requested-With / Origin headers in 5m."
+      - eval_time: 4m
+        alertname: DavidsWorkforcePrivilegeChangeBurst
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              component: admin-identity
+              lifecycle: production-cluster
+            exp_annotations:
+              summary: "Burst of workforce RBAC account creations or role mutations in Davids.Services.AdminIdentity"
+              description: "AdminIdentity recorded 6 workforce user/role change-audit events in 5m. Review AdminChangeAuditLogs."
       - eval_time: 4m
         alertname: DavidsFalcoOrTetragonRuntimeIntrusion
         exp_alerts:

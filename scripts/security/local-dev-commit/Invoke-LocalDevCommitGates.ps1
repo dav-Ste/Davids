@@ -19,4 +19,4 @@ Write-Host '=== [2/3] Gitleaks Secret & Private-Key Scan ==='
 Write-Host '=== [3/3] NuGet Direct & Transitive Vulnerability Audit ==='
 & (Join-Path $PSScriptRoot 'Verify-Dependencies.ps1')
 
-Write-Host 'All Local Dev / Commit security gates passed across all 7 Davids repositories.'
+Write-Host 'All Local Dev / Commit security gates passed across all 8 Davids repositories.'

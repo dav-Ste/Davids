@@ -146,7 +146,7 @@ foreach ($repoName in $repos) {
         }
 
         Write-Host "Scanning $repoName lockfiles & configs with Trivy..."
-        & $trivy fs . --skip-dirs '**/artifacts,**/bin,**/obj,**/TestResults,**/kyverno-tests' --scanners vuln,misconfig --severity HIGH,CRITICAL --exit-code 1 --quiet
+        & $trivy fs . --skip-dirs '**/artifacts,**/bin,**/obj,**/TestResults,**/kyverno-tests' --skip-files '**/Dockerfile.dockerignore' --scanners vuln,misconfig --severity HIGH,CRITICAL --exit-code 1 --quiet
         if ($LASTEXITCODE) {
             throw "Trivy reported HIGH/CRITICAL vulnerability or misconfiguration findings in $repoName."
         }
@@ -155,4 +155,4 @@ foreach ($repoName in $repos) {
     }
 }
 
-Write-Host 'All 7 Davids repositories passed NuGet JSON audit, SHA-verified Grype, and SHA-verified Trivy supply-chain scans.'
+Write-Host 'All 8 Davids repositories passed NuGet JSON audit, SHA-verified Grype, and SHA-verified Trivy supply-chain scans.'

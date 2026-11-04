@@ -178,6 +178,9 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request"
+          },
           "404": {
             "description": "Not Found"
           },
@@ -348,6 +351,8 @@
             "name": "email",
             "in": "query",
             "schema": {
+              "maxLength": 254,
+              "pattern": "^[^\\u0000]*$",
               "type": "string"
             }
           }
@@ -543,6 +548,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request"
           },
           "404": {
             "description": "Not Found"
@@ -788,9 +796,15 @@
         "type": "object",
         "properties": {
           "currentPassword": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[^\\u0000]*\\S[^\\u0000]*$",
             "type": "string"
           },
           "newPassword": {
+            "maxLength": 128,
+            "minLength": 12,
+            "pattern": "^[^\\u0000]*\\S[^\\u0000]*$",
             "type": "string"
           }
         }
@@ -827,6 +841,12 @@
             ]
           },
           "role": {
+            "enum": [
+              null,
+              "admin",
+              "support",
+              "auditor"
+            ],
             "type": [
               "null",
               "string"
@@ -838,6 +858,12 @@
         "type": "object",
         "properties": {
           "role": {
+            "enum": [
+              null,
+              "admin",
+              "support",
+              "auditor"
+            ],
             "type": [
               "null",
               "string"
@@ -850,6 +876,8 @@
             ]
           },
           "fullName": {
+            "maxLength": 100,
+            "pattern": "^[^\\u0000]*$",
             "type": [
               "null",
               "string"

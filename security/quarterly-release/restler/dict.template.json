@@ -36,7 +36,17 @@
       "restler.release.beta@davids.example",
       "cust.b@davids.example"
     ],
+    "newEmail": [
+      "restler.updated.alpha@davids.example",
+      "restler.updated.beta@davids.example"
+    ],
     "password": [
+      "__RESTLER_RUNTIME_FUZZ_PASSWORD__"
+    ],
+    "currentPassword": [
+      "__RESTLER_RUNTIME_FUZZ_PASSWORD__"
+    ],
+    "newPassword": [
       "__RESTLER_RUNTIME_FUZZ_PASSWORD__"
     ],
     "role": [
@@ -97,6 +107,12 @@
     ],
     "limit": [
       "20"
+    ],
+    "actorSub": [
+      ""
+    ],
+    "email": [
+      ""
     ]
   }
 }

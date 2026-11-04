@@ -12,14 +12,6 @@
       "producer_endpoint": "/identity/me",
       "producer_method": "GET",
       "producer_resource_name": "id",
-      "consumer_endpoint": "/customers",
-      "consumer_method": "POST",
-      "consumer_param": "customerId"
-    },
-    {
-      "producer_endpoint": "/identity/me",
-      "producer_method": "GET",
-      "producer_resource_name": "id",
       "consumer_endpoint": "/customers/{customerId}",
       "consumer_method": "GET",
       "consumer_param": "customerId"
@@ -29,6 +21,14 @@
       "producer_method": "GET",
       "producer_resource_name": "id",
       "consumer_endpoint": "/customers/{customerId}/state",
+      "consumer_method": "GET",
+      "consumer_param": "customerId"
+    },
+    {
+      "producer_endpoint": "/identity/me",
+      "producer_method": "GET",
+      "producer_resource_name": "id",
+      "consumer_endpoint": "/customers/{customerId}/change-audits",
       "consumer_method": "GET",
       "consumer_param": "customerId"
     }

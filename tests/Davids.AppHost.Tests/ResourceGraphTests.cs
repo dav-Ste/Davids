@@ -632,11 +632,11 @@ public sealed class ResourceGraphTests
 
         // 1. Exported gateway-mapped OpenAPI 3.1.1 contracts for Schemathesis & Burp Suite DAST.
         var openApiDir = Path.Combine(stagingDir, "openapi");
-        foreach (var (fileName, requiredPrefix, requiredPath) in new[]
+        foreach (var (fileName, allowedPrefixes, requiredPaths) in new (string FileName, string[] AllowedPrefixes, string[] RequiredPaths)[]
         {
-            ("identity.gateway.openapi.json", "/identity", "/identity/sign-up"),
-            ("admin-identity.gateway.openapi.json", "/admin-identity", "/admin-identity/connect/token"),
-            ("customers.gateway.openapi.json", "/customers", "/customers/{customerId}/state/{state}")
+            ("identity.gateway.openapi.json", ["/identity", "/customer-accounts"], ["/identity/sign-up", "/customer-accounts/change-audits", "/customer-accounts/users/{userId}"]),
+            ("admin-identity.gateway.openapi.json", ["/admin-identity"], ["/admin-identity/connect/token"]),
+            ("customers.gateway.openapi.json", ["/customers"], ["/customers/{customerId}/state/{state}"])
         })
         {
             var specPath = Path.Combine(openApiDir, fileName);
@@ -646,12 +646,15 @@ public sealed class ResourceGraphTests
             Assert.True(doc.RootElement.GetProperty("components").GetProperty("securitySchemes").TryGetProperty("BearerAuth", out _));
 
             var paths = doc.RootElement.GetProperty("paths");
-            Assert.True(paths.TryGetProperty(requiredPath, out _), $"Missing expected path '{requiredPath}' in {fileName}.");
+            foreach (var requiredPath in requiredPaths)
+            {
+                Assert.True(paths.TryGetProperty(requiredPath, out _), $"Missing expected path '{requiredPath}' in {fileName}.");
+            }
             foreach (var prop in paths.EnumerateObject())
             {
                 Assert.True(
-                    prop.Name == requiredPrefix || prop.Name.StartsWith(requiredPrefix + "/", StringComparison.Ordinal),
-                    $"Unexpected path '{prop.Name}' without '{requiredPrefix}' prefix in {fileName}.");
+                    allowedPrefixes.Any(prefix => prop.Name == prefix || prop.Name.StartsWith(prefix + "/", StringComparison.Ordinal)),
+                    $"Unexpected path '{prop.Name}' without '{string.Join(", ", allowedPrefixes)}' prefix in {fileName}.");
                 Assert.NotEqual("/admin-identity/sign-up", prop.Name);
             }
         }
@@ -730,11 +733,11 @@ public sealed class ResourceGraphTests
 
         // 1. Exported OpenAPI 3.0.3 contracts normalized for Microsoft RESTler (no OpenAPI 3.1 type arrays).
         var restlerSpecsDir = Path.Combine(releaseDir, "restler", "specs");
-        foreach (var (fileName, requiredPrefix, requiredPath) in new[]
+        foreach (var (fileName, allowedPrefixes, requiredPaths) in new (string FileName, string[] AllowedPrefixes, string[] RequiredPaths)[]
         {
-            ("identity.restler.openapi.json", "/identity", "/identity/sign-up"),
-            ("admin-identity.restler.openapi.json", "/admin-identity", "/admin-identity/connect/token"),
-            ("customers.restler.openapi.json", "/customers", "/customers/{customerId}/state/{state}")
+            ("identity.restler.openapi.json", ["/identity", "/customer-accounts"], ["/identity/sign-up", "/customer-accounts/change-audits", "/customer-accounts/users/{userId}"]),
+            ("admin-identity.restler.openapi.json", ["/admin-identity"], ["/admin-identity/connect/token"]),
+            ("customers.restler.openapi.json", ["/customers"], ["/customers/{customerId}/state/{state}"])
         })
         {
             var specPath = Path.Combine(restlerSpecsDir, fileName);
@@ -746,12 +749,15 @@ public sealed class ResourceGraphTests
             using var doc = System.Text.Json.JsonDocument.Parse(raw);
             Assert.Equal("3.0.3", doc.RootElement.GetProperty("openapi").GetString());
             var paths = doc.RootElement.GetProperty("paths");
-            Assert.True(paths.TryGetProperty(requiredPath, out _), $"Missing '{requiredPath}' in {fileName}.");
+            foreach (var requiredPath in requiredPaths)
+            {
+                Assert.True(paths.TryGetProperty(requiredPath, out _), $"Missing '{requiredPath}' in {fileName}.");
+            }
             foreach (var prop in paths.EnumerateObject())
             {
                 Assert.True(
-                    prop.Name == requiredPrefix || prop.Name.StartsWith(requiredPrefix + "/", StringComparison.Ordinal),
-                    $"Unexpected path '{prop.Name}' without '{requiredPrefix}' prefix in {fileName}.");
+                    allowedPrefixes.Any(prefix => prop.Name == prefix || prop.Name.StartsWith(prefix + "/", StringComparison.Ordinal)),
+                    $"Unexpected path '{prop.Name}' without '{string.Join(", ", allowedPrefixes)}' prefix in {fileName}.");
                 Assert.NotEqual("/admin-identity/sign-up", prop.Name);
             }
         }

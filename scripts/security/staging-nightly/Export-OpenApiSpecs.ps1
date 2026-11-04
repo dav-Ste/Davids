@@ -98,6 +98,7 @@ $targets = @(
         Name            = 'identity'
         DirectUrl       = $IdentityDirectUrl.TrimEnd('/')
         Prefix          = '/identity'
+        AllowedPrefixes = @('/identity', '/customer-accounts')
         OutputFile      = Join-Path $openApiDir 'identity.gateway.openapi.json'
         RestlerSpecFile = Join-Path $restlerSpecDir 'identity.restler.openapi.json'
         StripPaths      = @()
@@ -106,6 +107,7 @@ $targets = @(
         Name            = 'admin-identity'
         DirectUrl       = $AdminIdentityDirectUrl.TrimEnd('/')
         Prefix          = '/admin-identity'
+        AllowedPrefixes = @('/admin-identity')
         OutputFile      = Join-Path $openApiDir 'admin-identity.gateway.openapi.json'
         RestlerSpecFile = Join-Path $restlerSpecDir 'admin-identity.restler.openapi.json'
         StripPaths      = @('/sign-up')
@@ -114,6 +116,7 @@ $targets = @(
         Name            = 'customers'
         DirectUrl       = $CustomersDirectUrl.TrimEnd('/')
         Prefix          = '/customers'
+        AllowedPrefixes = @('/customers')
         OutputFile      = Join-Path $openApiDir 'customers.gateway.openapi.json'
         RestlerSpecFile = Join-Path $restlerSpecDir 'customers.restler.openapi.json'
         StripPaths      = @()
@@ -143,10 +146,17 @@ if ($VerifyOnly) {
         }
 
         foreach ($pathKey in $paths.Keys) {
-            if (-not ($pathKey -eq $target.Prefix -or $pathKey.StartsWith("$($target.Prefix)/"))) {
-                throw "Path '$pathKey' in $($target.OutputFile) does not match expected gateway prefix '$($target.Prefix)'."
+            $matchedPrefix = $null
+            foreach ($allowedPrefix in $target.AllowedPrefixes) {
+                if ($pathKey -eq $allowedPrefix -or $pathKey.StartsWith("$allowedPrefix/")) {
+                    $matchedPrefix = $allowedPrefix
+                    break
+                }
             }
-            if ($pathKey -eq "$($target.Prefix)$($target.Prefix)" -or $pathKey.StartsWith("$($target.Prefix)$($target.Prefix)/")) {
+            if ($null -eq $matchedPrefix) {
+                throw "Path '$pathKey' in $($target.OutputFile) does not match expected gateway prefix(es) '$($target.AllowedPrefixes -join ', ')'."
+            }
+            if ($pathKey -eq "$matchedPrefix$matchedPrefix" -or $pathKey.StartsWith("$matchedPrefix$matchedPrefix/")) {
                 throw "Doubled gateway prefix '$pathKey' detected in $($target.OutputFile)."
             }
             if ($target.Name -eq 'admin-identity' -and $pathKey -eq '/admin-identity/sign-up') {
@@ -191,6 +201,19 @@ foreach ($target in $targets) {
         $rawPath = [string]$entry.Key
         if ($target.StripPaths -contains $rawPath) {
             continue
+        }
+
+        if ($target.Name -eq 'identity') {
+            if ($rawPath -in @('/change-audits', '/users/{userId}/unlock', '/users/{userId}/email')) {
+                $rewrittenPaths["/customer-accounts$rawPath"] = $entry.Value
+                continue
+            }
+            if ($rawPath -eq '/users/{userId}') {
+                $rewrittenPaths['/identity/users/{userId}'] = $entry.Value
+                $clonedNode = ($entry.Value | ConvertTo-Json -Depth 100) | ConvertFrom-Json -AsHashtable
+                $rewrittenPaths['/customer-accounts/users/{userId}'] = $clonedNode
+                continue
+            }
         }
 
         $mappedPath = if ($rawPath -eq '/') {

@@ -30,4 +30,4 @@ if ($InstallTools) {
     & (Join-Path $PSScriptRoot 'Scan-SupplyChain.ps1')
 }
 
-Write-Host 'All Pull Request CI security gates passed across all 7 Davids repositories.'
+Write-Host 'All Pull Request CI security gates passed across all 8 Davids repositories.'

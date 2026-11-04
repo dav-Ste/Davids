@@ -43,6 +43,8 @@
             "name": "search",
             "in": "query",
             "schema": {
+              "maxLength": 100,
+              "pattern": "^[^\\u0000]*$",
               "type": "string"
             }
           },
@@ -50,6 +52,8 @@
             "name": "query",
             "in": "query",
             "schema": {
+              "maxLength": 100,
+              "pattern": "^[^\\u0000]*$",
               "type": "string"
             }
           },
@@ -241,6 +245,8 @@
             "name": "limit",
             "in": "query",
             "schema": {
+              "maximum": 500,
+              "minimum": 1,
               "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
@@ -258,6 +264,8 @@
             "name": "actorSub",
             "in": "query",
             "schema": {
+              "maxLength": 128,
+              "pattern": "^[^\\u0000]*$",
               "type": "string"
             }
           }
@@ -476,6 +484,8 @@
             "name": "limit",
             "in": "query",
             "schema": {
+              "maximum": 200,
+              "minimum": 1,
               "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
@@ -498,6 +508,9 @@
           },
           "400": {
             "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
           },
           "429": {
             "description": "Rate limit exceeded."
@@ -583,10 +596,6 @@
         ],
         "type": "object",
         "properties": {
-          "customerId": {
-            "type": "string",
-            "format": "uuid"
-          },
           "fullName": {
             "maxLength": 100,
             "minLength": 1,

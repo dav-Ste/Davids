@@ -83,4 +83,4 @@ foreach ($repoName in $repos) {
     }
 }
 
-Write-Host 'All 7 Davids repositories passed custom Semgrep SAST checks with zero findings.'
+Write-Host 'All 8 Davids repositories passed custom Semgrep SAST checks with zero findings.'
