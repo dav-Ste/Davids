@@ -21,6 +21,10 @@ $repositories = @(
     @{ Name = 'Davids.Services.Identity'; Solution = 'Davids.Services.Identity.slnx' },
     @{ Name = 'Davids.Services.AdminIdentity'; Solution = 'Davids.Services.AdminIdentity.slnx' },
     @{ Name = 'Davids.Services.Customers'; Solution = 'Davids.Services.Customers.slnx' },
+    @{ Name = 'Davids.Services.Products'; Solution = 'Davids.Services.Products.slnx' },
+    @{ Name = 'Davids.Services.Baskets'; Solution = 'Davids.Services.Baskets.slnx' },
+    @{ Name = 'Davids.Services.Orders'; Solution = 'Davids.Services.Orders.slnx' },
+    @{ Name = 'Davids.Services.Payments'; Solution = 'Davids.Services.Payments.slnx' },
     @{ Name = 'Davids.APIGateway'; Solution = 'Davids.APIGateway.slnx' },
     @{ Name = 'Davids.Frontend.Admin'; Solution = 'Davids.Frontend.Admin.slnx' },
     @{ Name = 'Davids.Frontend.Web'; Solution = 'Davids.Frontend.Web.slnx' }

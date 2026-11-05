@@ -87,6 +87,34 @@ jobs:
           token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
           path: Davids.Services.Customers
 
+      - name: Checkout Davids.Services.Products
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Services.Products
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
+          path: Davids.Services.Products
+
+      - name: Checkout Davids.Services.Baskets
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Services.Baskets
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
+          path: Davids.Services.Baskets
+
+      - name: Checkout Davids.Services.Orders
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Services.Orders
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
+          path: Davids.Services.Orders
+
+      - name: Checkout Davids.Services.Payments
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Services.Payments
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
+          path: Davids.Services.Payments
+
       - name: Checkout Davids.APIGateway
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -122,6 +150,10 @@ jobs:
             '../Davids.Services.Identity/Davids.Services.Identity.slnx',
             '../Davids.Services.AdminIdentity/Davids.Services.AdminIdentity.slnx',
             '../Davids.Services.Customers/Davids.Services.Customers.slnx',
+            '../Davids.Services.Products/Davids.Services.Products.slnx',
+            '../Davids.Services.Baskets/Davids.Services.Baskets.slnx',
+            '../Davids.Services.Orders/Davids.Services.Orders.slnx',
+            '../Davids.Services.Payments/Davids.Services.Payments.slnx',
             '../Davids.APIGateway/Davids.APIGateway.slnx',
             '../Davids.Frontend.Admin/Davids.Frontend.Admin.slnx',
             '../Davids.Frontend.Web/Davids.Frontend.Web.slnx',

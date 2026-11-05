@@ -145,11 +145,21 @@ using var adminIdentityResult = await client.PostAsJsonAsync(
 adminIdentityResult.EnsureSuccessStatusCode();
 
 // Resource servers validate RS256 OIDC tokens via public JWKS discovery and never store signing keys in Vault.
-using var customersResult = await client.PostAsJsonAsync(
+foreach (var resourceServerPath in new[]
+{
     "/v1/secret/data/davids/customers",
-    new { data = new Dictionary<string, string>() },
-    deadline.Token);
-customersResult.EnsureSuccessStatusCode();
+    "/v1/secret/data/davids/products",
+    "/v1/secret/data/davids/baskets",
+    "/v1/secret/data/davids/orders",
+    "/v1/secret/data/davids/payments"
+})
+{
+    using var resourceResult = await client.PostAsJsonAsync(
+        resourceServerPath,
+        new { data = new Dictionary<string, string>() },
+        deadline.Token);
+    resourceResult.EnsureSuccessStatusCode();
+}
 
 // Davids.APIGateway validates RS256 OIDC tokens via public JWKS discovery and holds only its confidential BFF client secret and isolated Data Protection master key.
 using var gatewayResult = await client.PostAsJsonAsync(

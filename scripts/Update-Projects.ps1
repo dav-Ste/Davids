@@ -6,6 +6,10 @@ $repositories = @(
     'Davids.Services.Identity',
     'Davids.Services.AdminIdentity',
     'Davids.Services.Customers',
+    'Davids.Services.Products',
+    'Davids.Services.Baskets',
+    'Davids.Services.Orders',
+    'Davids.Services.Payments',
     'Davids.APIGateway',
     'Davids.Frontend.Admin',
     'Davids.Frontend.Web'

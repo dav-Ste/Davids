@@ -54,6 +54,10 @@ spec:
           - identity
           - admin-identity
           - customers
+          - products
+          - baskets
+          - orders
+          - payments
           - frontend-admin
           - frontend-web
   policyTypes:
@@ -63,6 +67,34 @@ spec:
         - podSelector:
             matchLabels:
               app: api-gateway
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-commerce-service-to-service
+  namespace: davids
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - products
+          - baskets
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - baskets
+                  - orders
       ports:
         - protocol: TCP
           port: 8080

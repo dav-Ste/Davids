@@ -4,6 +4,10 @@ param(
     [string]$IdentityDirectUrl = 'http://localhost:5004',
     [string]$AdminIdentityDirectUrl = 'http://localhost:17325',
     [string]$CustomersDirectUrl = 'http://localhost:5002',
+    [string]$ProductsDirectUrl = 'http://localhost:5006',
+    [string]$BasketsDirectUrl = 'http://localhost:5008',
+    [string]$OrdersDirectUrl = 'http://localhost:5010',
+    [string]$PaymentsDirectUrl = 'http://localhost:5012',
     [switch]$VerifyOnly
 )
 
@@ -119,6 +123,42 @@ $targets = @(
         AllowedPrefixes = @('/customers')
         OutputFile      = Join-Path $openApiDir 'customers.gateway.openapi.json'
         RestlerSpecFile = Join-Path $restlerSpecDir 'customers.restler.openapi.json'
+        StripPaths      = @()
+    },
+    @{
+        Name            = 'products'
+        DirectUrl       = $ProductsDirectUrl.TrimEnd('/')
+        Prefix          = '/products'
+        AllowedPrefixes = @('/products')
+        OutputFile      = Join-Path $openApiDir 'products.gateway.openapi.json'
+        RestlerSpecFile = Join-Path $restlerSpecDir 'products.restler.openapi.json'
+        StripPaths      = @()
+    },
+    @{
+        Name            = 'baskets'
+        DirectUrl       = $BasketsDirectUrl.TrimEnd('/')
+        Prefix          = '/baskets'
+        AllowedPrefixes = @('/baskets')
+        OutputFile      = Join-Path $openApiDir 'baskets.gateway.openapi.json'
+        RestlerSpecFile = Join-Path $restlerSpecDir 'baskets.restler.openapi.json'
+        StripPaths      = @()
+    },
+    @{
+        Name            = 'orders'
+        DirectUrl       = $OrdersDirectUrl.TrimEnd('/')
+        Prefix          = '/orders'
+        AllowedPrefixes = @('/orders')
+        OutputFile      = Join-Path $openApiDir 'orders.gateway.openapi.json'
+        RestlerSpecFile = Join-Path $restlerSpecDir 'orders.restler.openapi.json'
+        StripPaths      = @()
+    },
+    @{
+        Name            = 'payments'
+        DirectUrl       = $PaymentsDirectUrl.TrimEnd('/')
+        Prefix          = '/payments'
+        AllowedPrefixes = @('/payments')
+        OutputFile      = Join-Path $openApiDir 'payments.gateway.openapi.json'
+        RestlerSpecFile = Join-Path $restlerSpecDir 'payments.restler.openapi.json'
         StripPaths      = @()
     }
 )

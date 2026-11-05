@@ -75,6 +75,10 @@ public sealed class ResourceGraphTests
             "identity",
             "admin-identity",
             "customers",
+            "products",
+            "baskets",
+            "orders",
+            "payments",
             "frontend-admin",
             "frontend-web",
             "api-gateway",
@@ -82,6 +86,10 @@ public sealed class ResourceGraphTests
             "identitydb",
             "adminidentitydb",
             "customersdb",
+            "productsdb",
+            "basketsdb",
+            "ordersdb",
+            "paymentsdb",
             "messaging",
             "cache",
             "vault",
@@ -171,13 +179,27 @@ public sealed class ResourceGraphTests
         var identityEnv = await GetEnvAsync("identity");
         var adminIdentityEnv = await GetEnvAsync("admin-identity");
         var customersEnv = await GetEnvAsync("customers");
+        var productsEnv = await GetEnvAsync("products");
+        var basketsEnv = await GetEnvAsync("baskets");
+        var ordersEnv = await GetEnvAsync("orders");
+        var paymentsEnv = await GetEnvAsync("payments");
         var gatewayEnv = await GetEnvAsync("api-gateway");
         var bootstrapEnv = await GetEnvAsync("vault-bootstrap");
 
         Assert.Equal("secret/data/davids/identity", identityEnv["Vault__KvPath"]);
         Assert.Equal("secret/data/davids/admin-identity", adminIdentityEnv["Vault__KvPath"]);
         Assert.Equal("secret/data/davids/customers", customersEnv["Vault__KvPath"]);
+        Assert.Equal("secret/data/davids/products", productsEnv["Vault__KvPath"]);
+        Assert.Equal("secret/data/davids/baskets", basketsEnv["Vault__KvPath"]);
+        Assert.Equal("secret/data/davids/orders", ordersEnv["Vault__KvPath"]);
+        Assert.Equal("secret/data/davids/payments", paymentsEnv["Vault__KvPath"]);
         Assert.Equal("secret/data/davids/gateway", gatewayEnv["Vault__KvPath"]);
+
+        foreach (var resourceEnv in new[] { customersEnv, productsEnv, basketsEnv, ordersEnv, paymentsEnv })
+        {
+            Assert.DoesNotContain(resourceEnv.Keys, k => k.Contains("SigningKey", StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(resourceEnv.Keys, k => k.Contains("BffClientSecret", StringComparison.OrdinalIgnoreCase));
+        }
 
         Assert.True(identityEnv.ContainsKey("Oidc__Issuer"));
         Assert.True(identityEnv.ContainsKey("AdminOidc__Authority"));
@@ -261,6 +283,10 @@ public sealed class ResourceGraphTests
             "Davids.Services.Identity",
             "Davids.Services.AdminIdentity",
             "Davids.Services.Customers",
+            "Davids.Services.Products",
+            "Davids.Services.Baskets",
+            "Davids.Services.Orders",
+            "Davids.Services.Payments",
             "Davids.APIGateway",
             "Davids.Frontend.Admin",
             "Davids.Frontend.Web"
@@ -457,6 +483,10 @@ public sealed class ResourceGraphTests
             "Davids.Services.Identity",
             "Davids.Services.AdminIdentity",
             "Davids.Services.Customers",
+            "Davids.Services.Products",
+            "Davids.Services.Baskets",
+            "Davids.Services.Orders",
+            "Davids.Services.Payments",
             "Davids.APIGateway",
             "Davids.Frontend.Admin",
             "Davids.Frontend.Web"
@@ -636,7 +666,11 @@ public sealed class ResourceGraphTests
         {
             ("identity.gateway.openapi.json", ["/identity", "/customer-accounts"], ["/identity/sign-up", "/customer-accounts/change-audits", "/customer-accounts/users/{userId}"]),
             ("admin-identity.gateway.openapi.json", ["/admin-identity"], ["/admin-identity/connect/token"]),
-            ("customers.gateway.openapi.json", ["/customers"], ["/customers/{customerId}/state/{state}"])
+            ("customers.gateway.openapi.json", ["/customers"], ["/customers/{customerId}/state/{state}"]),
+            ("products.gateway.openapi.json", ["/products"], ["/products", "/products/admin", "/products/{productId}/stock"]),
+            ("baskets.gateway.openapi.json", ["/baskets"], ["/baskets/me", "/baskets/me/items"]),
+            ("orders.gateway.openapi.json", ["/orders"], ["/orders/checkout", "/orders/me", "/orders"]),
+            ("payments.gateway.openapi.json", ["/payments"], ["/payments/me", "/payments"])
         })
         {
             var specPath = Path.Combine(openApiDir, fileName);
@@ -737,7 +771,11 @@ public sealed class ResourceGraphTests
         {
             ("identity.restler.openapi.json", ["/identity", "/customer-accounts"], ["/identity/sign-up", "/customer-accounts/change-audits", "/customer-accounts/users/{userId}"]),
             ("admin-identity.restler.openapi.json", ["/admin-identity"], ["/admin-identity/connect/token"]),
-            ("customers.restler.openapi.json", ["/customers"], ["/customers/{customerId}/state/{state}"])
+            ("customers.restler.openapi.json", ["/customers"], ["/customers/{customerId}/state/{state}"]),
+            ("products.restler.openapi.json", ["/products"], ["/products", "/products/admin", "/products/{productId}/stock"]),
+            ("baskets.restler.openapi.json", ["/baskets"], ["/baskets/me", "/baskets/me/items"]),
+            ("orders.restler.openapi.json", ["/orders"], ["/orders/checkout", "/orders/me", "/orders"]),
+            ("payments.restler.openapi.json", ["/payments"], ["/payments/me", "/payments"])
         })
         {
             var specPath = Path.Combine(restlerSpecsDir, fileName);
@@ -992,6 +1030,10 @@ public sealed class ResourceGraphTests
             "Davids.Services.Identity",
             "Davids.Services.AdminIdentity",
             "Davids.Services.Customers",
+            "Davids.Services.Products",
+            "Davids.Services.Baskets",
+            "Davids.Services.Orders",
+            "Davids.Services.Payments",
             "Davids.APIGateway",
             "Davids.Frontend.Admin",
             "Davids.Frontend.Web"
@@ -1003,7 +1045,7 @@ public sealed class ResourceGraphTests
             .OrderBy(p => p, StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(27, allCsprojFiles.Length);
+        Assert.Equal(47, allCsprojFiles.Length);
 
         foreach (var csproj in allCsprojFiles)
         {

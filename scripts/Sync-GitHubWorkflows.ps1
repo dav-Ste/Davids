@@ -13,6 +13,10 @@ $expectedWorkflows = [ordered]@{
     'Davids.Services.Identity'      = @('codeql.yml', 'pull-request-ci.yml')
     'Davids.Services.AdminIdentity' = @('codeql.yml', 'pull-request-ci.yml')
     'Davids.Services.Customers'     = @('codeql.yml', 'pull-request-ci.yml')
+    'Davids.Services.Products'      = @('codeql.yml', 'pull-request-ci.yml')
+    'Davids.Services.Baskets'       = @('codeql.yml', 'pull-request-ci.yml')
+    'Davids.Services.Orders'        = @('codeql.yml', 'pull-request-ci.yml')
+    'Davids.Services.Payments'      = @('codeql.yml', 'pull-request-ci.yml')
     'Davids.APIGateway'             = @('codeql.yml', 'pull-request-ci.yml')
     'Davids.Frontend.Admin'         = @('codeql.yml', 'pull-request-ci.yml')
     'Davids.Frontend.Web'           = @('codeql.yml', 'pull-request-ci.yml')
@@ -150,7 +154,7 @@ if (Test-Path -LiteralPath $identityRepoPath) {
 }
 
 if ($removedCount -eq 0) {
-    Write-Host 'All 7 repositories contain only canonical lifecycle GitHub Actions workflows, .slnx solutions, and lifecycle security directories.'
+    Write-Host "All $($expectedWorkflows.Count) repositories contain only canonical lifecycle GitHub Actions workflows, .slnx solutions, and lifecycle security directories."
 } else {
-    Write-Host "Removed $removedCount superseded entry/entries. Commit and push all 7 repositories so GitHub stops running superseded workflows."
+    Write-Host "Removed $removedCount superseded entry/entries. Commit and push all $($expectedWorkflows.Count) repositories so GitHub stops running superseded workflows."
 }

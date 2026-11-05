@@ -1,0 +1,121 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Davids Baskets API",
+    "description": "Customer shopping basket endpoints isolated by verified CustomerBearer OIDC identity.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "description": "Davids YARP API Gateway",
+      "url": "http://localhost:17320"
+    }
+  ],
+  "paths": {
+    "/baskets/me": {
+      "get": {
+        "tags": [
+          "Davids.Services.Baskets.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Davids.Services.Baskets.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/baskets/me/items": {
+      "put": {
+        "tags": [
+          "Davids.Services.Baskets.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertBasketItem"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/baskets/me/items/{productId}": {
+      "delete": {
+        "tags": [
+          "Davids.Services.Baskets.Api"
+        ],
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "UpsertBasketItem": {
+        "required": [
+          "productId",
+          "quantity"
+        ],
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "description": "RS256 CustomerBearer OIDC access token (aud: davids-services).",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Davids.Services.Baskets.Api"
+    }
+  ]
+}

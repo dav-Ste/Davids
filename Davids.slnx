@@ -136,6 +136,34 @@
     <Project Path="../Davids.Services.Customers/src/Davids.Services.Customers.Api/Davids.Services.Customers.Api.csproj" />
     <Project Path="../Davids.Services.Customers/tests/Davids.Services.Customers.Tests/Davids.Services.Customers.Tests.csproj" />
   </Folder>
+  <Folder Name="/Products/">
+    <Project Path="../Davids.Services.Products/src/Davids.Services.Products.Core/Davids.Services.Products.Core.csproj" />
+    <Project Path="../Davids.Services.Products/src/Davids.Services.Products.Application/Davids.Services.Products.Application.csproj" />
+    <Project Path="../Davids.Services.Products/src/Davids.Services.Products.Infrastructure/Davids.Services.Products.Infrastructure.csproj" />
+    <Project Path="../Davids.Services.Products/src/Davids.Services.Products.Api/Davids.Services.Products.Api.csproj" />
+    <Project Path="../Davids.Services.Products/tests/Davids.Services.Products.Tests/Davids.Services.Products.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Baskets/">
+    <Project Path="../Davids.Services.Baskets/src/Davids.Services.Baskets.Core/Davids.Services.Baskets.Core.csproj" />
+    <Project Path="../Davids.Services.Baskets/src/Davids.Services.Baskets.Application/Davids.Services.Baskets.Application.csproj" />
+    <Project Path="../Davids.Services.Baskets/src/Davids.Services.Baskets.Infrastructure/Davids.Services.Baskets.Infrastructure.csproj" />
+    <Project Path="../Davids.Services.Baskets/src/Davids.Services.Baskets.Api/Davids.Services.Baskets.Api.csproj" />
+    <Project Path="../Davids.Services.Baskets/tests/Davids.Services.Baskets.Tests/Davids.Services.Baskets.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Orders/">
+    <Project Path="../Davids.Services.Orders/src/Davids.Services.Orders.Core/Davids.Services.Orders.Core.csproj" />
+    <Project Path="../Davids.Services.Orders/src/Davids.Services.Orders.Application/Davids.Services.Orders.Application.csproj" />
+    <Project Path="../Davids.Services.Orders/src/Davids.Services.Orders.Infrastructure/Davids.Services.Orders.Infrastructure.csproj" />
+    <Project Path="../Davids.Services.Orders/src/Davids.Services.Orders.Api/Davids.Services.Orders.Api.csproj" />
+    <Project Path="../Davids.Services.Orders/tests/Davids.Services.Orders.Tests/Davids.Services.Orders.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Payments/">
+    <Project Path="../Davids.Services.Payments/src/Davids.Services.Payments.Core/Davids.Services.Payments.Core.csproj" />
+    <Project Path="../Davids.Services.Payments/src/Davids.Services.Payments.Application/Davids.Services.Payments.Application.csproj" />
+    <Project Path="../Davids.Services.Payments/src/Davids.Services.Payments.Infrastructure/Davids.Services.Payments.Infrastructure.csproj" />
+    <Project Path="../Davids.Services.Payments/src/Davids.Services.Payments.Api/Davids.Services.Payments.Api.csproj" />
+    <Project Path="../Davids.Services.Payments/tests/Davids.Services.Payments.Tests/Davids.Services.Payments.Tests.csproj" />
+  </Folder>
   <Folder Name="/API-Gateway/">
     <Project Path="../Davids.APIGateway/src/Davids.APIGateway.Infrastructure/Davids.APIGateway.Infrastructure.csproj" />
     <Project Path="../Davids.APIGateway/src/Davids.APIGateway.Api/Davids.APIGateway.Api.csproj" />

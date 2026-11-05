@@ -12,6 +12,10 @@ var sql = builder.AddSqlServer("sql").WithDataVolume();
 var database = sql.AddDatabase("identitydb");
 var adminIdentityDatabase = sql.AddDatabase("adminidentitydb");
 var customersDatabase = sql.AddDatabase("customersdb");
+var productsDatabase = sql.AddDatabase("productsdb");
+var basketsDatabase = sql.AddDatabase("basketsdb");
+var ordersDatabase = sql.AddDatabase("ordersdb");
+var paymentsDatabase = sql.AddDatabase("paymentsdb");
 var rabbit = builder.AddRabbitMQ("messaging").WithDataVolume().WithManagementPlugin();
 var oidcSigningKey = builder.AddParameter("oidc-signing-key", new RsaPrivateKeyParameterDefault(), secret: true, persist: true);
 var oidcEncryptionKey = builder.AddParameter("oidc-encryption-key", new RsaPrivateKeyParameterDefault(), secret: true, persist: true);
@@ -91,6 +95,62 @@ var customers = builder.AddProject<Projects.Davids_Services_Customers_Api>("cust
     .WaitFor(adminIdentity)
     .WithHttpHealthCheck("/health");
 
+var products = builder.AddProject<Projects.Davids_Services_Products_Api>("products")
+    .WithReference(productsDatabase).WaitFor(productsDatabase)
+    .WithReference(rabbit).WaitFor(rabbit)
+    .WithEnvironment("Database__ApplyMigrations", "true")
+    .WithEnvironment("Products__SeedDefaults", "true")
+    .WithEnvironment("Messaging__Enabled", "true")
+    .WithEnvironment("CustomerOidc__Authority", ReferenceExpression.Create($"{identity.GetEndpoint("http")}"))
+    .WithEnvironment("CustomerOidc__Issuer", ReferenceExpression.Create($"{identity.GetEndpoint("http")}/"))
+    .WithEnvironment("AdminOidc__Authority", ReferenceExpression.Create($"{adminIdentity.GetEndpoint("http")}"))
+    .WithEnvironment("AdminOidc__Issuer", ReferenceExpression.Create($"{adminIdentity.GetEndpoint("http")}/"))
+    .WaitFor(identity)
+    .WaitFor(adminIdentity)
+    .WithHttpHealthCheck("/health");
+
+var baskets = builder.AddProject<Projects.Davids_Services_Baskets_Api>("baskets")
+    .WithReference(basketsDatabase).WaitFor(basketsDatabase)
+    .WithReference(rabbit).WaitFor(rabbit)
+    .WithReference(products).WaitFor(products)
+    .WithEnvironment("Database__ApplyMigrations", "true")
+    .WithEnvironment("Messaging__Enabled", "true")
+    .WithEnvironment("CustomerOidc__Authority", ReferenceExpression.Create($"{identity.GetEndpoint("http")}"))
+    .WithEnvironment("CustomerOidc__Issuer", ReferenceExpression.Create($"{identity.GetEndpoint("http")}/"))
+    .WithEnvironment("ProductsApi__BaseUrl", ReferenceExpression.Create($"{products.GetEndpoint("http")}/"))
+    .WaitFor(identity)
+    .WithHttpHealthCheck("/health");
+
+var orders = builder.AddProject<Projects.Davids_Services_Orders_Api>("orders")
+    .WithReference(ordersDatabase).WaitFor(ordersDatabase)
+    .WithReference(rabbit).WaitFor(rabbit)
+    .WithReference(products).WaitFor(products)
+    .WithReference(baskets).WaitFor(baskets)
+    .WithEnvironment("Database__ApplyMigrations", "true")
+    .WithEnvironment("Messaging__Enabled", "true")
+    .WithEnvironment("CustomerOidc__Authority", ReferenceExpression.Create($"{identity.GetEndpoint("http")}"))
+    .WithEnvironment("CustomerOidc__Issuer", ReferenceExpression.Create($"{identity.GetEndpoint("http")}/"))
+    .WithEnvironment("AdminOidc__Authority", ReferenceExpression.Create($"{adminIdentity.GetEndpoint("http")}"))
+    .WithEnvironment("AdminOidc__Issuer", ReferenceExpression.Create($"{adminIdentity.GetEndpoint("http")}/"))
+    .WithEnvironment("ProductsApi__BaseUrl", ReferenceExpression.Create($"{products.GetEndpoint("http")}/"))
+    .WithEnvironment("BasketsApi__BaseUrl", ReferenceExpression.Create($"{baskets.GetEndpoint("http")}/"))
+    .WaitFor(identity)
+    .WaitFor(adminIdentity)
+    .WithHttpHealthCheck("/health");
+
+var payments = builder.AddProject<Projects.Davids_Services_Payments_Api>("payments")
+    .WithReference(paymentsDatabase).WaitFor(paymentsDatabase)
+    .WithReference(rabbit).WaitFor(rabbit)
+    .WithEnvironment("Database__ApplyMigrations", "true")
+    .WithEnvironment("Messaging__Enabled", "true")
+    .WithEnvironment("CustomerOidc__Authority", ReferenceExpression.Create($"{identity.GetEndpoint("http")}"))
+    .WithEnvironment("CustomerOidc__Issuer", ReferenceExpression.Create($"{identity.GetEndpoint("http")}/"))
+    .WithEnvironment("AdminOidc__Authority", ReferenceExpression.Create($"{adminIdentity.GetEndpoint("http")}"))
+    .WithEnvironment("AdminOidc__Issuer", ReferenceExpression.Create($"{adminIdentity.GetEndpoint("http")}/"))
+    .WaitFor(identity)
+    .WaitFor(adminIdentity)
+    .WithHttpHealthCheck("/health");
+
 IResourceBuilder<ProjectResource>? frontendAdmin = null;
 IResourceBuilder<ProjectResource>? frontendWeb = null;
 IResourceBuilder<ProjectResource>? apiGateway = null;
@@ -103,6 +163,14 @@ if (Enabled("ApiGateway"))
     adminIdentity.WithEnvironment("Http__AllowInsecureDevelopment", "true")
         .WithEnvironment("ForwardedHeaders__TrustLoopback", "true");
     customers.WithEnvironment("Http__AllowInsecureDevelopment", "true")
+        .WithEnvironment("ForwardedHeaders__TrustLoopback", "true");
+    products.WithEnvironment("Http__AllowInsecureDevelopment", "true")
+        .WithEnvironment("ForwardedHeaders__TrustLoopback", "true");
+    baskets.WithEnvironment("Http__AllowInsecureDevelopment", "true")
+        .WithEnvironment("ForwardedHeaders__TrustLoopback", "true");
+    orders.WithEnvironment("Http__AllowInsecureDevelopment", "true")
+        .WithEnvironment("ForwardedHeaders__TrustLoopback", "true");
+    payments.WithEnvironment("Http__AllowInsecureDevelopment", "true")
         .WithEnvironment("ForwardedHeaders__TrustLoopback", "true");
 
     frontendAdmin = builder.AddProject<Projects.Davids_Frontend_Admin>("frontend-admin")
@@ -120,6 +188,14 @@ if (Enabled("ApiGateway"))
             ReferenceExpression.Create($"{adminIdentity.GetEndpoint("http")}/"))
         .WithEnvironment("ReverseProxy__Clusters__customers__Destinations__primary__Address",
             ReferenceExpression.Create($"{customers.GetEndpoint("http")}/"))
+        .WithEnvironment("ReverseProxy__Clusters__products__Destinations__primary__Address",
+            ReferenceExpression.Create($"{products.GetEndpoint("http")}/"))
+        .WithEnvironment("ReverseProxy__Clusters__baskets__Destinations__primary__Address",
+            ReferenceExpression.Create($"{baskets.GetEndpoint("http")}/"))
+        .WithEnvironment("ReverseProxy__Clusters__orders__Destinations__primary__Address",
+            ReferenceExpression.Create($"{orders.GetEndpoint("http")}/"))
+        .WithEnvironment("ReverseProxy__Clusters__payments__Destinations__primary__Address",
+            ReferenceExpression.Create($"{payments.GetEndpoint("http")}/"))
         .WithEnvironment("ReverseProxy__Clusters__frontend-admin__Destinations__primary__Address",
             ReferenceExpression.Create($"{frontendAdmin.GetEndpoint("http")}/"))
         .WithEnvironment("ReverseProxy__Clusters__frontend-web__Destinations__primary__Address",
@@ -129,6 +205,10 @@ if (Enabled("ApiGateway"))
         .WaitFor(identity)
         .WaitFor(adminIdentity)
         .WaitFor(customers)
+        .WaitFor(products)
+        .WaitFor(baskets)
+        .WaitFor(orders)
+        .WaitFor(payments)
         .WithHttpHealthCheck("/health");
 
     identity
@@ -189,6 +269,26 @@ if (Enabled("Vault"))
         .WithEnvironment("Vault__Token", rootToken)
         .WithEnvironment("Vault__KvPath", "secret/data/davids/customers")
         .WaitForCompletion(bootstrap);
+    products.WithEnvironment("Vault__Enabled", "true")
+        .WithEnvironment("Vault__Address", vault.GetEndpoint("http"))
+        .WithEnvironment("Vault__Token", rootToken)
+        .WithEnvironment("Vault__KvPath", "secret/data/davids/products")
+        .WaitForCompletion(bootstrap);
+    baskets.WithEnvironment("Vault__Enabled", "true")
+        .WithEnvironment("Vault__Address", vault.GetEndpoint("http"))
+        .WithEnvironment("Vault__Token", rootToken)
+        .WithEnvironment("Vault__KvPath", "secret/data/davids/baskets")
+        .WaitForCompletion(bootstrap);
+    orders.WithEnvironment("Vault__Enabled", "true")
+        .WithEnvironment("Vault__Address", vault.GetEndpoint("http"))
+        .WithEnvironment("Vault__Token", rootToken)
+        .WithEnvironment("Vault__KvPath", "secret/data/davids/orders")
+        .WaitForCompletion(bootstrap);
+    payments.WithEnvironment("Vault__Enabled", "true")
+        .WithEnvironment("Vault__Address", vault.GetEndpoint("http"))
+        .WithEnvironment("Vault__Token", rootToken)
+        .WithEnvironment("Vault__KvPath", "secret/data/davids/payments")
+        .WaitForCompletion(bootstrap);
     apiGateway?.WithEnvironment("Vault__Enabled", "true")
         .WithEnvironment("Vault__Address", vault.GetEndpoint("http"))
         .WithEnvironment("Vault__Token", rootToken)
@@ -225,6 +325,11 @@ if (Enabled("Jaeger"))
         .WithEnvironment("Telemetry__Jaeger__Endpoint", jaegerEndpoint);
     customers.WithEnvironment("Telemetry__Jaeger__Enabled", "true")
         .WithEnvironment("Telemetry__Jaeger__Endpoint", jaegerEndpoint);
+    foreach (var svc in new[] { products, baskets, orders, payments })
+    {
+        svc.WithEnvironment("Telemetry__Jaeger__Enabled", "true")
+            .WithEnvironment("Telemetry__Jaeger__Endpoint", jaegerEndpoint);
+    }
     apiGateway?.WithEnvironment("Telemetry__Jaeger__Enabled", "true")
         .WithEnvironment("Telemetry__Jaeger__Endpoint", jaegerEndpoint);
     frontendAdmin?.WithEnvironment("Telemetry__Jaeger__Enabled", "true")
@@ -245,6 +350,11 @@ if (Enabled("Seq"))
         .WithEnvironment("LoggingSinks__Seq__Url", seq.GetEndpoint("http"));
     customers.WithEnvironment("LoggingSinks__Seq__Enabled", "true")
         .WithEnvironment("LoggingSinks__Seq__Url", seq.GetEndpoint("http"));
+    foreach (var svc in new[] { products, baskets, orders, payments })
+    {
+        svc.WithEnvironment("LoggingSinks__Seq__Enabled", "true")
+            .WithEnvironment("LoggingSinks__Seq__Url", seq.GetEndpoint("http"));
+    }
     apiGateway?.WithEnvironment("LoggingSinks__Seq__Enabled", "true")
         .WithEnvironment("LoggingSinks__Seq__Url", seq.GetEndpoint("http"));
     frontendAdmin?.WithEnvironment("LoggingSinks__Seq__Enabled", "true")
@@ -255,6 +365,10 @@ if (Enabled("Seq"))
 identity.WithEnvironment("LoggingSinks__File__Enabled", Enabled("FileLogging").ToString());
 adminIdentity.WithEnvironment("LoggingSinks__File__Enabled", Enabled("FileLogging").ToString());
 customers.WithEnvironment("LoggingSinks__File__Enabled", Enabled("FileLogging").ToString());
+foreach (var svc in new[] { products, baskets, orders, payments })
+{
+    svc.WithEnvironment("LoggingSinks__File__Enabled", Enabled("FileLogging").ToString());
+}
 apiGateway?.WithEnvironment("LoggingSinks__File__Enabled", Enabled("FileLogging").ToString());
 frontendAdmin?.WithEnvironment("LoggingSinks__File__Enabled", Enabled("FileLogging").ToString());
 frontendWeb?.WithEnvironment("LoggingSinks__File__Enabled", Enabled("FileLogging").ToString());
@@ -271,6 +385,11 @@ if (Enabled("Prometheus"))
         .WithEnvironment("Telemetry__Prometheus__Endpoint", prometheusEndpoint);
     customers.WithEnvironment("Telemetry__Prometheus__Enabled", "true")
         .WithEnvironment("Telemetry__Prometheus__Endpoint", prometheusEndpoint);
+    foreach (var svc in new[] { products, baskets, orders, payments })
+    {
+        svc.WithEnvironment("Telemetry__Prometheus__Enabled", "true")
+            .WithEnvironment("Telemetry__Prometheus__Endpoint", prometheusEndpoint);
+    }
     apiGateway?.WithEnvironment("Telemetry__Prometheus__Enabled", "true")
         .WithEnvironment("Telemetry__Prometheus__Endpoint", prometheusEndpoint);
     frontendAdmin?.WithEnvironment("Telemetry__Prometheus__Enabled", "true")
@@ -330,6 +449,11 @@ if (Enabled("InfluxDB", false))
         .WithEnvironment("Telemetry__InfluxDB__Endpoint", influxEndpoint);
     customers.WithEnvironment("Telemetry__InfluxDB__Enabled", "true")
         .WithEnvironment("Telemetry__InfluxDB__Endpoint", influxEndpoint);
+    foreach (var svc in new[] { products, baskets, orders, payments })
+    {
+        svc.WithEnvironment("Telemetry__InfluxDB__Enabled", "true")
+            .WithEnvironment("Telemetry__InfluxDB__Endpoint", influxEndpoint);
+    }
     apiGateway?.WithEnvironment("Telemetry__InfluxDB__Enabled", "true")
         .WithEnvironment("Telemetry__InfluxDB__Endpoint", influxEndpoint);
     frontendAdmin?.WithEnvironment("Telemetry__InfluxDB__Enabled", "true")
@@ -352,6 +476,11 @@ if (Enabled("Elasticsearch", false))
         .WithEnvironment("LoggingSinks__Elasticsearch__Url", elastic.GetEndpoint("http")).WaitFor(elastic);
     customers.WithEnvironment("LoggingSinks__Elasticsearch__Enabled", "true")
         .WithEnvironment("LoggingSinks__Elasticsearch__Url", elastic.GetEndpoint("http")).WaitFor(elastic);
+    foreach (var svc in new[] { products, baskets, orders, payments })
+    {
+        svc.WithEnvironment("LoggingSinks__Elasticsearch__Enabled", "true")
+            .WithEnvironment("LoggingSinks__Elasticsearch__Url", elastic.GetEndpoint("http")).WaitFor(elastic);
+    }
     apiGateway?.WithEnvironment("LoggingSinks__Elasticsearch__Enabled", "true")
         .WithEnvironment("LoggingSinks__Elasticsearch__Url", elastic.GetEndpoint("http")).WaitFor(elastic);
     frontendAdmin?.WithEnvironment("LoggingSinks__Elasticsearch__Enabled", "true")

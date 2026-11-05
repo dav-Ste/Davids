@@ -5,7 +5,11 @@ try {
     $contexts = @(
         @{ Name = 'identity'; Project = '../Davids.Services.Identity/src/Davids.Services.Identity.Infrastructure'; Startup = '../Davids.Services.Identity/src/Davids.Services.Identity.Api'; Context = 'IdentityDbContext'; Connection = 'ConnectionStrings__identitydb' },
         @{ Name = 'admin-identity'; Project = '../Davids.Services.AdminIdentity/src/Davids.Services.AdminIdentity.Infrastructure'; Startup = '../Davids.Services.AdminIdentity/src/Davids.Services.AdminIdentity.Api'; Context = 'AdminIdentityDbContext'; Connection = 'ConnectionStrings__adminidentitydb' },
-        @{ Name = 'customers'; Project = '../Davids.Services.Customers/src/Davids.Services.Customers.Infrastructure'; Startup = '../Davids.Services.Customers/src/Davids.Services.Customers.Api'; Context = 'CustomersDbContext'; Connection = 'ConnectionStrings__customersdb' }
+        @{ Name = 'customers'; Project = '../Davids.Services.Customers/src/Davids.Services.Customers.Infrastructure'; Startup = '../Davids.Services.Customers/src/Davids.Services.Customers.Api'; Context = 'CustomersDbContext'; Connection = 'ConnectionStrings__customersdb' },
+        @{ Name = 'products'; Project = '../Davids.Services.Products/src/Davids.Services.Products.Infrastructure'; Startup = '../Davids.Services.Products/src/Davids.Services.Products.Api'; Context = 'ProductsDbContext'; Connection = 'ConnectionStrings__productsdb' },
+        @{ Name = 'baskets'; Project = '../Davids.Services.Baskets/src/Davids.Services.Baskets.Infrastructure'; Startup = '../Davids.Services.Baskets/src/Davids.Services.Baskets.Api'; Context = 'BasketsDbContext'; Connection = 'ConnectionStrings__basketsdb' },
+        @{ Name = 'orders'; Project = '../Davids.Services.Orders/src/Davids.Services.Orders.Infrastructure'; Startup = '../Davids.Services.Orders/src/Davids.Services.Orders.Api'; Context = 'OrdersDbContext'; Connection = 'ConnectionStrings__ordersdb' },
+        @{ Name = 'payments'; Project = '../Davids.Services.Payments/src/Davids.Services.Payments.Infrastructure'; Startup = '../Davids.Services.Payments/src/Davids.Services.Payments.Api'; Context = 'PaymentsDbContext'; Connection = 'ConnectionStrings__paymentsdb' }
     )
 
     if ($GenerateSql) {

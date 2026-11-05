@@ -34,7 +34,7 @@
 - macro: is_davids_dotnet_container
   condition: >
     (in_davids_namespace and
-     container.name in ("api-gateway", "identity", "admin-identity", "customers", "frontend-admin", "frontend-web"))
+     container.name in ("api-gateway", "identity", "admin-identity", "customers", "products", "baskets", "orders", "payments", "frontend-admin", "frontend-web"))
 
 - rule: Davids Dotnet Container Spawned Shell or Recon Tool
   desc: >

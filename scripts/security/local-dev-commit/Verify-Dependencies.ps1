@@ -15,6 +15,10 @@ $repos = @(
     (Join-Path $workspaceRoot 'Davids.Services.Identity'),
     (Join-Path $workspaceRoot 'Davids.Services.AdminIdentity'),
     (Join-Path $workspaceRoot 'Davids.Services.Customers'),
+    (Join-Path $workspaceRoot 'Davids.Services.Products'),
+    (Join-Path $workspaceRoot 'Davids.Services.Baskets'),
+    (Join-Path $workspaceRoot 'Davids.Services.Orders'),
+    (Join-Path $workspaceRoot 'Davids.Services.Payments'),
     (Join-Path $workspaceRoot 'Davids.APIGateway'),
     (Join-Path $workspaceRoot 'Davids.Frontend.Admin'),
     (Join-Path $workspaceRoot 'Davids.Frontend.Web')

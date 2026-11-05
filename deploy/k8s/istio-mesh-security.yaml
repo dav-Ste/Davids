@@ -243,6 +243,105 @@ spec:
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
+  name: allow-gateway-and-commerce-to-products
+  namespace: davids
+spec:
+  selector:
+    matchLabels:
+      app: products
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/davids/sa/davids-api-gateway"
+              - "cluster.local/ns/davids/sa/davids-baskets"
+              - "cluster.local/ns/davids/sa/davids-orders"
+      to:
+        - operation:
+            methods: ["GET"]
+            paths: ["/products", "/products/*"]
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/davids/sa/davids-api-gateway"
+            requestPrincipals:
+              - "*"
+      to:
+        - operation:
+            methods: ["POST", "PUT"]
+            paths: ["/products", "/products/*"]
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-gateway-and-orders-to-baskets
+  namespace: davids
+spec:
+  selector:
+    matchLabels:
+      app: baskets
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/davids/sa/davids-api-gateway"
+              - "cluster.local/ns/davids/sa/davids-orders"
+            requestPrincipals:
+              - "*"
+      to:
+        - operation:
+            methods: ["GET", "PUT", "DELETE"]
+            paths: ["/baskets/*"]
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-gateway-to-orders
+  namespace: davids
+spec:
+  selector:
+    matchLabels:
+      app: orders
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/davids/sa/davids-api-gateway"
+            requestPrincipals:
+              - "*"
+      to:
+        - operation:
+            methods: ["GET", "POST"]
+            paths: ["/orders", "/orders/*"]
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-gateway-to-payments
+  namespace: davids
+spec:
+  selector:
+    matchLabels:
+      app: payments
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/davids/sa/davids-api-gateway"
+            requestPrincipals:
+              - "*"
+      to:
+        - operation:
+            methods: ["GET"]
+            paths: ["/payments", "/payments/*"]
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
   name: allow-gateway-to-frontend-admin
   namespace: davids
 spec:

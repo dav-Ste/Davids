@@ -50,6 +50,34 @@ jobs:
           token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
           path: Davids.Services.Customers
 
+      - name: Checkout Davids.Services.Products
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Services.Products
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
+          path: Davids.Services.Products
+
+      - name: Checkout Davids.Services.Baskets
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Services.Baskets
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
+          path: Davids.Services.Baskets
+
+      - name: Checkout Davids.Services.Orders
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Services.Orders
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
+          path: Davids.Services.Orders
+
+      - name: Checkout Davids.Services.Payments
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/Davids.Services.Payments
+          token: ${{ secrets.CROSS_REPO_READ_TOKEN || github.token }}
+          path: Davids.Services.Payments
+
       - name: Checkout Davids.APIGateway
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -176,6 +204,10 @@ jobs:
               ./Davids.Services.Identity/Davids.Services.Identity.slnx \
               ./Davids.Services.AdminIdentity/Davids.Services.AdminIdentity.slnx \
               ./Davids.Services.Customers/Davids.Services.Customers.slnx \
+              ./Davids.Services.Products/Davids.Services.Products.slnx \
+              ./Davids.Services.Baskets/Davids.Services.Baskets.slnx \
+              ./Davids.Services.Orders/Davids.Services.Orders.slnx \
+              ./Davids.Services.Payments/Davids.Services.Payments.slnx \
               ./Davids.APIGateway/Davids.APIGateway.slnx \
               ./Davids.Frontend.Admin/Davids.Frontend.Admin.slnx \
               ./Davids.Frontend.Web/Davids.Frontend.Web.slnx \
@@ -188,6 +220,10 @@ jobs:
             export ConnectionStrings__identitydb="Server=127.0.0.1,1433;Database=identitydb;User Id=sa;Password=${OTP_SQL};TrustServerCertificate=True;Encrypt=True"
             export ConnectionStrings__adminidentitydb="Server=127.0.0.1,1433;Database=adminidentitydb;User Id=sa;Password=${OTP_SQL};TrustServerCertificate=True;Encrypt=True"
             export ConnectionStrings__customersdb="Server=127.0.0.1,1433;Database=customersdb;User Id=sa;Password=${OTP_SQL};TrustServerCertificate=True;Encrypt=True"
+            export ConnectionStrings__productsdb="Server=127.0.0.1,1433;Database=productsdb;User Id=sa;Password=${OTP_SQL};TrustServerCertificate=True;Encrypt=True"
+            export ConnectionStrings__basketsdb="Server=127.0.0.1,1433;Database=basketsdb;User Id=sa;Password=${OTP_SQL};TrustServerCertificate=True;Encrypt=True"
+            export ConnectionStrings__ordersdb="Server=127.0.0.1,1433;Database=ordersdb;User Id=sa;Password=${OTP_SQL};TrustServerCertificate=True;Encrypt=True"
+            export ConnectionStrings__paymentsdb="Server=127.0.0.1,1433;Database=paymentsdb;User Id=sa;Password=${OTP_SQL};TrustServerCertificate=True;Encrypt=True"
             export ConnectionStrings__cache="127.0.0.1:6379"
             export ConnectionStrings__messaging="amqp://davids:${OTP_RABBIT}@127.0.0.1:5672"
             export Redis__Enabled="true"
@@ -223,6 +259,32 @@ jobs:
             AdminOidc__Issuer="http://127.0.0.1:17325/" \
               dotnet run --no-build -c Release --project ./Davids.Services.Customers/src/Davids.Services.Customers.Api --urls http://127.0.0.1:5002 > "$RUNNER_TEMP/staging-nightly-logs/customers.log" 2>&1 &
 
+            CustomerOidc__Authority="http://127.0.0.1:5004" \
+            CustomerOidc__Issuer="http://127.0.0.1:5004/" \
+            AdminOidc__Authority="http://127.0.0.1:17325" \
+            AdminOidc__Issuer="http://127.0.0.1:17325/" \
+            Products__SeedDefaults="true" \
+              dotnet run --no-build -c Release --project ./Davids.Services.Products/src/Davids.Services.Products.Api --urls http://127.0.0.1:5006 > "$RUNNER_TEMP/staging-nightly-logs/products.log" 2>&1 &
+
+            CustomerOidc__Authority="http://127.0.0.1:5004" \
+            CustomerOidc__Issuer="http://127.0.0.1:5004/" \
+            ProductsApi__BaseUrl="http://127.0.0.1:5006/" \
+              dotnet run --no-build -c Release --project ./Davids.Services.Baskets/src/Davids.Services.Baskets.Api --urls http://127.0.0.1:5008 > "$RUNNER_TEMP/staging-nightly-logs/baskets.log" 2>&1 &
+
+            CustomerOidc__Authority="http://127.0.0.1:5004" \
+            CustomerOidc__Issuer="http://127.0.0.1:5004/" \
+            AdminOidc__Authority="http://127.0.0.1:17325" \
+            AdminOidc__Issuer="http://127.0.0.1:17325/" \
+            ProductsApi__BaseUrl="http://127.0.0.1:5006/" \
+            BasketsApi__BaseUrl="http://127.0.0.1:5008/" \
+              dotnet run --no-build -c Release --project ./Davids.Services.Orders/src/Davids.Services.Orders.Api --urls http://127.0.0.1:5010 > "$RUNNER_TEMP/staging-nightly-logs/orders.log" 2>&1 &
+
+            CustomerOidc__Authority="http://127.0.0.1:5004" \
+            CustomerOidc__Issuer="http://127.0.0.1:5004/" \
+            AdminOidc__Authority="http://127.0.0.1:17325" \
+            AdminOidc__Issuer="http://127.0.0.1:17325/" \
+              dotnet run --no-build -c Release --project ./Davids.Services.Payments/src/Davids.Services.Payments.Api --urls http://127.0.0.1:5012 > "$RUNNER_TEMP/staging-nightly-logs/payments.log" 2>&1 &
+
             dotnet run --no-build -c Release --project ./Davids.Frontend.Admin/src/Davids.Frontend.Admin --urls http://127.0.0.1:17321 > "$RUNNER_TEMP/staging-nightly-logs/frontend.log" 2>&1 &
 
             dotnet run --no-build -c Release --project ./Davids.Frontend.Web/src/Davids.Frontend.Web --urls http://127.0.0.1:17322 > "$RUNNER_TEMP/staging-nightly-logs/frontend-web.log" 2>&1 &
@@ -240,6 +302,10 @@ jobs:
               "ReverseProxy__Clusters__identity__Destinations__primary__Address=http://127.0.0.1:5004/" \
               "ReverseProxy__Clusters__admin-identity__Destinations__primary__Address=http://127.0.0.1:17325/" \
               "ReverseProxy__Clusters__customers__Destinations__primary__Address=http://127.0.0.1:5002/" \
+              "ReverseProxy__Clusters__products__Destinations__primary__Address=http://127.0.0.1:5006/" \
+              "ReverseProxy__Clusters__baskets__Destinations__primary__Address=http://127.0.0.1:5008/" \
+              "ReverseProxy__Clusters__orders__Destinations__primary__Address=http://127.0.0.1:5010/" \
+              "ReverseProxy__Clusters__payments__Destinations__primary__Address=http://127.0.0.1:5012/" \
               "ReverseProxy__Clusters__frontend-admin__Destinations__primary__Address=http://127.0.0.1:17321/" \
               "ReverseProxy__Clusters__frontend-web__Destinations__primary__Address=http://127.0.0.1:17322/" \
               dotnet run --no-build -c Release --project ./Davids.APIGateway/src/Davids.APIGateway.Api --urls http://0.0.0.0:17320 > "$RUNNER_TEMP/staging-nightly-logs/gateway.log" 2>&1 &

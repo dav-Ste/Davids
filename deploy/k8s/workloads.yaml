@@ -78,6 +78,14 @@ spec:
               value: "http://identity.davids.svc.cluster.local:8080"
             - name: AdminOidc__Authority
               value: "http://admin-identity.davids.svc.cluster.local:8080"
+            - name: ReverseProxy__Clusters__products__Destinations__primary__Address
+              value: "http://products.davids.svc.cluster.local:8080/"
+            - name: ReverseProxy__Clusters__baskets__Destinations__primary__Address
+              value: "http://baskets.davids.svc.cluster.local:8080/"
+            - name: ReverseProxy__Clusters__orders__Destinations__primary__Address
+              value: "http://orders.davids.svc.cluster.local:8080/"
+            - name: ReverseProxy__Clusters__payments__Destinations__primary__Address
+              value: "http://payments.davids.svc.cluster.local:8080/"
             - name: ReverseProxy__Clusters__frontend-web__Destinations__primary__Address
               value: "http://frontend-web.davids.svc.cluster.local:8080/"
             - name: Vault__Enabled
@@ -411,6 +419,454 @@ spec:
               value: "true"
             - name: Vault__KvPath
               value: "secret/data/davids/customers"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /alive
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: davids-products
+  namespace: davids
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: products
+  namespace: davids
+  labels:
+    app: products
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+  selector:
+    app: products
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: products
+  namespace: davids
+  annotations:
+    checkov.io/skip1: CKV_K8S_43=Immutable image digest is stamped at CD release promotion time
+  labels:
+    app: products
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: products
+  template:
+    metadata:
+      labels:
+        app: products
+        version: v1
+    spec:
+      serviceAccountName: davids-products
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: products
+          image: ghcr.io/davids/davids-services-products:1.0.0
+          imagePullPolicy: Always
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Production"
+            - name: ASPNETCORE_HTTP_PORTS
+              value: "8080"
+            - name: CustomerOidc__Authority
+              value: "http://identity.davids.svc.cluster.local:8080"
+            - name: AdminOidc__Authority
+              value: "http://admin-identity.davids.svc.cluster.local:8080"
+            - name: Vault__Enabled
+              value: "true"
+            - name: Vault__KvPath
+              value: "secret/data/davids/products"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /alive
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: davids-baskets
+  namespace: davids
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: baskets
+  namespace: davids
+  labels:
+    app: baskets
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+  selector:
+    app: baskets
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: baskets
+  namespace: davids
+  annotations:
+    checkov.io/skip1: CKV_K8S_43=Immutable image digest is stamped at CD release promotion time
+  labels:
+    app: baskets
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: baskets
+  template:
+    metadata:
+      labels:
+        app: baskets
+        version: v1
+    spec:
+      serviceAccountName: davids-baskets
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: baskets
+          image: ghcr.io/davids/davids-services-baskets:1.0.0
+          imagePullPolicy: Always
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Production"
+            - name: ASPNETCORE_HTTP_PORTS
+              value: "8080"
+            - name: CustomerOidc__Authority
+              value: "http://identity.davids.svc.cluster.local:8080"
+            - name: ProductsApi__BaseUrl
+              value: "http://products.davids.svc.cluster.local:8080/"
+            - name: Vault__Enabled
+              value: "true"
+            - name: Vault__KvPath
+              value: "secret/data/davids/baskets"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /alive
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: davids-orders
+  namespace: davids
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders
+  namespace: davids
+  labels:
+    app: orders
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+  selector:
+    app: orders
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders
+  namespace: davids
+  annotations:
+    checkov.io/skip1: CKV_K8S_43=Immutable image digest is stamped at CD release promotion time
+  labels:
+    app: orders
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: orders
+  template:
+    metadata:
+      labels:
+        app: orders
+        version: v1
+    spec:
+      serviceAccountName: davids-orders
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: orders
+          image: ghcr.io/davids/davids-services-orders:1.0.0
+          imagePullPolicy: Always
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Production"
+            - name: ASPNETCORE_HTTP_PORTS
+              value: "8080"
+            - name: CustomerOidc__Authority
+              value: "http://identity.davids.svc.cluster.local:8080"
+            - name: AdminOidc__Authority
+              value: "http://admin-identity.davids.svc.cluster.local:8080"
+            - name: ProductsApi__BaseUrl
+              value: "http://products.davids.svc.cluster.local:8080/"
+            - name: BasketsApi__BaseUrl
+              value: "http://baskets.davids.svc.cluster.local:8080/"
+            - name: Vault__Enabled
+              value: "true"
+            - name: Vault__KvPath
+              value: "secret/data/davids/orders"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /alive
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: davids-payments
+  namespace: davids
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payments
+  namespace: davids
+  labels:
+    app: payments
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+  selector:
+    app: payments
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payments
+  namespace: davids
+  annotations:
+    checkov.io/skip1: CKV_K8S_43=Immutable image digest is stamped at CD release promotion time
+  labels:
+    app: payments
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: payments
+  template:
+    metadata:
+      labels:
+        app: payments
+        version: v1
+    spec:
+      serviceAccountName: davids-payments
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: payments
+          image: ghcr.io/davids/davids-services-payments:1.0.0
+          imagePullPolicy: Always
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Production"
+            - name: ASPNETCORE_HTTP_PORTS
+              value: "8080"
+            - name: CustomerOidc__Authority
+              value: "http://identity.davids.svc.cluster.local:8080"
+            - name: AdminOidc__Authority
+              value: "http://admin-identity.davids.svc.cluster.local:8080"
+            - name: Vault__Enabled
+              value: "true"
+            - name: Vault__KvPath
+              value: "secret/data/davids/payments"
           resources:
             requests:
               cpu: 100m

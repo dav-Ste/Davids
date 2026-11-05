@@ -12,6 +12,10 @@
     <ProjectReference Include="../../../Davids.Services.Identity/src/Davids.Services.Identity.Api/Davids.Services.Identity.Api.csproj" />
     <ProjectReference Include="../../../Davids.Services.AdminIdentity/src/Davids.Services.AdminIdentity.Api/Davids.Services.AdminIdentity.Api.csproj" />
     <ProjectReference Include="../../../Davids.Services.Customers/src/Davids.Services.Customers.Api/Davids.Services.Customers.Api.csproj" />
+    <ProjectReference Include="../../../Davids.Services.Products/src/Davids.Services.Products.Api/Davids.Services.Products.Api.csproj" />
+    <ProjectReference Include="../../../Davids.Services.Baskets/src/Davids.Services.Baskets.Api/Davids.Services.Baskets.Api.csproj" />
+    <ProjectReference Include="../../../Davids.Services.Orders/src/Davids.Services.Orders.Api/Davids.Services.Orders.Api.csproj" />
+    <ProjectReference Include="../../../Davids.Services.Payments/src/Davids.Services.Payments.Api/Davids.Services.Payments.Api.csproj" />
     <ProjectReference Include="../../../Davids.APIGateway/src/Davids.APIGateway.Api/Davids.APIGateway.Api.csproj" />
     <ProjectReference Include="../../../Davids.Frontend.Admin/src/Davids.Frontend.Admin/Davids.Frontend.Admin.csproj" />
     <ProjectReference Include="../../../Davids.Frontend.Web/src/Davids.Frontend.Web/Davids.Frontend.Web.csproj" />
