@@ -201,6 +201,38 @@ public sealed class ResourceGraphTests
             Assert.DoesNotContain(resourceEnv.Keys, k => k.Contains("BffClientSecret", StringComparison.OrdinalIgnoreCase));
         }
 
+        // Verify every ValidateAndResolveStaticPublicKey("<Section>") in a resource server's Infrastructure/Api code has a matching <Section>__Authority injected by AppHost.
+        var appHostWorkspaceRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+        var oidcSectionCallRegex = new Regex(@"ValidateAndResolveStaticPublicKey\s*\(\s*""([^""]+)""\s*\)", RegexOptions.Compiled);
+        foreach (var (resourceName, repoFolder, servicePrefix, envMap) in new[]
+        {
+            ("customers", "Davids.Services.Customers", "Davids.Services.Customers", customersEnv),
+            ("products", "Davids.Services.Products", "Davids.Services.Products", productsEnv),
+            ("baskets", "Davids.Services.Baskets", "Davids.Services.Baskets", basketsEnv),
+            ("orders", "Davids.Services.Orders", "Davids.Services.Orders", ordersEnv),
+            ("payments", "Davids.Services.Payments", "Davids.Services.Payments", paymentsEnv)
+        })
+        {
+            var filesToCheck = new[]
+            {
+                Path.Combine(appHostWorkspaceRoot, repoFolder, "src", $"{servicePrefix}.Infrastructure", "Extensions.cs"),
+                Path.Combine(appHostWorkspaceRoot, repoFolder, "src", $"{servicePrefix}.Api", "Program.cs")
+            };
+
+            foreach (var sourceFile in filesToCheck)
+            {
+                var sourceText = File.ReadAllText(sourceFile);
+                foreach (Match match in oidcSectionCallRegex.Matches(sourceText))
+                {
+                    var section = match.Groups[1].Value;
+                    var expectedEnvKey = $"{section}__Authority";
+                    Assert.True(
+                        envMap.ContainsKey(expectedEnvKey),
+                        $"Service '{resourceName}' validates '{section}' in '{Path.GetFileName(sourceFile)}', so Davids.AppHost must inject '{expectedEnvKey}' (otherwise Add*Infrastructure throws InvalidOperationException on startup in Visual Studio).");
+                }
+            }
+        }
+
         Assert.True(identityEnv.ContainsKey("Oidc__Issuer"));
         Assert.True(identityEnv.ContainsKey("AdminOidc__Authority"));
         Assert.True(identityEnv.ContainsKey("Oidc__GatewayRedirectUri"));

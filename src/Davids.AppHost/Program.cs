@@ -99,7 +99,7 @@ var products = builder.AddProject<Projects.Davids_Services_Products_Api>("produc
     .WithReference(productsDatabase).WaitFor(productsDatabase)
     .WithReference(rabbit).WaitFor(rabbit)
     .WithEnvironment("Database__ApplyMigrations", "true")
-    .WithEnvironment("Products__SeedDefaults", "true")
+    .WithEnvironment("SeedProducts__Enabled", "true")
     .WithEnvironment("Messaging__Enabled", "true")
     .WithEnvironment("CustomerOidc__Authority", ReferenceExpression.Create($"{identity.GetEndpoint("http")}"))
     .WithEnvironment("CustomerOidc__Issuer", ReferenceExpression.Create($"{identity.GetEndpoint("http")}/"))

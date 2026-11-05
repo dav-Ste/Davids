@@ -258,7 +258,7 @@ jobs:
             CustomerOidc__Issuer="http://127.0.0.1:5004/" \
             AdminOidc__Authority="http://127.0.0.1:17325" \
             AdminOidc__Issuer="http://127.0.0.1:17325/" \
-            Products__SeedDefaults="true" \
+            SeedProducts__Enabled="true" \
               dotnet run --no-build -c Release --project ./Davids.Services.Products/src/Davids.Services.Products.Api --urls http://127.0.0.1:5006 > "$RUNNER_TEMP/quarterly-release-logs/products.log" 2>&1 &
 
             CustomerOidc__Authority="http://127.0.0.1:5004" \
