@@ -22,6 +22,8 @@
             "name": "search",
             "in": "query",
             "schema": {
+              "maxLength": 100,
+              "pattern": "^[^\\u0000]*$",
               "type": "string"
             }
           },
@@ -29,6 +31,8 @@
             "name": "category",
             "in": "query",
             "schema": {
+              "maxLength": 60,
+              "pattern": "^[^\\u0000]*$",
               "type": "string"
             }
           },
@@ -36,6 +40,8 @@
             "name": "limit",
             "in": "query",
             "schema": {
+              "maximum": 200,
+              "minimum": 1,
               "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
@@ -44,7 +50,23 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
           }
         }
       },
@@ -63,10 +85,37 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing or invalid RS256 Bearer access token."
+          },
+          "403": {
+            "description": "Caller lacks workforce permission for this catalog resource."
           }
-        }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
       }
     },
     "/products/{productId}": {
@@ -87,7 +136,23 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
           }
         }
       },
@@ -118,9 +183,36 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing or invalid RS256 Bearer access token."
+          },
+          "403": {
+            "description": "Caller lacks workforce permission for this catalog resource."
           }
-        }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
       }
     },
     "/products/admin": {
@@ -133,6 +225,8 @@
             "name": "search",
             "in": "query",
             "schema": {
+              "maxLength": 100,
+              "pattern": "^[^\\u0000]*$",
               "type": "string"
             }
           },
@@ -140,6 +234,8 @@
             "name": "category",
             "in": "query",
             "schema": {
+              "maxLength": 60,
+              "pattern": "^[^\\u0000]*$",
               "type": "string"
             }
           },
@@ -147,6 +243,8 @@
             "name": "limit",
             "in": "query",
             "schema": {
+              "maximum": 500,
+              "minimum": 1,
               "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
@@ -155,9 +253,36 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing or invalid RS256 Bearer access token."
+          },
+          "403": {
+            "description": "Caller lacks workforce permission for this catalog resource."
           }
-        }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
       }
     },
     "/products/admin/{productId}": {
@@ -178,9 +303,36 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing or invalid RS256 Bearer access token."
+          },
+          "403": {
+            "description": "Caller lacks workforce permission for this catalog resource."
           }
-        }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
       }
     },
     "/products/{productId}/stock": {
@@ -211,9 +363,39 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing or invalid RS256 Bearer access token."
+          },
+          "403": {
+            "description": "Caller lacks workforce permission for this catalog resource."
           }
-        }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
       }
     },
     "/products/change-audits": {
@@ -234,6 +416,8 @@
             "name": "limit",
             "in": "query",
             "schema": {
+              "maximum": 500,
+              "minimum": 1,
               "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
@@ -242,9 +426,36 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductChangeAuditDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing or invalid RS256 Bearer access token."
+          },
+          "403": {
+            "description": "Caller lacks workforce permission for this catalog resource."
           }
-        }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
       }
     }
   },
@@ -257,11 +468,15 @@
         "type": "object",
         "properties": {
           "delta": {
+            "maximum": 1000,
+            "minimum": -1000,
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": "integer",
             "format": "int32"
           },
           "reason": {
+            "maxLength": 200,
+            "pattern": "^[^\\u0000]*$",
             "type": "string",
             "nullable": true
           }
@@ -274,11 +489,137 @@
           "description",
           "category",
           "price",
-          "currency",
           "stockQuantity"
         ],
         "type": "object",
         "properties": {
+          "sku": {
+            "maxLength": 32,
+            "minLength": 3,
+            "pattern": "^[A-Z0-9][A-Z0-9\\-]{2,31}$",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 2,
+            "pattern": "^[^\\u0000]*\\S[^\\u0000]*\\S[^\\u0000]*$",
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 1000,
+            "minLength": 4,
+            "pattern": "^[^\\u0000]*\\S[^\\u0000]*\\S[^\\u0000]*$",
+            "type": "string"
+          },
+          "category": {
+            "maxLength": 60,
+            "minLength": 2,
+            "pattern": "^[^\\u0000]*\\S[^\\u0000]*\\S[^\\u0000]*$",
+            "type": "string"
+          },
+          "price": {
+            "maximum": 1000000,
+            "minimum": 0.01,
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": "number",
+            "format": "double"
+          },
+          "currency": {
+            "maxLength": 3,
+            "minLength": 3,
+            "pattern": "^[A-Z]{3}$",
+            "type": "string",
+            "nullable": true
+          },
+          "stockQuantity": {
+            "maximum": 1000000,
+            "minimum": 0,
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": "integer",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "ProductChangeAuditDto": {
+        "required": [
+          "id",
+          "productId",
+          "productSku",
+          "action",
+          "actorSub",
+          "actorEmail",
+          "actorRole",
+          "actorAuthority",
+          "changedFieldsJson",
+          "correlationId",
+          "occurredAtUtc"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productSku": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "actorSub": {
+            "type": "string"
+          },
+          "actorEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorRole": {
+            "type": "string"
+          },
+          "actorAuthority": {
+            "type": "string"
+          },
+          "changedFieldsJson": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "occurredAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ProductDto": {
+        "required": [
+          "id",
+          "sku",
+          "name",
+          "description",
+          "category",
+          "price",
+          "currency",
+          "stockQuantity",
+          "isActive",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
           "sku": {
             "type": "string"
           },
@@ -297,8 +638,7 @@
             "format": "double"
           },
           "currency": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "stockQuantity": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -306,8 +646,15 @@
             "format": "int32"
           },
           "isActive": {
-            "type": "boolean",
-            "default": true
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -317,31 +664,46 @@
           "description",
           "category",
           "price",
-          "currency",
           "stockQuantity",
           "isActive"
         ],
         "type": "object",
         "properties": {
           "name": {
+            "maxLength": 120,
+            "minLength": 2,
+            "pattern": "^[^\\u0000]*\\S[^\\u0000]*\\S[^\\u0000]*$",
             "type": "string"
           },
           "description": {
+            "maxLength": 1000,
+            "minLength": 4,
+            "pattern": "^[^\\u0000]*\\S[^\\u0000]*\\S[^\\u0000]*$",
             "type": "string"
           },
           "category": {
+            "maxLength": 60,
+            "minLength": 2,
+            "pattern": "^[^\\u0000]*\\S[^\\u0000]*\\S[^\\u0000]*$",
             "type": "string"
           },
           "price": {
+            "maximum": 1000000,
+            "minimum": 0.01,
             "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
             "type": "number",
             "format": "double"
           },
           "currency": {
+            "maxLength": 3,
+            "minLength": 3,
+            "pattern": "^[A-Z]{3}$",
             "type": "string",
             "nullable": true
           },
           "stockQuantity": {
+            "maximum": 1000000,
+            "minimum": 0,
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": "integer",
             "format": "int32"

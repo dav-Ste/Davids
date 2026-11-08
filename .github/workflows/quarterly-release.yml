@@ -310,9 +310,14 @@ jobs:
               if curl -fsS http://127.0.0.1:17320/gateway-info >/dev/null 2>&1 && \
                  curl -fsS http://127.0.0.1:17320/login >/dev/null 2>&1 && \
                  curl -fsS http://127.0.0.1:17320/portal/login >/dev/null 2>&1 && \
+                 curl -fsS http://127.0.0.1:17320/products >/dev/null 2>&1 && \
                  curl -fsS http://127.0.0.1:17320/identity/.well-known/openid-configuration >/dev/null 2>&1 && \
                  curl -fsS http://127.0.0.1:17320/admin-identity/.well-known/openid-configuration >/dev/null 2>&1 && \
-                 curl -fsS http://127.0.0.1:5002/health >/dev/null 2>&1; then
+                 curl -fsS http://127.0.0.1:5002/health >/dev/null 2>&1 && \
+                 curl -fsS http://127.0.0.1:5006/health >/dev/null 2>&1 && \
+                 curl -fsS http://127.0.0.1:5008/health >/dev/null 2>&1 && \
+                 curl -fsS http://127.0.0.1:5010/health >/dev/null 2>&1 && \
+                 curl -fsS http://127.0.0.1:5012/health >/dev/null 2>&1; then
                 STACK_READY=1
                 break
               fi
@@ -320,7 +325,7 @@ jobs:
             done
             if [ "$STACK_READY" -ne 1 ]; then
               {
-                echo "ERROR: Ephemeral 5-service Davids stack failed readiness check within 90 seconds."
+                echo "ERROR: Ephemeral 10-service Davids stack failed readiness check within 90 seconds."
                 for logf in "$RUNNER_TEMP/quarterly-release-logs/"*.log; do
                   echo "===== $logf ====="
                   cat "$logf" || true

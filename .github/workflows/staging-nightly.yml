@@ -12,7 +12,7 @@ jobs:
   staging-nightly-dast-suite:
     name: Dastardly (Burp DAST) + Schemathesis OpenAPI Fuzzing + Nuclei Regression
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     permissions:
       contents: read
       security-events: write
@@ -333,7 +333,11 @@ jobs:
                  curl -fsS http://127.0.0.1:17320/portal/login >/dev/null 2>&1 && \
                  curl -fsS http://127.0.0.1:17320/identity/.well-known/openid-configuration >/dev/null 2>&1 && \
                  curl -fsS http://127.0.0.1:17320/admin-identity/.well-known/openid-configuration >/dev/null 2>&1 && \
-                 curl -fsS http://127.0.0.1:5002/health >/dev/null 2>&1; then
+                 curl -fsS http://127.0.0.1:5002/health >/dev/null 2>&1 && \
+                 curl -fsS http://127.0.0.1:5006/health >/dev/null 2>&1 && \
+                 curl -fsS http://127.0.0.1:5008/health >/dev/null 2>&1 && \
+                 curl -fsS http://127.0.0.1:5010/health >/dev/null 2>&1 && \
+                 curl -fsS http://127.0.0.1:5012/health >/dev/null 2>&1; then
                 STACK_READY=1
                 break
               fi
@@ -341,7 +345,7 @@ jobs:
             done
             if [ "$STACK_READY" -ne 1 ]; then
               {
-                echo "ERROR: Ephemeral 5-service Davids stack failed readiness check within 90 seconds."
+                echo "ERROR: Ephemeral 7-API Davids stack failed readiness check within 90 seconds."
                 for logf in "$RUNNER_TEMP/staging-nightly-logs/"*.log; do
                   echo "===== $logf ====="
                   cat "$logf" || true
@@ -350,11 +354,12 @@ jobs:
               exit 1
             fi
 
-            pwsh -NoProfile -Command "& ./Davids/scripts/security/staging-nightly/Export-OpenApiSpecs.ps1 -VerifyOnly"
             GATEWAY_URL="http://localhost:17320"
             DOCKER_BRIDGE_IP="$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}')"
             DASTARDLY_URL="http://${DOCKER_BRIDGE_IP}:17320"
           fi
+
+          pwsh -NoProfile -Command "& ./Davids/scripts/security/staging-nightly/Export-OpenApiSpecs.ps1 -VerifyOnly -RealmOutputDirectory './Davids/TestResults/staging-nightly/realm-openapi'"
 
           echo "gateway_url=$GATEWAY_URL" >> "$GITHUB_OUTPUT"
           echo "dastardly_url=$DASTARDLY_URL" >> "$GITHUB_OUTPUT"
@@ -465,6 +470,46 @@ jobs:
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
               fh.write(f"customer_bearer=Bearer {cust_tok}\n")
 
+          # Seed one live basket + completed RabbitMQ saga order + fresh basket item so Orders,
+          # Payments, and Baskets fuzzing exercise live persisted domain aggregates as well.
+          try:
+              with urllib.request.urlopen(f"{gw}/products") as presp:
+                  prods = json.loads(presp.read().decode())
+              if prods:
+                  pid = prods[0]["id"]
+                  def put_basket(qty):
+                      breq = urllib.request.Request(
+                          f"{gw}/baskets/me/items",
+                          data=json.dumps({"productId": pid, "quantity": qty}).encode(),
+                          headers={"Authorization": f"Bearer {cust_tok}", "Content-Type": "application/json"},
+                          method="PUT",
+                      )
+                      urllib.request.urlopen(breq).read()
+                  put_basket(1)
+                  oreq = urllib.request.Request(
+                      f"{gw}/orders/checkout",
+                      data=json.dumps({
+                          "shippingFullName": "Staging Security Runner",
+                          "shippingAddress": "100 Clyde Walkway, Glasgow G1 1AA",
+                          "paymentMethod": "card",
+                          "cardLast4": "4242",
+                      }).encode(),
+                      headers={"Authorization": f"Bearer {cust_tok}", "Content-Type": "application/json"},
+                      method="POST",
+                  )
+                  urllib.request.urlopen(oreq).read()
+                  import time
+                  for _ in range(20):
+                      with urllib.request.urlopen(
+                          urllib.request.Request(f"{gw}/payments/me", headers={"Authorization": f"Bearer {cust_tok}"})
+                      ) as payresp:
+                          if json.loads(payresp.read().decode()):
+                              break
+                      time.sleep(0.5)
+                  put_basket(1)
+          except Exception as seed_err:
+              print(f"Note: optional e-commerce fixture seed skipped ({seed_err})")
+
           if admin_email and admin_pass and bff_secret:
               adm_tok = mint_pkce(
                   "admin-identity",
@@ -480,7 +525,7 @@ jobs:
                   fh.write(f"admin_bearer=Bearer {adm_tok}\n")
           PY
 
-      - name: Schemathesis Unauthenticated Boundary Fuzzing (Identity, AdminIdentity, Customers)
+      - name: Schemathesis Unauthenticated Boundary Fuzzing (All 7 OpenAPI Contracts)
         shell: pwsh
         working-directory: ./Davids
         run: |
@@ -494,61 +539,87 @@ jobs:
         uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
         with:
           version: "4.32.6"
-          schema: "./Davids/security/staging-nightly/openapi/identity.gateway.openapi.json"
+          schema: "./Davids/TestResults/staging-nightly/realm-openapi/identity-customer.openapi.json"
           base-url: ${{ steps.target.outputs.gateway_url }}
           config-file: "./Davids/security/staging-nightly/schemathesis/schemathesis.toml"
           authorization: ${{ steps.target.outputs.customer_bearer }}
           coverage-report-path: "./Davids/TestResults/staging-nightly/coverage-identity.html"
           coverage-artifact-name: "schemathesis-coverage-identity"
           coverage-pr-comment: "false"
-          args: "--include-path-regex ^/identity/ --report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-identity.junit.xml --warnings off"
-
-      - name: Schemathesis Authenticated Customer OIDC RS256 + Stateful Fuzzing (Customers POST)
-        uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
-        with:
-          version: "4.32.6"
-          schema: "./Davids/security/staging-nightly/openapi/customers.gateway.openapi.json"
-          base-url: ${{ steps.target.outputs.gateway_url }}
-          config-file: "./Davids/security/staging-nightly/schemathesis/schemathesis.toml"
-          authorization: ${{ steps.target.outputs.customer_bearer }}
-          coverage-report-path: "./Davids/TestResults/staging-nightly/coverage-customers-user.html"
-          coverage-artifact-name: "schemathesis-coverage-customers-user"
-          coverage-pr-comment: "false"
-          args: "--include-method POST --report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-customers-user.junit.xml --warnings off"
+          args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-identity.junit.xml --warnings off"
 
       - name: Schemathesis Authenticated Customer OIDC RS256 + Stateful Fuzzing (Customers Self-Service)
         uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
         with:
           version: "4.32.6"
-          schema: "./Davids/security/staging-nightly/openapi/customers.gateway.openapi.json"
+          schema: "./Davids/TestResults/staging-nightly/realm-openapi/customers-customer.openapi.json"
           base-url: ${{ steps.target.outputs.gateway_url }}
           config-file: "./Davids/security/staging-nightly/schemathesis/schemathesis.toml"
           authorization: ${{ steps.target.outputs.customer_bearer }}
-          coverage-report-path: "./Davids/TestResults/staging-nightly/coverage-customers-me.html"
-          coverage-artifact-name: "schemathesis-coverage-customers-me"
+          coverage-report-path: "./Davids/TestResults/staging-nightly/coverage-customers-customer.html"
+          coverage-artifact-name: "schemathesis-coverage-customers-customer"
           coverage-pr-comment: "false"
-          args: "--include-path /customers/me --report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-customers-me.junit.xml --warnings off"
+          args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-customers-customer.junit.xml --warnings off"
+
+      - name: Schemathesis Authenticated Customer OIDC RS256 + Stateful Fuzzing (Baskets)
+        uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
+        with:
+          version: "4.32.6"
+          schema: "./Davids/TestResults/staging-nightly/realm-openapi/baskets-customer.openapi.json"
+          base-url: ${{ steps.target.outputs.gateway_url }}
+          config-file: "./Davids/security/staging-nightly/schemathesis/schemathesis.toml"
+          authorization: ${{ steps.target.outputs.customer_bearer }}
+          coverage-report-path: "./Davids/TestResults/staging-nightly/coverage-baskets-customer.html"
+          coverage-artifact-name: "schemathesis-coverage-baskets-customer"
+          coverage-pr-comment: "false"
+          args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-baskets-customer.junit.xml --warnings off"
+
+      - name: Schemathesis Authenticated Customer OIDC RS256 + Stateful Fuzzing (Orders Customer)
+        uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
+        with:
+          version: "4.32.6"
+          schema: "./Davids/TestResults/staging-nightly/realm-openapi/orders-customer.openapi.json"
+          base-url: ${{ steps.target.outputs.gateway_url }}
+          config-file: "./Davids/security/staging-nightly/schemathesis/schemathesis.toml"
+          authorization: ${{ steps.target.outputs.customer_bearer }}
+          coverage-report-path: "./Davids/TestResults/staging-nightly/coverage-orders-customer.html"
+          coverage-artifact-name: "schemathesis-coverage-orders-customer"
+          coverage-pr-comment: "false"
+          args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-orders-customer.junit.xml --warnings off"
+
+      - name: Schemathesis Authenticated Customer OIDC RS256 Fuzzing (Payments Customer)
+        uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
+        with:
+          version: "4.32.6"
+          schema: "./Davids/TestResults/staging-nightly/realm-openapi/payments-customer.openapi.json"
+          base-url: ${{ steps.target.outputs.gateway_url }}
+          config-file: "./Davids/security/staging-nightly/schemathesis/schemathesis.toml"
+          authorization: ${{ steps.target.outputs.customer_bearer }}
+          coverage-report-path: "./Davids/TestResults/staging-nightly/coverage-payments-customer.html"
+          coverage-artifact-name: "schemathesis-coverage-payments-customer"
+          coverage-pr-comment: "false"
+          args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-payments-customer.junit.xml --warnings off"
 
       - name: Schemathesis Authenticated Admin OIDC RS256 Fuzzing (Customer Accounts)
         if: steps.target.outputs.admin_bearer != ''
         uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
         with:
           version: "4.32.6"
-          schema: "./Davids/security/staging-nightly/openapi/identity.gateway.openapi.json"
+          schema: "./Davids/TestResults/staging-nightly/realm-openapi/customer-accounts-admin.openapi.json"
           base-url: ${{ steps.target.outputs.gateway_url }}
           config-file: "./Davids/security/staging-nightly/schemathesis/schemathesis.toml"
           authorization: ${{ steps.target.outputs.admin_bearer }}
           coverage-report-path: "./Davids/TestResults/staging-nightly/coverage-customer-accounts-admin.html"
           coverage-artifact-name: "schemathesis-coverage-customer-accounts-admin"
           coverage-pr-comment: "false"
-          args: "--include-path-regex ^/customer-accounts/ --report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-customer-accounts-admin.junit.xml --warnings off"
+          args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-customer-accounts-admin.junit.xml --warnings off"
 
       - name: Schemathesis Authenticated Admin OIDC RS256 Fuzzing (AdminIdentity)
         if: steps.target.outputs.admin_bearer != ''
         uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
         with:
           version: "4.32.6"
-          schema: "./Davids/security/staging-nightly/openapi/admin-identity.gateway.openapi.json"
+          schema: "./Davids/TestResults/staging-nightly/realm-openapi/admin-identity-admin.openapi.json"
           base-url: ${{ steps.target.outputs.gateway_url }}
           config-file: "./Davids/security/staging-nightly/schemathesis/schemathesis.toml"
           authorization: ${{ steps.target.outputs.admin_bearer }}
@@ -562,14 +633,56 @@ jobs:
         uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
         with:
           version: "4.32.6"
-          schema: "./Davids/security/staging-nightly/openapi/customers.gateway.openapi.json"
+          schema: "./Davids/TestResults/staging-nightly/realm-openapi/customers-admin.openapi.json"
           base-url: ${{ steps.target.outputs.gateway_url }}
           config-file: "./Davids/security/staging-nightly/schemathesis/schemathesis.toml"
           authorization: ${{ steps.target.outputs.admin_bearer }}
           coverage-report-path: "./Davids/TestResults/staging-nightly/coverage-customers-admin.html"
           coverage-artifact-name: "schemathesis-coverage-customers-admin"
           coverage-pr-comment: "false"
-          args: "--exclude-method POST --exclude-path /customers/me --report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-customers-admin.junit.xml --warnings off"
+          args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-customers-admin.junit.xml --warnings off"
+
+      - name: Schemathesis Authenticated Admin OIDC RS256 + Stateful Fuzzing (Products Catalog)
+        if: steps.target.outputs.admin_bearer != ''
+        uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
+        with:
+          version: "4.32.6"
+          schema: "./Davids/TestResults/staging-nightly/realm-openapi/products-admin.openapi.json"
+          base-url: ${{ steps.target.outputs.gateway_url }}
+          config-file: "./Davids/security/staging-nightly/schemathesis/schemathesis.toml"
+          authorization: ${{ steps.target.outputs.admin_bearer }}
+          coverage-report-path: "./Davids/TestResults/staging-nightly/coverage-products-admin.html"
+          coverage-artifact-name: "schemathesis-coverage-products-admin"
+          coverage-pr-comment: "false"
+          args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-products-admin.junit.xml --warnings off"
+
+      - name: Schemathesis Authenticated Admin OIDC RS256 Fuzzing (Orders Admin)
+        if: steps.target.outputs.admin_bearer != ''
+        uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
+        with:
+          version: "4.32.6"
+          schema: "./Davids/TestResults/staging-nightly/realm-openapi/orders-admin.openapi.json"
+          base-url: ${{ steps.target.outputs.gateway_url }}
+          config-file: "./Davids/security/staging-nightly/schemathesis/schemathesis.toml"
+          authorization: ${{ steps.target.outputs.admin_bearer }}
+          coverage-report-path: "./Davids/TestResults/staging-nightly/coverage-orders-admin.html"
+          coverage-artifact-name: "schemathesis-coverage-orders-admin"
+          coverage-pr-comment: "false"
+          args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-orders-admin.junit.xml --warnings off"
+
+      - name: Schemathesis Authenticated Admin OIDC RS256 Fuzzing (Payments Admin)
+        if: steps.target.outputs.admin_bearer != ''
+        uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
+        with:
+          version: "4.32.6"
+          schema: "./Davids/TestResults/staging-nightly/realm-openapi/payments-admin.openapi.json"
+          base-url: ${{ steps.target.outputs.gateway_url }}
+          config-file: "./Davids/security/staging-nightly/schemathesis/schemathesis.toml"
+          authorization: ${{ steps.target.outputs.admin_bearer }}
+          coverage-report-path: "./Davids/TestResults/staging-nightly/coverage-payments-admin.html"
+          coverage-artifact-name: "schemathesis-coverage-payments-admin"
+          coverage-pr-comment: "false"
+          args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-payments-admin.junit.xml --warnings off"
 
       - name: ProjectDiscovery Nuclei Posture Assertions & Vulnerability Regression
         shell: pwsh

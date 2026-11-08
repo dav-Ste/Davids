@@ -8,6 +8,7 @@ param(
     [string]$BasketsDirectUrl = 'http://localhost:5008',
     [string]$OrdersDirectUrl = 'http://localhost:5010',
     [string]$PaymentsDirectUrl = 'http://localhost:5012',
+    [string]$RealmOutputDirectory = '',
     [switch]$VerifyOnly
 )
 
@@ -223,6 +224,98 @@ if ($VerifyOnly) {
         }
 
         Write-Host "Verified RESTler OpenAPI 3.0.3 contract: $($target.RestlerSpecFile) ($($restlerPaths.Count) paths)"
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($RealmOutputDirectory)) {
+        New-Item -ItemType Directory -Path $RealmOutputDirectory -Force | Out-Null
+        $resolvedRealmDir = (Resolve-Path -LiteralPath $RealmOutputDirectory).Path
+        $utf8NoBomRealm = [System.Text.UTF8Encoding]::new($false)
+        $httpVerbs = @('get', 'post', 'put', 'patch', 'delete', 'head', 'options')
+
+        function Count-OpenApiOperations([System.Collections.IDictionary]$PathsMap) {
+            $count = 0
+            foreach ($pEntry in $PathsMap.GetEnumerator()) {
+                foreach ($mKey in $pEntry.Value.Keys) {
+                    if ($httpVerbs -contains ([string]$mKey).ToLowerInvariant()) {
+                        $count++
+                    }
+                }
+            }
+            return $count
+        }
+
+        function Write-RealmSlice {
+            param(
+                [string]$SourceSpecName,
+                [string]$OutputFileName,
+                [string]$RealmTitleSuffix,
+                [scriptblock]$FilterOperation
+            )
+
+            $srcPath = Join-Path $openApiDir $SourceSpecName
+            $spec = Get-Content -LiteralPath $srcPath -Raw | ConvertFrom-Json -AsHashtable
+            $slicedPaths = [ordered]@{}
+            foreach ($pEntry in $spec['paths'].GetEnumerator()) {
+                $pathKey = [string]$pEntry.Key
+                $slicedOps = [ordered]@{}
+                foreach ($opEntry in $pEntry.Value.GetEnumerator()) {
+                    $verb = ([string]$opEntry.Key).ToLowerInvariant()
+                    if ($httpVerbs -notcontains $verb) {
+                        $slicedOps[$opEntry.Key] = $opEntry.Value
+                        continue
+                    }
+                    if (& $FilterOperation $pathKey $verb) {
+                        $slicedOps[$opEntry.Key] = $opEntry.Value
+                    }
+                }
+                $hasHttpVerb = $false
+                foreach ($k in $slicedOps.Keys) {
+                    if ($httpVerbs -contains ([string]$k).ToLowerInvariant()) {
+                        $hasHttpVerb = $true
+                        break
+                    }
+                }
+                if ($hasHttpVerb) {
+                    $slicedPaths[$pathKey] = $slicedOps
+                }
+            }
+
+            $opCount = Count-OpenApiOperations -PathsMap $slicedPaths
+            if ($opCount -eq 0) {
+                throw "Realm OpenAPI slice '$OutputFileName' from '$SourceSpecName' produced zero operations."
+            }
+
+            $spec['paths'] = $slicedPaths
+            $spec['info']['title'] = "$($spec['info']['title']) ($RealmTitleSuffix)"
+            $destPath = Join-Path $resolvedRealmDir $OutputFileName
+            [System.IO.File]::WriteAllText($destPath, "$(($spec | ConvertTo-Json -Depth 100))`n", $utf8NoBomRealm)
+            Write-Host "Emitted realm OpenAPI 3.1 contract: $destPath ($opCount operations)"
+            return $opCount
+        }
+
+        $canonicalOpsTotal = 0
+        foreach ($target in $targets) {
+            $doc = Get-Content -LiteralPath $target.OutputFile -Raw | ConvertFrom-Json -AsHashtable
+            $canonicalOpsTotal += (Count-OpenApiOperations -PathsMap $doc['paths'])
+        }
+
+        $emittedOpsTotal = 0
+        $emittedOpsTotal += Write-RealmSlice -SourceSpecName 'identity.gateway.openapi.json' -OutputFileName 'identity-customer.openapi.json' -RealmTitleSuffix 'Customer OIDC Realm' -FilterOperation { param($p, $v) $p -eq '/identity' -or $p.StartsWith('/identity/') }
+        $emittedOpsTotal += Write-RealmSlice -SourceSpecName 'identity.gateway.openapi.json' -OutputFileName 'customer-accounts-admin.openapi.json' -RealmTitleSuffix 'Workforce Admin Realm' -FilterOperation { param($p, $v) $p -eq '/customer-accounts' -or $p.StartsWith('/customer-accounts/') }
+        $emittedOpsTotal += Write-RealmSlice -SourceSpecName 'admin-identity.gateway.openapi.json' -OutputFileName 'admin-identity-admin.openapi.json' -RealmTitleSuffix 'Workforce Admin Realm' -FilterOperation { param($p, $v) $true }
+        $emittedOpsTotal += Write-RealmSlice -SourceSpecName 'customers.gateway.openapi.json' -OutputFileName 'customers-customer.openapi.json' -RealmTitleSuffix 'Customer Self-Service Realm' -FilterOperation { param($p, $v) $p -eq '/customers/me' -or ($p -eq '/customers' -and $v -eq 'post') }
+        $emittedOpsTotal += Write-RealmSlice -SourceSpecName 'customers.gateway.openapi.json' -OutputFileName 'customers-admin.openapi.json' -RealmTitleSuffix 'Workforce Admin Realm' -FilterOperation { param($p, $v) $p -ne '/customers/me' -and -not ($p -eq '/customers' -and $v -eq 'post') }
+        $emittedOpsTotal += Write-RealmSlice -SourceSpecName 'products.gateway.openapi.json' -OutputFileName 'products-admin.openapi.json' -RealmTitleSuffix 'Public + Workforce Catalog Realm' -FilterOperation { param($p, $v) $true }
+        $emittedOpsTotal += Write-RealmSlice -SourceSpecName 'baskets.gateway.openapi.json' -OutputFileName 'baskets-customer.openapi.json' -RealmTitleSuffix 'Customer Basket Realm' -FilterOperation { param($p, $v) $true }
+        $emittedOpsTotal += Write-RealmSlice -SourceSpecName 'orders.gateway.openapi.json' -OutputFileName 'orders-customer.openapi.json' -RealmTitleSuffix 'Customer Orders Realm' -FilterOperation { param($p, $v) $p -eq '/orders/checkout' -or $p -eq '/orders/me' -or $p.StartsWith('/orders/me/') }
+        $emittedOpsTotal += Write-RealmSlice -SourceSpecName 'orders.gateway.openapi.json' -OutputFileName 'orders-admin.openapi.json' -RealmTitleSuffix 'Workforce Orders Realm' -FilterOperation { param($p, $v) $p -ne '/orders/checkout' -and $p -ne '/orders/me' -and -not $p.StartsWith('/orders/me/') }
+        $emittedOpsTotal += Write-RealmSlice -SourceSpecName 'payments.gateway.openapi.json' -OutputFileName 'payments-customer.openapi.json' -RealmTitleSuffix 'Customer Payments Realm' -FilterOperation { param($p, $v) $p -eq '/payments/me' -or $p.StartsWith('/payments/me/') }
+        $emittedOpsTotal += Write-RealmSlice -SourceSpecName 'payments.gateway.openapi.json' -OutputFileName 'payments-admin.openapi.json' -RealmTitleSuffix 'Workforce Payments Realm' -FilterOperation { param($p, $v) $p -ne '/payments/me' -and -not $p.StartsWith('/payments/me/') }
+
+        if ($emittedOpsTotal -ne $canonicalOpsTotal) {
+            throw "Realm OpenAPI partition mismatch: emitted $emittedOpsTotal operations across 11 realm contracts, expected $canonicalOpsTotal canonical operations across 7 services."
+        }
+        Write-Host "Verified 100% OpenAPI operation partition across 11 realm contracts ($emittedOpsTotal/$canonicalOpsTotal operations)."
     }
     return
 }

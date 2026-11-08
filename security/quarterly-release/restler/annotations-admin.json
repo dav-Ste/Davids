@@ -79,6 +79,46 @@
       "consumer_endpoint": "/admin-identity/users/{userId}/unlock",
       "consumer_method": "POST",
       "consumer_param": "userId"
+    },
+    {
+      "producer_endpoint": "/products/admin",
+      "producer_method": "GET",
+      "producer_resource_name": "[0]/id",
+      "consumer_endpoint": "/products/admin/{productId}",
+      "consumer_method": "GET",
+      "consumer_param": "productId"
+    },
+    {
+      "producer_endpoint": "/products/admin",
+      "producer_method": "GET",
+      "producer_resource_name": "[0]/id",
+      "consumer_endpoint": "/products/{productId}",
+      "consumer_method": "PUT",
+      "consumer_param": "productId"
+    },
+    {
+      "producer_endpoint": "/products/admin",
+      "producer_method": "GET",
+      "producer_resource_name": "[0]/id",
+      "consumer_endpoint": "/products/{productId}/stock",
+      "consumer_method": "POST",
+      "consumer_param": "productId"
+    },
+    {
+      "producer_endpoint": "/orders",
+      "producer_method": "GET",
+      "producer_resource_name": "[0]/id",
+      "consumer_endpoint": "/orders/{orderId}",
+      "consumer_method": "GET",
+      "consumer_param": "orderId"
+    },
+    {
+      "producer_endpoint": "/orders",
+      "producer_method": "GET",
+      "producer_resource_name": "[0]/id",
+      "consumer_endpoint": "/payments/order/{orderId}",
+      "consumer_method": "GET",
+      "consumer_param": "orderId"
     }
   ]
 }

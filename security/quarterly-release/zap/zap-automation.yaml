@@ -95,6 +95,42 @@ jobs:
         matchString: "Authorization"
         matchRegex: false
         replacementString: "${ZAP_ADMIN_BEARER_HEADER}"
+      - description: "Inject Admin RS256 Bearer token for Products catalog routes"
+        url: "^${ZAP_TARGET_URL}/products(/.*|\\?.*)?$"
+        matchType: "req_header"
+        matchString: "Authorization"
+        matchRegex: false
+        replacementString: "${ZAP_ADMIN_BEARER_HEADER}"
+      - description: "Inject Customer RS256 Bearer token for Baskets routes"
+        url: "^${ZAP_TARGET_URL}/baskets(/.*|\\?.*)?$"
+        matchType: "req_header"
+        matchString: "Authorization"
+        matchRegex: false
+        replacementString: "${ZAP_CUSTOMER_BEARER_HEADER}"
+      - description: "Inject Customer RS256 Bearer token for Customer Orders routes"
+        url: "^${ZAP_TARGET_URL}/orders/(checkout|me)(/.*|\\?.*)?$"
+        matchType: "req_header"
+        matchString: "Authorization"
+        matchRegex: false
+        replacementString: "${ZAP_CUSTOMER_BEARER_HEADER}"
+      - description: "Inject Admin RS256 Bearer token for Workforce Orders routes"
+        url: "^${ZAP_TARGET_URL}/orders(/(?!(checkout|me)(?:/|$|\\?)).*|\\?.*)?$"
+        matchType: "req_header"
+        matchString: "Authorization"
+        matchRegex: false
+        replacementString: "${ZAP_ADMIN_BEARER_HEADER}"
+      - description: "Inject Customer RS256 Bearer token for Customer Payments routes"
+        url: "^${ZAP_TARGET_URL}/payments/me(/.*|\\?.*)?$"
+        matchType: "req_header"
+        matchString: "Authorization"
+        matchRegex: false
+        replacementString: "${ZAP_CUSTOMER_BEARER_HEADER}"
+      - description: "Inject Admin RS256 Bearer token for Workforce Payments routes"
+        url: "^${ZAP_TARGET_URL}/payments(/(?!me(?:/|$|\\?)).*|\\?.*)?$"
+        matchType: "req_header"
+        matchString: "Authorization"
+        matchRegex: false
+        replacementString: "${ZAP_ADMIN_BEARER_HEADER}"
 
   - type: requestor
     parameters:
@@ -134,6 +170,30 @@ jobs:
   - type: openapi
     parameters:
       apiFile: "/zap/wrk/specs/customers.restler.openapi.json"
+      targetUrl: "${ZAP_TARGET_URL}"
+      context: "Davids-Gateway"
+
+  - type: openapi
+    parameters:
+      apiFile: "/zap/wrk/specs/products.restler.openapi.json"
+      targetUrl: "${ZAP_TARGET_URL}"
+      context: "Davids-Gateway"
+
+  - type: openapi
+    parameters:
+      apiFile: "/zap/wrk/specs/baskets.restler.openapi.json"
+      targetUrl: "${ZAP_TARGET_URL}"
+      context: "Davids-Gateway"
+
+  - type: openapi
+    parameters:
+      apiFile: "/zap/wrk/specs/orders.restler.openapi.json"
+      targetUrl: "${ZAP_TARGET_URL}"
+      context: "Davids-Gateway"
+
+  - type: openapi
+    parameters:
+      apiFile: "/zap/wrk/specs/payments.restler.openapi.json"
       targetUrl: "${ZAP_TARGET_URL}"
       context: "Davids-Gateway"
 

@@ -39,7 +39,11 @@ if ($ValidateConfigOnly) {
         'engine-settings.json',
         'specs/identity.restler.openapi.json',
         'specs/admin-identity.restler.openapi.json',
-        'specs/customers.restler.openapi.json'
+        'specs/customers.restler.openapi.json',
+        'specs/products.restler.openapi.json',
+        'specs/baskets.restler.openapi.json',
+        'specs/orders.restler.openapi.json',
+        'specs/payments.restler.openapi.json'
     )) {
         $fullPath = Join-Path $restlerConfigDir $cfgFile
         if (-not (Test-Path -LiteralPath $fullPath)) {
@@ -216,7 +220,18 @@ foreach ($domain in @(
 )) {
     $domainDir = Join-Path $workRoot $domain.Subdir
     New-Item -ItemType Directory -Path (Join-Path $domainDir 'specs') -Force | Out-Null
-    foreach ($specName in @('identity.restler.openapi.json', 'admin-identity.restler.openapi.json', 'customers.restler.openapi.json')) {
+    foreach ($specName in @(
+        'identity.restler.openapi.json',
+        'admin-identity.restler.openapi.json',
+        'customers.restler.openapi.json',
+        'products.restler.openapi.json',
+        'baskets.restler.openapi.json',
+        'orders.restler.openapi.json',
+        'payments.restler.openapi.json'
+    )) {
+        if ($domain.Subdir -eq 'AdminDomain' -and $specName -eq 'baskets.restler.openapi.json') {
+            continue
+        }
         $specObj = Get-Content -LiteralPath (Join-Path $restlerConfigDir "specs/$specName") -Raw | ConvertFrom-Json -AsHashtable
         if ($specName -eq 'identity.restler.openapi.json') {
             $filteredPaths = [ordered]@{}
@@ -234,7 +249,7 @@ foreach ($domain in @(
             foreach ($pEntry in $specObj['paths'].GetEnumerator()) {
                 $pk = [string]$pEntry.Key
                 if ($domain.Subdir -eq 'CustomerDomain') {
-                    if ($pk -in @('/customers/change-audits', '/customers/{customerId}/state/{state}')) {
+                    if ($pk -in @('/customers/change-audits', '/customers/{customerId}/state/{state}', '/customers/{customerId}/state', '/customers/{customerId}/change-audits')) {
                         continue
                     }
                     if ($pk -eq '/customers') {
@@ -266,6 +281,36 @@ foreach ($domain in @(
                         $filteredPaths[$pk] = $adminOnlyOps
                         continue
                     }
+                    $filteredPaths[$pk] = $pEntry.Value
+                }
+            }
+            $specObj['paths'] = $filteredPaths
+        } elseif ($specName -eq 'products.restler.openapi.json' -and $domain.Subdir -eq 'CustomerDomain') {
+            $filteredPaths = [ordered]@{}
+            foreach ($pEntry in $specObj['paths'].GetEnumerator()) {
+                $pk = [string]$pEntry.Key
+                if ($pk -in @('/products', '/products/{productId}') -and $pEntry.Value.ContainsKey('get')) {
+                    $pubOps = [ordered]@{ get = $pEntry.Value['get'] }
+                    $filteredPaths[$pk] = $pubOps
+                }
+            }
+            $specObj['paths'] = $filteredPaths
+        } elseif ($specName -eq 'orders.restler.openapi.json') {
+            $filteredPaths = [ordered]@{}
+            foreach ($pEntry in $specObj['paths'].GetEnumerator()) {
+                $pk = [string]$pEntry.Key
+                $isCust = ($pk -eq '/orders/checkout' -or $pk -eq '/orders/me' -or $pk.StartsWith('/orders/me/'))
+                if (($domain.Subdir -eq 'CustomerDomain' -and $isCust) -or ($domain.Subdir -eq 'AdminDomain' -and -not $isCust)) {
+                    $filteredPaths[$pk] = $pEntry.Value
+                }
+            }
+            $specObj['paths'] = $filteredPaths
+        } elseif ($specName -eq 'payments.restler.openapi.json') {
+            $filteredPaths = [ordered]@{}
+            foreach ($pEntry in $specObj['paths'].GetEnumerator()) {
+                $pk = [string]$pEntry.Key
+                $isCust = ($pk -eq '/payments/me' -or $pk.StartsWith('/payments/me/'))
+                if (($domain.Subdir -eq 'CustomerDomain' -and $isCust) -or ($domain.Subdir -eq 'AdminDomain' -and -not $isCust)) {
                     $filteredPaths[$pk] = $pEntry.Value
                 }
             }

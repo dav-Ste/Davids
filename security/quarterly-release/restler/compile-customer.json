@@ -1,7 +1,11 @@
 {
   "SwaggerSpecFilePath": [
     "specs/identity.restler.openapi.json",
-    "specs/customers.restler.openapi.json"
+    "specs/customers.restler.openapi.json",
+    "specs/products.restler.openapi.json",
+    "specs/baskets.restler.openapi.json",
+    "specs/orders.restler.openapi.json",
+    "specs/payments.restler.openapi.json"
   ],
   "AnnotationFilePath": "annotations-customer.json",
   "CustomDictionaryFilePath": "dict.template.json",

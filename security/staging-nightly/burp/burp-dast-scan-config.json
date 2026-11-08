@@ -6,7 +6,11 @@
     "openApiDefinitions": [
       "security/staging-nightly/openapi/identity.gateway.openapi.json",
       "security/staging-nightly/openapi/admin-identity.gateway.openapi.json",
-      "security/staging-nightly/openapi/customers.gateway.openapi.json"
+      "security/staging-nightly/openapi/customers.gateway.openapi.json",
+      "security/staging-nightly/openapi/products.gateway.openapi.json",
+      "security/staging-nightly/openapi/baskets.gateway.openapi.json",
+      "security/staging-nightly/openapi/orders.gateway.openapi.json",
+      "security/staging-nightly/openapi/payments.gateway.openapi.json"
     ],
     "recordedLoginSequence": "security/staging-nightly/burp/burp-recorded-admin-bff-login.template.json",
     "sessionPreservationExclusions": [
@@ -33,7 +37,11 @@
             { "protocol": "any", "file": "^/customers(/.*)?$" },
             { "protocol": "any", "file": "^/customer-accounts(/.*)?$" },
             { "protocol": "any", "file": "^/identity(/.*)?$" },
-            { "protocol": "any", "file": "^/admin-identity(/.*)?$" }
+            { "protocol": "any", "file": "^/admin-identity(/.*)?$" },
+            { "protocol": "any", "file": "^/products(/.*)?$" },
+            { "protocol": "any", "file": "^/baskets(/.*)?$" },
+            { "protocol": "any", "file": "^/orders(/.*)?$" },
+            { "protocol": "any", "file": "^/payments(/.*)?$" }
           ],
           "exclude": [
             { "protocol": "any", "file": "^/auth/logout$" },

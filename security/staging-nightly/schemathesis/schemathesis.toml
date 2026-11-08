@@ -30,7 +30,7 @@ include-path-regex = "/connect/(token|userinfo)$"
 positive_data_acceptance.enabled = false
 unsupported_method.enabled = false
 
-# Customer sign-up intentionally returns 400 (email_in_use) when stateful links replay an already-registered
+# Customer sign-up intentionally returns 400/409 (email_in_use) when stateful links replay an already-registered
 # userId or email (preserving the Davids Identity domain contract).
 [[operations]]
 include-path-regex = "(^|/identity)/sign-up$"
@@ -47,10 +47,26 @@ include-path-regex = "/me/(password|email)$"
 positive_data_acceptance.enabled = false
 
 # Customer registration completion (POST /customers) is a one-shot state transition from Incomplete -> Valid;
-# repeating POST /customers for an already-registered customer intentionally returns 400.
+# repeating POST /customers for an already-registered customer intentionally returns 400/409.
+# /customers also shares one URL path across `customers-customer` (POST) and `customers-admin` (GET),
+# so HTTP 405 responses legitimately advertise `Allow: GET, POST` across both realm slices.
+# Self-service /customers/me returns 404 before registration completion or 200 afterward.
+[[operations]]
+include-path-regex = "^/customers$"
+
+[operations.checks]
+allow_header_conformance.enabled = false
+
 [[operations]]
 include-path-regex = "^/customers$"
 include-method = "POST"
+
+[operations.checks]
+positive_data_acceptance.enabled = false
+allow_header_conformance.enabled = false
+
+[[operations]]
+include-path-regex = "^/customers/me$"
 
 [operations.checks]
 positive_data_acceptance.enabled = false
@@ -69,3 +85,45 @@ include-path-regex = "^/customers/\\{customerId\\}"
 [operations.checks]
 positive_data_acceptance.enabled = false
 
+# Product creation returns 409 Conflict when stateful/fuzzing replays a duplicate SKU;
+# product-by-UUID endpoints return 404 on unseeded random UUIDs or 409 when negative stock delta exceeds stock.
+[[operations]]
+include-path-regex = "^/products$"
+include-method = "POST"
+
+[operations.checks]
+positive_data_acceptance.enabled = false
+
+[[operations]]
+include-path-regex = "^/products/(admin/)?\\{productId\\}"
+
+[operations.checks]
+positive_data_acceptance.enabled = false
+
+# Basket item upsert verifies live catalog existence and stock via Products API; synthetic random productIds
+# intentionally return 404 (product_unavailable) or 409 (insufficient_stock).
+[[operations]]
+include-path-regex = "^/baskets/me/items$"
+
+[operations.checks]
+positive_data_acceptance.enabled = false
+
+# Checkout requires a non-empty server-side basket (subsequent calls after checkout/clear return 400 empty_basket);
+# order-by-UUID and payment-by-orderId endpoints return 404 on random synthetic orderIds or 409 on completed orders.
+[[operations]]
+include-path-regex = "^/orders/checkout$"
+
+[operations.checks]
+positive_data_acceptance.enabled = false
+
+[[operations]]
+include-path-regex = "^/orders/(me/)?\\{orderId\\}"
+
+[operations.checks]
+positive_data_acceptance.enabled = false
+
+[[operations]]
+include-path-regex = "^/payments/(me/)?order/\\{orderId\\}"
+
+[operations.checks]
+positive_data_acceptance.enabled = false

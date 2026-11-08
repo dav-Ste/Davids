@@ -17,20 +17,44 @@
       "consumer_param": "customerId"
     },
     {
-      "producer_endpoint": "/identity/me",
+      "producer_endpoint": "/products",
       "producer_method": "GET",
-      "producer_resource_name": "id",
-      "consumer_endpoint": "/customers/{customerId}/state",
+      "producer_resource_name": "[0]/id",
+      "consumer_endpoint": "/products/{productId}",
       "consumer_method": "GET",
-      "consumer_param": "customerId"
+      "consumer_param": "productId"
     },
     {
-      "producer_endpoint": "/identity/me",
+      "producer_endpoint": "/products",
       "producer_method": "GET",
+      "producer_resource_name": "[0]/id",
+      "consumer_endpoint": "/baskets/me/items",
+      "consumer_method": "PUT",
+      "consumer_param": "productId"
+    },
+    {
+      "producer_endpoint": "/products",
+      "producer_method": "GET",
+      "producer_resource_name": "[0]/id",
+      "consumer_endpoint": "/baskets/me/items/{productId}",
+      "consumer_method": "DELETE",
+      "consumer_param": "productId"
+    },
+    {
+      "producer_endpoint": "/orders/checkout",
+      "producer_method": "POST",
       "producer_resource_name": "id",
-      "consumer_endpoint": "/customers/{customerId}/change-audits",
+      "consumer_endpoint": "/orders/me/{orderId}",
       "consumer_method": "GET",
-      "consumer_param": "customerId"
+      "consumer_param": "orderId"
+    },
+    {
+      "producer_endpoint": "/orders/checkout",
+      "producer_method": "POST",
+      "producer_resource_name": "id",
+      "consumer_endpoint": "/payments/me/order/{orderId}",
+      "consumer_method": "GET",
+      "consumer_param": "orderId"
     }
   ]
 }

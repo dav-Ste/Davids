@@ -228,7 +228,15 @@ $wrkReportsDir = Join-Path $OutputDirectory 'reports'
 New-Item -ItemType Directory -Path $wrkSpecsDir -Force | Out-Null
 New-Item -ItemType Directory -Path $wrkReportsDir -Force | Out-Null
 
-foreach ($specName in @('identity.restler.openapi.json', 'admin-identity.restler.openapi.json', 'customers.restler.openapi.json')) {
+foreach ($specName in @(
+    'identity.restler.openapi.json',
+    'admin-identity.restler.openapi.json',
+    'customers.restler.openapi.json',
+    'products.restler.openapi.json',
+    'baskets.restler.openapi.json',
+    'orders.restler.openapi.json',
+    'payments.restler.openapi.json'
+)) {
     Copy-Item -LiteralPath (Join-Path $repoRoot "security/quarterly-release/restler/specs/$specName") -Destination (Join-Path $wrkSpecsDir $specName) -Force
 }
 
@@ -269,6 +277,14 @@ function ConvertTo-GitHubCodeScanningSarif {
                             'Davids/security/quarterly-release/restler/specs/identity.restler.openapi.json'
                         } elseif ($rawUri -match '/customers(/|$|\?)') {
                             'Davids/security/quarterly-release/restler/specs/customers.restler.openapi.json'
+                        } elseif ($rawUri -match '/products(/|$|\?)') {
+                            'Davids/security/quarterly-release/restler/specs/products.restler.openapi.json'
+                        } elseif ($rawUri -match '/baskets(/|$|\?)') {
+                            'Davids/security/quarterly-release/restler/specs/baskets.restler.openapi.json'
+                        } elseif ($rawUri -match '/orders(/|$|\?)') {
+                            'Davids/security/quarterly-release/restler/specs/orders.restler.openapi.json'
+                        } elseif ($rawUri -match '/payments(/|$|\?)') {
+                            'Davids/security/quarterly-release/restler/specs/payments.restler.openapi.json'
                         } else {
                             'Davids/security/quarterly-release/zap/zap-automation.yaml'
                         }

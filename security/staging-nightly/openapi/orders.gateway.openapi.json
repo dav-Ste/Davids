@@ -28,10 +28,37 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing or invalid RS256 Bearer access token."
+          },
+          "403": {
+            "description": "Caller lacks permission for this order resource."
           }
-        }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
       }
     },
     "/orders/me": {
@@ -44,20 +71,46 @@
             "name": "limit",
             "in": "query",
             "schema": {
+              "maximum": 200,
+              "minimum": 1,
               "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrderSummaryDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing or invalid RS256 Bearer access token."
+          },
+          "403": {
+            "description": "Caller lacks permission for this order resource."
           }
-        }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
       }
     },
     "/orders/me/{orderId}": {
@@ -78,9 +131,36 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing or invalid RS256 Bearer access token."
+          },
+          "403": {
+            "description": "Caller lacks permission for this order resource."
           }
-        }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
       }
     },
     "/orders/me/{orderId}/cancel": {
@@ -101,9 +181,39 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing or invalid RS256 Bearer access token."
+          },
+          "403": {
+            "description": "Caller lacks permission for this order resource."
           }
-        }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
       }
     },
     "/orders": {
@@ -116,6 +226,8 @@
             "name": "search",
             "in": "query",
             "schema": {
+              "maxLength": 100,
+              "pattern": "^[^\\u0000]*$",
               "type": "string"
             }
           },
@@ -123,6 +235,8 @@
             "name": "status",
             "in": "query",
             "schema": {
+              "maxLength": 40,
+              "pattern": "^[^\\u0000]*$",
               "type": "string"
             }
           },
@@ -138,20 +252,46 @@
             "name": "limit",
             "in": "query",
             "schema": {
+              "maximum": 500,
+              "minimum": 1,
               "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrderSummaryDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing or invalid RS256 Bearer access token."
+          },
+          "403": {
+            "description": "Caller lacks permission for this order resource."
           }
-        }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
       }
     },
     "/orders/{orderId}": {
@@ -172,9 +312,36 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "401": {
+            "description": "Missing or invalid RS256 Bearer access token."
+          },
+          "403": {
+            "description": "Caller lacks permission for this order resource."
           }
-        }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
       }
     }
   },
@@ -188,12 +355,24 @@
         "type": "object",
         "properties": {
           "shippingFullName": {
+            "maxLength": 120,
+            "minLength": 2,
+            "pattern": "^[^\\u0000]*\\S[^\\u0000]*\\S[^\\u0000]*$",
             "type": "string"
           },
           "shippingAddress": {
+            "maxLength": 300,
+            "minLength": 5,
+            "pattern": "^[^\\u0000]*\\S[^\\u0000]*\\S[^\\u0000]*$",
             "type": "string"
           },
           "paymentMethod": {
+            "enum": [
+              null,
+              "card",
+              "wallet",
+              "invoice"
+            ],
             "type": [
               "null",
               "string"
@@ -201,11 +380,258 @@
             "default": "card"
           },
           "cardLast4": {
+            "maxLength": 4,
+            "minLength": 4,
+            "pattern": "^[0-9]{4}$",
             "type": [
               "null",
               "string"
             ],
             "default": "4242"
+          }
+        }
+      },
+      "OrderDetailsDto": {
+        "required": [
+          "id",
+          "customerId",
+          "customerEmail",
+          "shippingFullName",
+          "shippingAddress",
+          "totalAmount",
+          "currency",
+          "status",
+          "paymentMethod",
+          "cardLast4",
+          "paymentId",
+          "paymentReference",
+          "failureReason",
+          "createdAt",
+          "updatedAt",
+          "completedAt",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerEmail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "shippingFullName": {
+            "type": "string"
+          },
+          "shippingAddress": {
+            "type": "string"
+          },
+          "totalAmount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "paymentMethod": {
+            "type": "string"
+          },
+          "cardLast4": {
+            "type": "string"
+          },
+          "paymentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "paymentReference": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "failureReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderItemDto"
+            }
+          }
+        }
+      },
+      "OrderItemDto": {
+        "required": [
+          "productId",
+          "sku",
+          "productName",
+          "unitPrice",
+          "currency",
+          "quantity",
+          "lineTotal"
+        ],
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "unitPrice": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "lineTotal": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "OrderSummaryDto": {
+        "required": [
+          "id",
+          "customerId",
+          "customerEmail",
+          "shippingFullName",
+          "totalAmount",
+          "currency",
+          "itemCount",
+          "status",
+          "paymentMethod",
+          "cardLast4",
+          "paymentReference",
+          "failureReason",
+          "createdAt",
+          "completedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerEmail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "shippingFullName": {
+            "type": "string"
+          },
+          "totalAmount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "itemCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "status": {
+            "type": "string"
+          },
+          "paymentMethod": {
+            "type": "string"
+          },
+          "cardLast4": {
+            "type": "string"
+          },
+          "paymentReference": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "failureReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       }

@@ -25,7 +25,7 @@ if (-not (Test-Path -LiteralPath $configFile)) {
 & (Join-Path $PSScriptRoot 'Export-OpenApiSpecs.ps1') -VerifyOnly
 
 if ($ValidateConfigOnly) {
-    Write-Host 'Schemathesis TOML configuration and all 3 OpenAPI 3.1 gateway contracts verified.'
+    Write-Host 'Schemathesis TOML configuration and all 7 OpenAPI 3.1 gateway contracts verified.'
     return
 }
 
@@ -35,6 +35,8 @@ if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 $resolvedOutputDir = (Resolve-Path -LiteralPath $OutputDirectory).Path
 $resolvedRepoRoot = (Resolve-Path -LiteralPath $repoRoot).Path
+$realmOutDir = Join-Path $resolvedOutputDir 'realm-openapi'
+& (Join-Path $PSScriptRoot 'Export-OpenApiSpecs.ps1') -VerifyOnly -RealmOutputDirectory $realmOutDir
 
 # Digest-pinned Schemathesis v4.32.6 container image for Docker Desktop fallback.
 $schemathesisImage = 'schemathesis/schemathesis:v4.32.6@sha256:8718231f162f7db12f7aa27f9524b8544d98b0292567e304c446f249fcf03cc7'
@@ -242,72 +244,60 @@ function Invoke-SchemathesisSuite {
     }
 }
 
-# 1. Unauthenticated boundary fuzzing across all 3 OpenAPI 3.1 contracts
-Invoke-SchemathesisSuite `
-    -Label 'Identity OpenAPI (Unauthenticated Boundary Fuzzing)' `
-    -SpecRelativePath 'security/staging-nightly/openapi/identity.gateway.openapi.json' `
-    -ReportFileName 'schemathesis-unauth-identity.junit.xml' `
-    -ExtraArgs @('--exclude-checks', 'positive_data_acceptance')
+# 1. Unauthenticated boundary fuzzing across all 7 OpenAPI 3.1 contracts (57 operations)
+foreach ($unauthSpec in @(
+    @{ Name = 'Identity';      Spec = 'security/staging-nightly/openapi/identity.gateway.openapi.json';       Report = 'schemathesis-unauth-identity.junit.xml' },
+    @{ Name = 'AdminIdentity'; Spec = 'security/staging-nightly/openapi/admin-identity.gateway.openapi.json'; Report = 'schemathesis-unauth-admin-identity.junit.xml' },
+    @{ Name = 'Customers';     Spec = 'security/staging-nightly/openapi/customers.gateway.openapi.json';      Report = 'schemathesis-unauth-customers.junit.xml' },
+    @{ Name = 'Products';      Spec = 'security/staging-nightly/openapi/products.gateway.openapi.json';       Report = 'schemathesis-unauth-products.junit.xml' },
+    @{ Name = 'Baskets';       Spec = 'security/staging-nightly/openapi/baskets.gateway.openapi.json';        Report = 'schemathesis-unauth-baskets.junit.xml' },
+    @{ Name = 'Orders';        Spec = 'security/staging-nightly/openapi/orders.gateway.openapi.json';         Report = 'schemathesis-unauth-orders.junit.xml' },
+    @{ Name = 'Payments';      Spec = 'security/staging-nightly/openapi/payments.gateway.openapi.json';       Report = 'schemathesis-unauth-payments.junit.xml' }
+)) {
+    Invoke-SchemathesisSuite `
+        -Label "$($unauthSpec.Name) OpenAPI (Unauthenticated Boundary Fuzzing)" `
+        -SpecRelativePath $unauthSpec.Spec `
+        -ReportFileName $unauthSpec.Report `
+        -ExtraArgs @('--exclude-checks', 'positive_data_acceptance')
+}
 
-Invoke-SchemathesisSuite `
-    -Label 'AdminIdentity OpenAPI (Unauthenticated Boundary Fuzzing)' `
-    -SpecRelativePath 'security/staging-nightly/openapi/admin-identity.gateway.openapi.json' `
-    -ReportFileName 'schemathesis-unauth-admin-identity.junit.xml' `
-    -ExtraArgs @('--exclude-checks', 'positive_data_acceptance')
+$realmRelBase = [System.IO.Path]::GetRelativePath($resolvedRepoRoot, $realmOutDir).Replace('\', '/')
 
-Invoke-SchemathesisSuite `
-    -Label 'Customers OpenAPI (Unauthenticated Boundary Fuzzing)' `
-    -SpecRelativePath 'security/staging-nightly/openapi/customers.gateway.openapi.json' `
-    -ReportFileName 'schemathesis-unauth-customers.junit.xml' `
-    -ExtraArgs @('--exclude-checks', 'positive_data_acceptance')
-
-# 2. Authenticated Customer RS256 Bearer fuzzing + stateful API state-machine testing
+# 2. Authenticated Customer RS256 Bearer fuzzing + stateful API state-machine testing (5 realm contracts, 23 operations)
 if (-not [string]::IsNullOrWhiteSpace($CustomerBearerToken)) {
-    Invoke-SchemathesisSuite `
-        -Label 'Identity OpenAPI (Authenticated Customer RS256 + Stateful)' `
-        -SpecRelativePath 'security/staging-nightly/openapi/identity.gateway.openapi.json' `
-        -ReportFileName 'schemathesis-auth-identity.junit.xml' `
-        -BearerToken $CustomerBearerToken `
-        -ExtraArgs @('--include-path-regex', '^/identity/')
-
-    Invoke-SchemathesisSuite `
-        -Label 'Customers POST /customers (Authenticated Customer RS256 + Stateful)' `
-        -SpecRelativePath 'security/staging-nightly/openapi/customers.gateway.openapi.json' `
-        -ReportFileName 'schemathesis-auth-customers-user.junit.xml' `
-        -BearerToken $CustomerBearerToken `
-        -ExtraArgs @('--include-method', 'POST')
-
-    Invoke-SchemathesisSuite `
-        -Label 'Customers Self-Service /customers/me (Authenticated Customer RS256 + Stateful)' `
-        -SpecRelativePath 'security/staging-nightly/openapi/customers.gateway.openapi.json' `
-        -ReportFileName 'schemathesis-auth-customers-me.junit.xml' `
-        -BearerToken $CustomerBearerToken `
-        -ExtraArgs @('--include-path', '/customers/me')
+    foreach ($custSuite in @(
+        @{ Label = 'Identity OpenAPI (Authenticated Customer RS256 + Stateful)';  File = 'identity-customer.openapi.json';  Report = 'schemathesis-auth-identity.junit.xml' },
+        @{ Label = 'Customers Self-Service (Authenticated Customer RS256)';       File = 'customers-customer.openapi.json'; Report = 'schemathesis-auth-customers-customer.junit.xml' },
+        @{ Label = 'Baskets OpenAPI (Authenticated Customer RS256 + Stateful)';   File = 'baskets-customer.openapi.json';   Report = 'schemathesis-auth-baskets-customer.junit.xml' },
+        @{ Label = 'Orders Customer OpenAPI (Authenticated Customer RS256)';      File = 'orders-customer.openapi.json';    Report = 'schemathesis-auth-orders-customer.junit.xml' },
+        @{ Label = 'Payments Customer OpenAPI (Authenticated Customer RS256)';    File = 'payments-customer.openapi.json';  Report = 'schemathesis-auth-payments-customer.junit.xml' }
+    )) {
+        Invoke-SchemathesisSuite `
+            -Label $custSuite.Label `
+            -SpecRelativePath "$realmRelBase/$($custSuite.File)" `
+            -ReportFileName $custSuite.Report `
+            -BearerToken $CustomerBearerToken
+    }
 } else {
     Write-Warning 'Skipping authenticated Customer Schemathesis suites (supply -CustomerBearerToken, DAVIDS_CUSTOMER_BEARER_TOKEN, or -AutoProvisionCustomerToken).'
 }
 
-# 3. Authenticated Admin RS256 Bearer fuzzing + stateful API state-machine testing
+# 3. Authenticated Admin RS256 Bearer fuzzing + stateful API state-machine testing (6 realm contracts, 34 operations)
 if (-not [string]::IsNullOrWhiteSpace($AdminBearerToken)) {
-    Invoke-SchemathesisSuite `
-        -Label 'Customer-Accounts Workforce Operations (Authenticated Admin RS256)' `
-        -SpecRelativePath 'security/staging-nightly/openapi/identity.gateway.openapi.json' `
-        -ReportFileName 'schemathesis-auth-customer-accounts-admin.junit.xml' `
-        -BearerToken $AdminBearerToken `
-        -ExtraArgs @('--include-path-regex', '^/customer-accounts/')
-
-    Invoke-SchemathesisSuite `
-        -Label 'AdminIdentity OpenAPI (Authenticated Admin RS256)' `
-        -SpecRelativePath 'security/staging-nightly/openapi/admin-identity.gateway.openapi.json' `
-        -ReportFileName 'schemathesis-auth-admin-identity.junit.xml' `
-        -BearerToken $AdminBearerToken
-
-    Invoke-SchemathesisSuite `
-        -Label 'Customers Admin Operations (Authenticated Admin RS256 + Stateful)' `
-        -SpecRelativePath 'security/staging-nightly/openapi/customers.gateway.openapi.json' `
-        -ReportFileName 'schemathesis-auth-customers-admin.junit.xml' `
-        -BearerToken $AdminBearerToken `
-        -ExtraArgs @('--exclude-method', 'POST', '--exclude-path', '/customers/me')
+    foreach ($admSuite in @(
+        @{ Label = 'Customer-Accounts Workforce Operations (Authenticated Admin RS256)'; File = 'customer-accounts-admin.openapi.json'; Report = 'schemathesis-auth-customer-accounts-admin.junit.xml' },
+        @{ Label = 'AdminIdentity OpenAPI (Authenticated Admin RS256)';                  File = 'admin-identity-admin.openapi.json';    Report = 'schemathesis-auth-admin-identity.junit.xml' },
+        @{ Label = 'Customers Admin Operations (Authenticated Admin RS256 + Stateful)';  File = 'customers-admin.openapi.json';         Report = 'schemathesis-auth-customers-admin.junit.xml' },
+        @{ Label = 'Products Public + Workforce Catalog (Authenticated Admin RS256)';    File = 'products-admin.openapi.json';          Report = 'schemathesis-auth-products-admin.junit.xml' },
+        @{ Label = 'Orders Workforce Operations (Authenticated Admin RS256)';            File = 'orders-admin.openapi.json';            Report = 'schemathesis-auth-orders-admin.junit.xml' },
+        @{ Label = 'Payments Workforce Operations (Authenticated Admin RS256)';          File = 'payments-admin.openapi.json';          Report = 'schemathesis-auth-payments-admin.junit.xml' }
+    )) {
+        Invoke-SchemathesisSuite `
+            -Label $admSuite.Label `
+            -SpecRelativePath "$realmRelBase/$($admSuite.File)" `
+            -ReportFileName $admSuite.Report `
+            -BearerToken $AdminBearerToken
+    }
 } else {
     Write-Warning 'Skipping authenticated Admin Schemathesis suites (supply -AdminBearerToken or DAVIDS_ADMIN_BEARER_TOKEN).'
 }

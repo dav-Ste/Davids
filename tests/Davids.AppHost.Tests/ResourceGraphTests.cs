@@ -772,6 +772,24 @@ public sealed class ResourceGraphTests
         Assert.Contains("schemathesis/action@", stagingWorkflow, StringComparison.Ordinal);
         Assert.Contains("projectdiscovery/nuclei-action@", stagingWorkflow, StringComparison.Ordinal);
         Assert.Contains("Scan-Dastardly.ps1", stagingWorkflow, StringComparison.Ordinal);
+        Assert.Contains("-RealmOutputDirectory", stagingWorkflow, StringComparison.Ordinal);
+        foreach (var realmSpec in new[]
+        {
+            "identity-customer.openapi.json",
+            "customers-customer.openapi.json",
+            "baskets-customer.openapi.json",
+            "orders-customer.openapi.json",
+            "payments-customer.openapi.json",
+            "customer-accounts-admin.openapi.json",
+            "admin-identity-admin.openapi.json",
+            "customers-admin.openapi.json",
+            "products-admin.openapi.json",
+            "orders-admin.openapi.json",
+            "payments-admin.openapi.json"
+        })
+        {
+            Assert.Contains(realmSpec, stagingWorkflow, StringComparison.Ordinal);
+        }
 
         foreach (var script in new[]
         {
