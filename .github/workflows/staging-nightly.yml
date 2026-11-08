@@ -105,10 +105,26 @@ jobs:
           dotnet-version: "10.0.x"
 
       - name: Install SHA-pinned ProjectDiscovery Nuclei v3.11.1
+        id: install_nuclei
+        continue-on-error: true
         uses: projectdiscovery/nuclei-action@32a91c0da7be14c07b0ade6c14fa0f6e78d97c9c # v3.1.0
         with:
           version: "v3.11.1"
           install-only: "true"
+
+      - name: Fallback SHA-256 verified Nuclei v3.11.1 install on transient GitHub 5xx
+        if: steps.install_nuclei.outcome != 'success'
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/nuclei-bin"
+          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors \
+            https://github.com/projectdiscovery/nuclei/releases/download/v3.11.1/nuclei_3.11.1_linux_amd64.zip \
+            -o "$RUNNER_TEMP/nuclei.zip"
+          echo "ea63d4ae232808cd7c6bc00d0142428e231fab59dae01042246097d195835ab6  $RUNNER_TEMP/nuclei.zip" | sha256sum -c -
+          unzip -oq "$RUNNER_TEMP/nuclei.zip" nuclei -d "$RUNNER_TEMP/nuclei-bin"
+          chmod +x "$RUNNER_TEMP/nuclei-bin/nuclei"
+          rm -f "$RUNNER_TEMP/nuclei.zip"
+          echo "$RUNNER_TEMP/nuclei-bin" >> "$GITHUB_PATH"
 
       - name: Validate OpenAPI 3.1 contracts, Schemathesis TOML, Nuclei YAML & Burp DAST configs
         shell: pwsh

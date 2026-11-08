@@ -632,6 +632,7 @@ public sealed class ResourceGraphTests
                 var dockerfile = File.ReadAllText(dockerfilePath);
                 Assert.Contains("--locked-mode", dockerfile, StringComparison.Ordinal);
                 Assert.Contains("artifacts/publish/", dockerfile, StringComparison.Ordinal);
+                Assert.Contains("mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra", dockerfile, StringComparison.Ordinal);
                 Assert.Contains("USER 10001:10001", dockerfile, StringComparison.Ordinal);
                 Assert.Contains("HEALTHCHECK", dockerfile, StringComparison.Ordinal);
 
