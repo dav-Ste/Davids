@@ -6,12 +6,12 @@
   "targets": [
     {
       "id": "gateway-admin-bff-entry",
-      "relativeUrl": "/login",
+      "relativeUrl": "/admin/login",
       "description": "Administrator OIDC PKCE S256 BFF entry page, CSS/JS assets, CSP headers, cookie flags, and browser DOM surface."
     },
     {
       "id": "gateway-customer-bff-entry",
-      "relativeUrl": "/portal/login",
+      "relativeUrl": "/login",
       "description": "Customer self-service OIDC PKCE S256 BFF entry page, CSS/JS assets, CSP headers, cookie flags, and browser DOM surface."
     }
   ]

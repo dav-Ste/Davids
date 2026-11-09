@@ -73,7 +73,7 @@ flowchart TB
             end
 
             subgraph RepoWeb["Repo: Davids.Frontend.Web (:17322)"]
-                WebSvc["Davids.Frontend.Web<br/>Customer Self-Service Web Portal (/portal)<br/>Registration, Profile, Password/Email & Personal Audits<br/>Reachable via Gateway Customer BFF"]
+                WebSvc["Davids.Frontend.Web<br/>Customer Self-Service Web Portal (/)<br/>Registration, Profile, Password/Email & Personal Audits<br/>Reachable via Gateway Customer BFF"]
             end
         end
     end
@@ -107,7 +107,7 @@ flowchart TB
     GW ==>|"/admin-identity/* & Admin OIDC PKCE BFF (mTLS)"| AdminIdSvc
     GW ==>|"/customers/* (mTLS)"| CustSvc
     GW ==>|"Workforce BFF -> Admin UI (mTLS)"| FESvc
-    GW ==>|"Customer BFF -> /portal Web UI (mTLS)"| WebSvc
+    GW ==>|"Customer BFF -> / Web UI (mTLS)"| WebSvc
 
     CustSvc -.->|"Public JWKS (/.well-known/jwks)"| IdSvc
     CustSvc -.->|"Public JWKS (/.well-known/jwks)"| AdminIdSvc
@@ -161,7 +161,7 @@ sequenceDiagram
 
     rect rgb(23, 37, 84)
     Note over Admin,FE: Administrator Flow — Confidential OIDC BFF (No Access/Refresh Tokens in Browser JS)
-    Admin->>GW: GET / -> 302 /login -> /auth/login (generates PKCE S256 verifier + state)
+    Admin->>GW: GET /admin -> 302 /admin/login -> /auth/login (generates PKCE S256 verifier + state)
     GW->>AdminId: /admin-identity/connect/authorize (client_id=davids-admin-bff, code_challenge_method=S256)
     Admin->>AdminId: POST credentials + hidden antiforgery request_token
     AdminId-->>GW: 302 /signin-oidc?code=... (single-use auth code)
@@ -214,7 +214,7 @@ flowchart LR
   - Wires OpenTelemetry distributed tracing (Jaeger OTLP), metrics (Prometheus OTLP + `Davids.Security.Audit` security counters), structured Serilog logging (Seq CLEF + optional Elasticsearch), `/health` and `/alive` probes, and HTTP resilience defaults.
 - **`Davids.APIGateway` (`Davids.APIGateway.slnx` — Edge Reverse Proxy, Dual-Authority JWT Verifier & Admin OIDC BFF, `:17320`)**:
   - Clean layers: `Davids.APIGateway.Api` -> `Davids.APIGateway.Infrastructure` -> `Davids.ServiceDefaults`.
-  - Routes directly to backend services via **YARP `2.3.0`** (with Istio handling cluster mTLS and service mesh traffic management), stamps correlation IDs, propagates W3C `traceparent` spans, enforces per-route sliding-window rate limits, checks Redis for RFC 7009 revoked token JTIs, validates Customer and Admin `RS256` tokens via public JWKS (**holds zero signing keys**), and hosts the confidential Admin OIDC BFF (`davids_admin_bff` encrypted `HttpOnly` cookie + `X-Requested-With: DavidsAdmin` and `Origin` CSRF validation) enforcing `role = admin` before any request reaches `Davids.Frontend.Admin`.
+  - Routes directly to backend services via **YARP `2.3.0`** (with Istio handling cluster mTLS and service mesh traffic management), stamps correlation IDs, propagates W3C `traceparent` spans, enforces per-route sliding-window rate limits, checks Redis for RFC 7009 revoked token JTIs, validates Customer and Admin `RS256` tokens via public JWKS (**holds zero signing keys**), and hosts the confidential Admin OIDC BFF (`davids_admin_bff` encrypted `HttpOnly` cookie + `X-Requested-With: DavidsAdmin` and `Origin` CSRF validation) enforcing workforce roles before requests reach `Davids.Frontend.Admin`.
 - **`Davids.Services.Identity` (`Davids.Services.Identity.slnx` — Customer OIDC Provider, `:5004`)**:
   - Clean layers: `Api` -> `Application` + `Infrastructure` -> `Core` (+ `Davids.ServiceDefaults`).
   - Self-hosted **OpenIddict `7.7.2`** OAuth 2.1 / OIDC authority for customer accounts (`davids-web` public client with mandatory PKCE `S256`, antiforgery `request_token` on `/connect/authorize`, asymmetric `RS256` access tokens, single-use rotating refresh tokens with reuse cascade revocation, and RFC 7009 revocation synced to Redis).
@@ -229,4 +229,4 @@ flowchart LR
 - **`Davids.Frontend.Admin` (`Davids.Frontend.Admin.slnx` — Workforce Customer, CIAM, IAM & Audit Web UI, `:17321`)**:
   - Serves the workforce interface (`admin`, `support`, `auditor`) behind strict Content-Security-Policy (`default-src 'self'; script-src 'self'; frame-ancestors 'none'`), reachable only through `Davids.APIGateway` after `davids_admin_bff` session verification and restricted in-cluster by Istio `AuthorizationPolicy` exclusively to principal `cluster.local/ns/davids/sa/davids-api-gateway`.
 - **`Davids.Frontend.Web` (`Davids.Frontend.Web.slnx` — Customer Self-Service Web Portal, `:17322`)**:
-  - Serves the customer self-service portal (`/portal` and `/portal/login`) behind `CustomerBffCookie` (`davids_customer_bff`, PKCE `S256` + `X-Requested-With: DavidsWeb` CSRF protection), providing self-service registration, profile completion/editing (`GET/PUT /customers/me`), password & email rotation (`PUT /identity/me/{password,email}`), and personal login & change-audit history with zero browser token storage.
+  - Serves the customer self-service portal (`/` and `/login`) behind `CustomerBffCookie` (`davids_customer_bff`, PKCE `S256` + `X-Requested-With: DavidsWeb` CSRF protection), providing self-service registration, profile completion/editing (`GET/PUT /customers/me`), password & email rotation (`PUT /identity/me/{password,email}`), and personal login & change-audit history with zero browser token storage.

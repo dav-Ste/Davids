@@ -5,14 +5,14 @@
   "events": [
     {
       "eventType": "goto",
-      "url": "${GATEWAY_BASE_URL}/login"
+      "url": "${GATEWAY_BASE_URL}/admin/login"
     },
     {
       "eventType": "userNavigate",
       "triggers": [
         {
           "eventType": "click",
-          "cssSelector": "#login-btn",
+          "cssSelector": "#oidc-login-submit",
           "tagName": "BUTTON"
         }
       ]

@@ -18,7 +18,7 @@ flowchart TB
         direction TB
 
         subgraph RepoGateway["Repo: Davids.APIGateway (:17320) — YARP 2.3.0 Edge & Confidential OIDC BFF (Zero Signing Keys)"]
-            GW["Davids.APIGateway.Api -> Davids.APIGateway.Infrastructure<br/>• Correlation ID & W3C TraceContext propagation<br/>• Dual-Authority RS256 JWT validation via public JWKS<br/>• Redis JTI revocation check & sliding-window rate limits<br/>• Confidential OIDC BFF (/login, /signin-oidc, /logout) + AdminOnly gate"]
+            GW["Davids.APIGateway.Api -> Davids.APIGateway.Infrastructure<br/>• Correlation ID & W3C TraceContext propagation<br/>• Dual-Authority RS256 JWT validation via public JWKS<br/>• Redis JTI revocation check & sliding-window rate limits<br/>• Confidential OIDC BFF (/admin/login, /signin-oidc, /auth/logout) + Workforce gate"]
         end
 
         subgraph RepoShared["Repo: Davids.Shared (NuGet / Project Reference)"]
@@ -44,7 +44,7 @@ flowchart TB
             end
 
             subgraph RepoWeb["Repo: Davids.Frontend.Web (:17322)"]
-                WebSvc["Davids.Frontend.Web<br/>Customer Self-Service Web Portal (/portal)<br/>Profile, Password/Email Rotation & Personal Audits<br/>Reachable exclusively via Gateway Customer BFF"]
+                WebSvc["Davids.Frontend.Web<br/>Customer Self-Service Web Portal (/)<br/>Profile, Password/Email Rotation & Personal Audits<br/>Reachable exclusively via Gateway Customer BFF"]
             end
         end
     end
@@ -92,7 +92,7 @@ flowchart TB
     GW ==>|"/admin-identity/* & OIDC PKCE BFF (mTLS)"| AdminIdSvc
     GW ==>|"/customers/* (mTLS)"| CustSvc
     GW ==>|"Workforce BFF -> UI (mTLS)"| FESvc
-    GW ==>|"Customer BFF -> /portal UI (mTLS)"| WebSvc
+    GW ==>|"Customer BFF -> / UI (mTLS)"| WebSvc
 
     CustSvc -.->|"Public JWKS (/.well-known/jwks)<br/>RS256 signature verification"| IdSvc
     CustSvc -.->|"Public JWKS (/.well-known/jwks)<br/>RS256 signature verification"| AdminIdSvc

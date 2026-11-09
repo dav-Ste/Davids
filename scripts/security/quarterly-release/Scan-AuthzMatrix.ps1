@@ -528,14 +528,14 @@ if ([int]$revokeResp.StatusCode -ne 200) {
 $r10 = Invoke-WebRequest -Uri "$baseGateway/identity/me" -Method Get -Headers @{ Authorization = "Bearer $disposableAccessToken" } -SkipHttpErrorCheck
 Add-CheckResult -Id 'CRYPTO-010' -Category 'OIDC-Token-Revocation' -Description 'Reject revoked RS256 access_token immediately after RFC 7009 /connect/revocation' -Passed ([int]$r10.StatusCode -eq 401) -ActualStatus ([int]$r10.StatusCode) -ExpectedStatuses @(401)
 
-# CRYPTO-011: Admin BFF /logout CSRF/auth boundary & open-redirect sanitization on /login
-$getLogout = Invoke-WebRequest -Uri "$baseGateway/logout" -Method Get -MaximumRedirection 0 -SkipHttpErrorCheck -ErrorAction SilentlyContinue
-$postLogoutNoCsrf = Invoke-WebRequest -Uri "$baseGateway/logout" -Method Post -MaximumRedirection 0 -SkipHttpErrorCheck -ErrorAction SilentlyContinue
-$openRedirectLogin = Invoke-WebRequest -Uri "$baseGateway/login?returnUrl=https%3A%2F%2Fevil.davids.invalid%2Fphish" -Method Get -MaximumRedirection 0 -SkipHttpErrorCheck -ErrorAction SilentlyContinue
+# CRYPTO-011: Admin BFF /auth/logout CSRF/auth boundary & open-redirect sanitization on /auth/login
+$getLogout = Invoke-WebRequest -Uri "$baseGateway/auth/logout" -Method Get -MaximumRedirection 0 -SkipHttpErrorCheck -ErrorAction SilentlyContinue
+$postLogoutNoCsrf = Invoke-WebRequest -Uri "$baseGateway/auth/logout" -Method Post -MaximumRedirection 0 -SkipHttpErrorCheck -ErrorAction SilentlyContinue
+$openRedirectLogin = Invoke-WebRequest -Uri "$baseGateway/auth/login?returnUrl=https%3A%2F%2Fevil.davids.invalid%2Fphish" -Method Get -MaximumRedirection 0 -SkipHttpErrorCheck -ErrorAction SilentlyContinue
 $loginLoc = [string]$openRedirectLogin.Headers['Location']
 $openRedirectSafe = (-not $loginLoc.Contains('evil.davids.invalid'))
-$bffPassed = ((@(401, 405) -contains [int]$getLogout.StatusCode) -and (@(400, 401) -contains [int]$postLogoutNoCsrf.StatusCode) -and $openRedirectSafe)
-Add-CheckResult -Id 'CRYPTO-011' -Category 'Admin-BFF-CSRF-OpenRedirect' -Description 'Block unauthenticated GET/POST /logout (401/405/400) and sanitize external returnUrl open-redirect on /login' -Passed $bffPassed -ActualStatus ([int]$getLogout.StatusCode) -ExpectedStatuses @(401, 405) -Detail "postLogoutStatus=$([int]$postLogoutNoCsrf.StatusCode); loginRedirectLocation=$loginLoc"
+$bffPassed = ((@(401, 405) -contains [int]$getLogout.StatusCode) -and ([int]$postLogoutNoCsrf.StatusCode -eq 403) -and $openRedirectSafe)
+Add-CheckResult -Id 'CRYPTO-011' -Category 'Admin-BFF-CSRF-OpenRedirect' -Description 'Block GET /auth/logout and POST without CSRF; reject external /auth/login returnUrl' -Passed $bffPassed -ActualStatus ([int]$getLogout.StatusCode) -ExpectedStatuses @(401, 405) -Detail "postLogoutStatus=$([int]$postLogoutNoCsrf.StatusCode); loginRedirectLocation=$loginLoc"
 
 $passedCount = @($results | Where-Object { $_.passed }).Count
 $failedCount = @($results | Where-Object { -not $_.passed }).Count

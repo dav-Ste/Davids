@@ -32,7 +32,7 @@
   <rect x="438" y="118" width="154" height="20" rx="10.0" fill="#082f49" stroke="#38bdf8" stroke-width="1.1"/>
   <text x="515.0" y="131.2" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#7dd3fc">Customer BFF + PKCE</text>
   <circle cx="46" cy="156.4" r="2.4" fill="#38bdf8"/>
-  <text x="55" y="160" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.8px" font-weight="400" fill="#dbeafe">Self-service web portal (/portal) uses HttpOnly &#x27;davids_customer_bff&#x27; + CSRF</text>
+  <text x="55" y="160" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.8px" font-weight="400" fill="#dbeafe">Self-service web portal (/) uses HttpOnly &#x27;davids_customer_bff&#x27; + CSRF</text>
   <circle cx="46" cy="177.4" r="2.4" fill="#38bdf8"/>
   <text x="55" y="181" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.8px" font-weight="400" fill="#dbeafe">Direct OIDC PKCE S256 clients receive RS256 JWT (role=user, aud=davids-services)</text>
   <circle cx="46" cy="198.4" r="2.4" fill="#38bdf8"/>
@@ -172,7 +172,7 @@
   <rect x="1486" y="586" width="320" height="19" rx="4" fill="#1e293b" stroke="#334155" stroke-width="1"/>
   <text x="1492" y="599.1" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="9.6px" font-weight="600" fill="#e2e8f0">Project: Davids.Frontend.Web</text>
   <circle cx="1490" cy="619.4" r="2.4" fill="#34d399"/>
-  <text x="1499" y="623" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">Customer portal at /portal &amp; /portal/login</text>
+  <text x="1499" y="623" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">Customer portal at / &amp; /login</text>
   <circle cx="1490" cy="640.4" r="2.4" fill="#34d399"/>
   <text x="1499" y="644" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">Protected by HttpOnly &#x27;davids_customer_bff&#x27; cookie</text>
   <circle cx="1490" cy="661.4" r="2.4" fill="#34d399"/>
@@ -182,7 +182,7 @@
   <circle cx="1490" cy="703.4" r="2.4" fill="#34d399"/>
   <text x="1499" y="707" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">Personal login &amp; account change-audit activity</text>
   <rect x="1558.0" y="512" width="176" height="18" rx="4" fill="#064e3b" stroke="#10b981" stroke-width="1"/>
-  <text x="1646.0" y="524.6" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="9.5px" font-weight="600" fill="#a7f3d0">/portal + Customer BFF</text>
+  <text x="1646.0" y="524.6" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="9.5px" font-weight="600" fill="#a7f3d0">/ + Customer BFF</text>
   <rect x="24" y="812" width="1124" height="266" rx="12" fill="#161310" stroke="#fbbf24" stroke-width="1.8"/>
   <text x="42" y="837" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14.2px" font-weight="700" fill="#f8fafc">Repo: Davids  (src/Davids.AppHost + src/Davids.Bootstrap)  —  Isolated Persistence, Messaging &amp; Vault Secrets</text>
   <rect x="42" y="850" width="660" height="124" rx="8" fill="#22190f" stroke="#f59e0b" stroke-width="1.4"/>

@@ -136,10 +136,10 @@ jobs:
     parameters:
       user: ""
     requests:
-      - url: "${ZAP_TARGET_URL}/login"
+      - url: "${ZAP_TARGET_URL}/admin/login"
         name: "Admin-BFF-Login-Entry"
         method: "GET"
-      - url: "${ZAP_TARGET_URL}/portal/login"
+      - url: "${ZAP_TARGET_URL}/login"
         name: "Customer-BFF-Login-Entry"
         method: "GET"
       - url: "${ZAP_TARGET_URL}/identity/.well-known/openid-configuration"
@@ -200,7 +200,7 @@ jobs:
   - type: spider
     parameters:
       context: "Davids-Gateway"
-      url: "${ZAP_TARGET_URL}/login"
+      url: "${ZAP_TARGET_URL}/admin/login"
       maxDuration: 3
       parseComments: true
       parseRobotsTxt: false
@@ -208,7 +208,7 @@ jobs:
   - type: spider
     parameters:
       context: "Davids-Gateway"
-      url: "${ZAP_TARGET_URL}/portal/login"
+      url: "${ZAP_TARGET_URL}/login"
       maxDuration: 3
       parseComments: true
       parseRobotsTxt: false

@@ -48,7 +48,7 @@ Each component lives in its own standalone repository with an independent `.slnx
 | **[`Davids.Services.Payments`](https://github.com/dav-Ste/Davids.Services.Payments)** | Asynchronous RabbitMQ payment capture & workforce payment ledger (`paymentsdb`, zero raw PANs) | `:5012` | [![PR CI](https://github.com/dav-Ste/Davids.Services.Payments/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.Payments/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Services.Payments/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Services.Payments/actions/workflows/codeql.yml) |
 | **[`Davids.APIGateway`](https://github.com/dav-Ste/Davids.APIGateway)** | YARP `2.3.0` edge reverse proxy & dual Admin/Customer OIDC BFFs (zero signing keys) | `:17320` | [![PR CI](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.APIGateway/actions/workflows/codeql.yml) |
 | **[`Davids.Frontend.Admin`](https://github.com/dav-Ste/Davids.Frontend.Admin)** | Passwordless Workforce RBAC (`admin`/`support`/`auditor`) customer, catalog, order, IAM & audit UI | `:17321` | [![PR CI](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Frontend.Admin/actions/workflows/codeql.yml) |
-| **[`Davids.Frontend.Web`](https://github.com/dav-Ste/Davids.Frontend.Web)** | Customer Storefront, Basket, Checkout, Orders & Self-Service Portal (`CustomerBffCookie` via `/portal`) | `:17322` | [![PR CI](https://github.com/dav-Ste/Davids.Frontend.Web/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Frontend.Web/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Frontend.Web/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Frontend.Web/actions/workflows/codeql.yml) |
+| **[`Davids.Frontend.Web`](https://github.com/dav-Ste/Davids.Frontend.Web)** | Customer Storefront, Basket, Checkout, Orders & Self-Service Portal (`CustomerBffCookie` via `/`) | `:17322` | [![PR CI](https://github.com/dav-Ste/Davids.Frontend.Web/actions/workflows/pull-request-ci.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Frontend.Web/actions/workflows/pull-request-ci.yml) | [![CodeQL](https://github.com/dav-Ste/Davids.Frontend.Web/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/dav-Ste/Davids.Frontend.Web/actions/workflows/codeql.yml) |
 
 Authentication uses **Self-Hosted .NET OpenID Connect (`OpenIddict` `7.7.2`)** with **OAuth 2.1 Authorization Code + PKCE (`S256`)**, asymmetric **RS256** signing keys, public JWKS discovery (`/.well-known/openid-configuration` & `/.well-known/jwks`), single-use rotating refresh tokens with reuse detection, RFC 7009 revocation synced to Redis, and **two isolated Gateway OIDC Backend-for-Frontend (BFF) cookies** (`davids_admin_bff` for workforce employees `admin`/`support`/`auditor` on `Davids.Frontend.Admin` and `davids_customer_bff` for customers on `Davids.Frontend.Web`). Resource servers (`Customers`, `Products`, `Baskets`, `Orders`, `Payments`, and `Davids.APIGateway`) hold **zero signing keys**.
 
@@ -155,9 +155,9 @@ Or open any standalone component solution:
 
 | Resource / Service | Aspire Resource Name | Container / Default Port | Key Paths & Health Probes |
 |---|---|---|---|
-| **API Gateway & Dual OIDC BFFs** | `api-gateway` | `:17320` | `/login`, `/auth/session`, `/portal`, `/customer-auth/session`, `/gateway-info`, `/health` |
-| **Admin Web Frontend** | `frontend-admin` | `:17321` *(proxied via `:17320`)* | `/` (workforce RBAC `admin`/`support`/`auditor` via Gateway), `/health` |
-| **Customer Web Portal** | `frontend-web` | `:17322` *(proxied via `:17320/portal`)* | `/portal`, `/portal/login` (`CustomerBffCookie` via Gateway), `/health` |
+| **API Gateway & Dual OIDC BFFs** | `api-gateway` | `:17320` | `/`, `/login`, `/admin`, `/admin/login`, `/auth/session`, `/customer-auth/session`, `/gateway-info`, `/health` |
+| **Admin Web Frontend** | `frontend-admin` | `:17321` *(proxied via `:17320/admin`)* | `/admin` (workforce RBAC `admin`/`support`/`auditor` via Gateway), `/health` |
+| **Customer Web Portal** | `frontend-web` | `:17322` *(proxied via `:17320/`)* | `/`, `/login` (`CustomerBffCookie` via Gateway), `/health` |
 | **Admin Identity OIDC Provider** | `admin-identity` | `:17325` | `/.well-known/openid-configuration`, `/.well-known/jwks`, `/change-audits`, `/health` |
 | **Customers API** | `customers` | `:5002` | `/customers`, `/customers/me`, `/customers/change-audits`, `/health` |
 | **Customer Identity OIDC Provider** | `identity` | `:5004` | `/.well-known/openid-configuration`, `/.well-known/jwks`, `/sign-up`, `/me/change-audits`, `/health` |
@@ -202,7 +202,7 @@ No passwords, tokens, RSA private keys, or OIDC client secrets are hardcoded in 
   - **Authentication method**: `Token`
   - **Root token (development)**: Generated by `./scripts/Setup.ps1` and stored in user-secrets as `Parameters:vault-dev-root-token` (also visible in the Aspire Dashboard on `vault` under `VAULT_DEV_ROOT_TOKEN_ID`).
 - **Seeded Administrator Account (`Davids.Frontend.Admin` & `Davids.Services.AdminIdentity`)**
-  - **Sign-in URL**: `<api-gateway-http-endpoint>/login` (triggers OIDC Authorization Code + PKCE SSO via `/auth/login` -> `/admin-identity/connect/authorize`).
+  - **Sign-in URL**: `<api-gateway-http-endpoint>/admin/login` (triggers OIDC Authorization Code + PKCE SSO via `/auth/login` -> `/admin-identity/connect/authorize`).
   - **Email (username)**: `admin@davids.local` (configured via `SeedAdmin:Email` in `src/Davids.AppHost/appsettings.json` when `Integrations:SeedAdmin=true`).
   - **Password**: Generated by `./scripts/Setup.ps1` and stored in user-secrets as `Parameters:dev-admin-password`.
 - **OIDC Asymmetric RSA Keys & Confidential BFF Secret (Vault bootstrap)**
@@ -234,7 +234,7 @@ Open the Aspire dashboard URL printed by the AppHost. The `api-gateway` HTTP end
 
 - Unauthenticated browser HTML requests to `/` redirect (`302 Found`) to `/login` (the public administrator SSO entry page, which initiates OAuth 2.1 Authorization Code + PKCE via `/auth/login`).
 - Non-admin customer RS256 tokens (`CustomerBearer`) receive `403 Forbidden` on `Davids.Frontend.Admin` and all admin endpoints.
-- Verified administrators (`AdminBffCookie` `davids_admin_bff` or `AdminBearer`) access `/`, customer search/edit APIs (`/customers?...`, `PUT /customers/{customerId}`), administrator provisioning (`/admin-identity/users`), and the administrator login audit log (`/admin-identity/login-audits`).
+- Verified administrators (`AdminBffCookie` `davids_admin_bff` or `AdminBearer`) access `/admin`, customer search/edit APIs (`/customers?...`, `PUT /customers/{customerId}`), administrator provisioning (`/admin-identity/users`), and the administrator login audit log (`/admin-identity/login-audits`).
 
 Build and test the complete composition or a single standalone component:
 

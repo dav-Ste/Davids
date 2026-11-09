@@ -309,7 +309,7 @@ jobs:
             for i in $(seq 1 90); do
               if curl -fsS http://127.0.0.1:17320/gateway-info >/dev/null 2>&1 && \
                  curl -fsS http://127.0.0.1:17320/login >/dev/null 2>&1 && \
-                 curl -fsS http://127.0.0.1:17320/portal/login >/dev/null 2>&1 && \
+                 curl -fsS http://127.0.0.1:17320/admin/login >/dev/null 2>&1 && \
                  curl -fsS http://127.0.0.1:17320/products >/dev/null 2>&1 && \
                  curl -fsS http://127.0.0.1:17320/identity/.well-known/openid-configuration >/dev/null 2>&1 && \
                  curl -fsS http://127.0.0.1:17320/admin-identity/.well-known/openid-configuration >/dev/null 2>&1 && \

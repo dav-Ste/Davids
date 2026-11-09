@@ -213,11 +213,11 @@ if (Enabled("ApiGateway"))
 
     identity
         .WithEnvironment("Oidc__GatewayRedirectUri", ReferenceExpression.Create($"{apiGateway.GetEndpoint("http")}/signin-customer-oidc"))
-        .WithEnvironment("Oidc__GatewayPostLogoutRedirectUri", ReferenceExpression.Create($"{apiGateway.GetEndpoint("http")}/portal/login"));
+        .WithEnvironment("Oidc__GatewayPostLogoutRedirectUri", ReferenceExpression.Create($"{apiGateway.GetEndpoint("http")}/login"));
 
     adminIdentity
         .WithEnvironment("Oidc__GatewayRedirectUri", ReferenceExpression.Create($"{apiGateway.GetEndpoint("http")}/signin-oidc"))
-        .WithEnvironment("Oidc__GatewayPostLogoutRedirectUri", ReferenceExpression.Create($"{apiGateway.GetEndpoint("http")}/login"));
+        .WithEnvironment("Oidc__GatewayPostLogoutRedirectUri", ReferenceExpression.Create($"{apiGateway.GetEndpoint("http")}/admin/login"));
 }
 
 if (Enabled("Redis"))

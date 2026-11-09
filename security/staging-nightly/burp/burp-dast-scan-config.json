@@ -29,7 +29,7 @@
           "advanced_mode": true,
           "include": [
             { "protocol": "any", "file": "^/login$" },
-            { "protocol": "any", "file": "^/portal(/.*)?$" },
+            { "protocol": "any", "file": "^/admin(/.*)?$" },
             { "protocol": "any", "file": "^/$" },
             { "protocol": "any", "file": "^/gateway-info$" },
             { "protocol": "any", "file": "^/auth/(me|session)$" },

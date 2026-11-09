@@ -183,8 +183,8 @@ if ($userInfo.email -ne $email) { throw 'Authenticated customer /connect/userinf
 # 3. Zero-trust boundary checks through YARP Gateway
 $anonFrontend = Invoke-HttpRaw -Uri "$gwRoot/" -Headers @{ Accept = 'text/html' } -NoRedirect
 if ($anonFrontend.StatusCode -ne 302) { throw 'Gateway did not redirect unauthenticated browser request from / to /login.' }
-$customerFrontend = Invoke-HttpRaw -Uri "$gwRoot/" -Headers @{ Authorization = 'Bearer ' + $tokens.access_token; Accept = 'text/html' } -NoRedirect
-if ($customerFrontend.StatusCode -ne 403) { throw 'Gateway allowed a non-admin customer token to access Davids.Frontend.Admin.' }
+$customerFrontend = Invoke-HttpRaw -Uri "$gwRoot/admin" -Headers @{ Authorization = 'Bearer ' + $tokens.access_token; Accept = 'text/html' } -NoRedirect
+if ($customerFrontend.StatusCode -ne 302 -or $customerFrontend.Location -ne '/admin/login') { throw 'Gateway allowed a non-admin customer token to access Davids.Frontend.Admin.' }
 
 $anonCustomers = Invoke-HttpRaw -Uri "$customers/$userId"
 if ($anonCustomers.StatusCode -ne 401) { throw 'Gateway accepted an anonymous protected Customers request.' }
@@ -217,7 +217,7 @@ if ($profile.state -ne 'valid' -or $profile.fullName -ne 'Infrastructure Smoke T
 # 5. Admin OIDC BFF SSO flow (Authorization Code + PKCE + HttpOnly session cookie + CSRF protection)
 if ($AdminEmail -and $AdminPassword) {
     $bffSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
-    $loginChallenge = Invoke-HttpRaw -Uri "$gwRoot/auth/login?returnUrl=%2F" -WebSession $bffSession -NoRedirect
+    $loginChallenge = Invoke-HttpRaw -Uri "$gwRoot/auth/login?returnUrl=%2Fadmin" -WebSession $bffSession -NoRedirect
     if ($loginChallenge.StatusCode -ne 302) { throw 'Gateway /auth/login did not initiate OIDC challenge.' }
 
     $authorizeTarget = if ($loginChallenge.Location.StartsWith('http')) { $loginChallenge.Location } else { "$gwRoot$($loginChallenge.Location)" }
@@ -237,7 +237,7 @@ if ($AdminEmail -and $AdminPassword) {
     $signinCallback = Invoke-HttpRaw -Uri $signinOidcUrl -WebSession $bffSession -NoRedirect
     if ($signinCallback.StatusCode -ne 302) { throw "Gateway /signin-oidc callback failed with HTTP $($signinCallback.StatusCode)." }
 
-    $adminWorkspace = Invoke-HttpRaw -Uri "$gwRoot/" -WebSession $bffSession
+    $adminWorkspace = Invoke-HttpRaw -Uri "$gwRoot/admin" -WebSession $bffSession
     if ($adminWorkspace.StatusCode -ne 200) { throw 'Gateway did not serve Davids.Frontend.Admin for authenticated Admin OIDC BFF session.' }
 
     $sessionDto = Invoke-RestMethod "$gwRoot/auth/session" -WebSession $bffSession -TimeoutSec 10
