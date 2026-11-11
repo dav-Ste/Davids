@@ -2,7 +2,7 @@
   "scanner": "PortSwigger Dastardly",
   "image": "public.ecr.aws/portswigger/dastardly:latest@sha256:d2a78619439e7e624d7f9b8c5da4c4015090d7140b3f09e43f0102bb77bae83f",
   "maxDurationMinutes": 10,
-  "failOnAnyFindingWithSeverityAtOrAbove": "LOW",
+  "blockingPolicy": "Any JUnit failure or nonzero scanner exit; severity is not evaluated.",
   "targets": [
     {
       "id": "gateway-admin-bff-entry",

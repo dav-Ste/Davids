@@ -48,7 +48,7 @@ if ($ValidateOnly) {
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
 
 if (-not $SkipAuthzMatrix) {
-    Write-Host '=== [2/4] Cross-Role Authorization Matrix (Automated Autorize) & JWT/OIDC Cryptographic Boundary Gate ==='
+    Write-Host '=== [2/4] Cross-Role Authorization Matrix & JWT/OIDC Cryptographic Boundary Gate ==='
     $authzParams = @{
         GatewayUrl           = $GatewayUrl
         CustomerABearerToken = $CustomerABearerToken

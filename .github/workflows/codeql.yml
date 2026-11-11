@@ -1,4 +1,4 @@
-name: Pull Request CI — CodeQL SAST
+name: CodeQL — PR, Main & Weekly SAST
 
 on:
   push:

@@ -1,8 +1,8 @@
-name: Quarterly / Release — Security Gates
+name: Quarterly / Post-Release — Security Verification
 
 on:
   schedule:
-    - cron: "0 3 1 1,4,7,10 *"
+    - cron: "17 3 1 1,4,7,10 *"
   release:
     types: [published]
   workflow_dispatch:
@@ -345,7 +345,7 @@ jobs:
           echo "::add-mask::$BFF_SECRET"
           echo "admin_bff_secret=$BFF_SECRET" >> "$GITHUB_OUTPUT"
 
-      - name: Quarterly / Release [1/3] — Cross-Role Authorization Matrix (Autorize) & JWT/OIDC Cryptographic Boundary Gate
+      - name: Quarterly / Release [1/3] — Cross-Role Authorization Matrix & JWT/OIDC Boundary Checks
         shell: pwsh
         working-directory: ./Davids
         env:

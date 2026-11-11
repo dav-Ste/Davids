@@ -1,4 +1,4 @@
-name: Production Cluster — Runtime, Mesh, Supply-Chain & Alerting Gate
+name: Production Cluster — Policy & Configuration Verification
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   production-cluster-policy-and-alert-verification:
-    name: Kyverno, Istio STRICT mTLS, Falco/Tetragon & Alerting Suite
+    name: Kyverno, Istio, Runtime Rules & Alert Configuration Checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -21,12 +21,12 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Run Production Cluster verification suite (Kyverno + Istio + Falco/Tetragon + promtool + Grafana/Seq)
+      - name: Run offline policy and configuration verification
         shell: pwsh
         run: ./scripts/security/production-cluster/Verify-ProductionClusterGates.ps1 -InstallTools
 
   cosign-keyless-signing-and-sbom:
-    name: Keyless Sigstore Cosign Signing & CycloneDX Attestation
+    name: Conditional Image Signing & SBOM Attestation
     if: github.event_name == 'push' && vars.ENABLE_COSIGN_SIGNING == 'true'
     needs: [production-cluster-policy-and-alert-verification]
     runs-on: ubuntu-latest

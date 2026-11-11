@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "description": "Davids Platform Quarterly / Release Cross-Role Authorization & Tenant Isolation Matrix (Automated Autorize Verification)",
+  "description": "Davids Platform Quarterly / Release Cross-Role Authorization & Tenant Isolation Matrix (Automated PowerShell Verification)",
   "cases": [
     {
       "id": "AUTHZ-001",
@@ -41,9 +41,9 @@
     {
       "id": "AUTHZ-005",
       "category": "Unauthenticated-Boundary",
-      "description": "Unauthenticated caller cannot read Admin BFF /api/admin/me",
+      "description": "Unauthenticated caller cannot read Admin BFF /auth/session",
       "method": "GET",
-      "path": "/api/admin/me",
+      "path": "/auth/session",
       "actor": "unauthenticated",
       "expectedStatuses": [401]
     },
@@ -216,9 +216,9 @@
     {
       "id": "AUTHZ-022",
       "category": "Vertical-Privilege-Escalation",
-      "description": "Customer Bearer token cannot access cookie-bound Admin BFF /api/admin/me",
+      "description": "Customer Bearer token cannot access cookie-bound Admin BFF /auth/session",
       "method": "GET",
-      "path": "/api/admin/me",
+      "path": "/auth/session",
       "actor": "customerA",
       "expectedStatuses": [401, 403]
     },

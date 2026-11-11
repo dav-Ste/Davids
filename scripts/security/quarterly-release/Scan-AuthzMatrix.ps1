@@ -315,7 +315,7 @@ function Add-CheckResult {
     }
 }
 
-Write-Host "=== Quarterly / Release (Part 1/2): Executing $($matrix.cases.Count) Cross-Role Authorization Matrix Cases (Automated Autorize) ==="
+Write-Host "=== Quarterly / Release (Part 1/2): Executing $($matrix.cases.Count) Cross-Role Authorization Matrix Cases (PowerShell) ==="
 foreach ($case in $matrix.cases) {
     $resolvedPath = ([string]$case.path).
         Replace('{{custAId}}', $CustomerAId).
@@ -365,7 +365,7 @@ foreach ($case in $matrix.cases) {
         -Detail "$($case.method) $resolvedPath as $($case.actor)"
 }
 
-Write-Host '=== Quarterly / Release (Part 2/2): Executing 11 Cryptographic JWT Editor & OIDC/PKCE/BFF Boundary Attacks ==='
+Write-Host '=== Quarterly / Release (Part 2/2): Executing 11 Cryptographic JWT & OIDC/PKCE/BFF Boundary Checks ==='
 
 $adminClaims = Get-JwtPayloadHashtable -Jwt $AdminBearerToken
 $custAClaims = Get-JwtPayloadHashtable -Jwt $CustomerABearerToken

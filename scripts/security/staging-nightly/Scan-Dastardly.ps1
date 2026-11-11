@@ -126,6 +126,8 @@ $containerGateway = if ($IsLinux) {
 }
 
 $totalFailures = 0
+$totalJunitFailures = 0
+$nonzeroExitRuns = 0
 foreach ($seed in $seedsDoc.targets) {
     $seedId = [string]$seed.id
     $relativeUrl = [string]$seed.relativeUrl
@@ -161,19 +163,21 @@ foreach ($seed in $seedsDoc.targets) {
 
     [xml]$junit = Get-Content -LiteralPath $hostReportPath -Raw
     $failures = @($junit.SelectNodes('//failure'))
+    $totalJunitFailures += $failures.Count
+    if ($exitCode -ne 0) { $nonzeroExitRuns++ }
     if ($failures.Count -gt 0 -or $exitCode -ne 0) {
         $totalFailures += [Math]::Max($failures.Count, 1)
         foreach ($failure in $failures) {
             Write-Warning "Dastardly finding [$seedId]: $($failure.GetAttribute('message'))"
         }
-        Write-Warning "Dastardly reported $($failures.Count) finding(s) for seed '$seedId' (exit code $exitCode)."
+        Write-Warning "Dastardly seed '$seedId': $($failures.Count) JUnit failure(s), scanner exit code $exitCode. Severity is not evaluated by this gate."
     } else {
         Write-Host "Dastardly seed '$seedId' passed with 0 findings."
     }
 }
 
 if ($totalFailures -gt 0) {
-    throw "PortSwigger Dastardly reported $totalFailures blocking web/BFF finding(s) with severity >= LOW."
+    throw "PortSwigger Dastardly gate failed: $totalJunitFailures JUnit failure(s) and $nonzeroExitRuns scan(s) with nonzero exit codes ($totalFailures blocking result(s)). Severity is not evaluated; inspect the reports and scanner logs."
 }
 
 Write-Host "All $($seedsDoc.targets.Count) PortSwigger Dastardly web/BFF DAST scan(s) passed with zero findings."

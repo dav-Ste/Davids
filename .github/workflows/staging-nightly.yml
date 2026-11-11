@@ -1,4 +1,4 @@
-name: Staging / Nightly — DAST & OpenAPI Fuzzing
+name: Nightly / Manual — DAST & API Fuzzing
 
 on:
   schedule:
@@ -132,7 +132,7 @@ jobs:
         run: |
           ./scripts/security/staging-nightly/Invoke-StagingNightlyGates.ps1 -ValidateOnly
 
-      - name: Resolve target or launch ephemeral 5-service Davids stack + mint PKCE OIDC tokens
+      - name: Resolve target or launch ephemeral Davids stack + mint PKCE OIDC tokens
         id: target
         env:
           VAR_STAGING_URL: ${{ vars.STAGING_GATEWAY_URL }}
@@ -146,12 +146,14 @@ jobs:
 
           EXTERNAL_URL="${VAR_STAGING_URL:-}"
           if [ -n "$EXTERNAL_URL" ]; then
+            echo "target_kind=configured external target" >> "$GITHUB_OUTPUT"
             GATEWAY_URL="${EXTERNAL_URL%/}"
             DASTARDLY_URL="$GATEWAY_URL"
             ADMIN_EMAIL="$STAGING_ADMIN_EMAIL"
             ADMIN_PASS="$STAGING_ADMIN_PASSWORD"
             BFF_SECRET="$STAGING_ADMIN_BFF_SECRET"
           else
+            echo "target_kind=ephemeral runner stack" >> "$GITHUB_OUTPUT"
             OTP_SQL="$(openssl rand -hex 16)Aa1!"
             echo "::add-mask::$OTP_SQL"
             OTP_RABBIT="$(openssl rand -hex 16)Rb4"
@@ -470,6 +472,7 @@ jobs:
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
               fh.write(f"customer_bearer=Bearer {cust_tok}\n")
 
+          fixture_status = "no catalog products; fixture not created"
           # Seed one live basket + completed RabbitMQ saga order + fresh basket item so Orders,
           # Payments, and Baskets fuzzing exercise live persisted domain aggregates as well.
           try:
@@ -499,16 +502,23 @@ jobs:
                   )
                   urllib.request.urlopen(oreq).read()
                   import time
+                  payment_observed = False
                   for _ in range(20):
                       with urllib.request.urlopen(
                           urllib.request.Request(f"{gw}/payments/me", headers={"Authorization": f"Bearer {cust_tok}"})
                       ) as payresp:
                           if json.loads(payresp.read().decode()):
+                              payment_observed = True
                               break
                       time.sleep(0.5)
                   put_basket(1)
+                  fixture_status = ("basket and checkout seeded; payment record observed" if payment_observed
+                                    else "basket and checkout seeded; payment record not observed")
           except Exception as seed_err:
+              fixture_status = "fixture setup failed or incomplete"
               print(f"Note: optional e-commerce fixture seed skipped ({seed_err})")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"fixture_status={fixture_status}\n")
 
           if admin_email and admin_pass and bff_secret:
               adm_tok = mint_pkce(
@@ -526,6 +536,7 @@ jobs:
           PY
 
       - name: Schemathesis Unauthenticated Boundary Fuzzing (All 7 OpenAPI Contracts)
+        id: unauth_fuzz
         shell: pwsh
         working-directory: ./Davids
         run: |
@@ -536,6 +547,7 @@ jobs:
           ./scripts/security/staging-nightly/Scan-Schemathesis.ps1 -GatewayUrl "${{ steps.target.outputs.gateway_url }}"
 
       - name: Schemathesis Authenticated Customer OIDC RS256 + Stateful Fuzzing (Identity)
+        id: customer_identity_fuzz
         uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
         with:
           version: "4.32.6"
@@ -549,6 +561,7 @@ jobs:
           args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-identity.junit.xml --warnings off"
 
       - name: Schemathesis Authenticated Customer OIDC RS256 + Stateful Fuzzing (Customers Self-Service)
+        id: customer_customers_fuzz
         uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
         with:
           version: "4.32.6"
@@ -562,6 +575,7 @@ jobs:
           args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-customers-customer.junit.xml --warnings off"
 
       - name: Schemathesis Authenticated Customer OIDC RS256 + Stateful Fuzzing (Baskets)
+        id: customer_baskets_fuzz
         uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
         with:
           version: "4.32.6"
@@ -575,6 +589,7 @@ jobs:
           args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-baskets-customer.junit.xml --warnings off"
 
       - name: Schemathesis Authenticated Customer OIDC RS256 + Stateful Fuzzing (Orders Customer)
+        id: customer_orders_fuzz
         uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
         with:
           version: "4.32.6"
@@ -588,6 +603,7 @@ jobs:
           args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-orders-customer.junit.xml --warnings off"
 
       - name: Schemathesis Authenticated Customer OIDC RS256 Fuzzing (Payments Customer)
+        id: customer_payments_fuzz
         uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
         with:
           version: "4.32.6"
@@ -601,6 +617,7 @@ jobs:
           args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-payments-customer.junit.xml --warnings off"
 
       - name: Schemathesis Authenticated Admin OIDC RS256 Fuzzing (Customer Accounts)
+        id: admin_customer_accounts_fuzz
         if: steps.target.outputs.admin_bearer != ''
         uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
         with:
@@ -615,6 +632,7 @@ jobs:
           args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-customer-accounts-admin.junit.xml --warnings off"
 
       - name: Schemathesis Authenticated Admin OIDC RS256 Fuzzing (AdminIdentity)
+        id: admin_identity_fuzz
         if: steps.target.outputs.admin_bearer != ''
         uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
         with:
@@ -629,6 +647,7 @@ jobs:
           args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-admin-identity.junit.xml --warnings off"
 
       - name: Schemathesis Authenticated Admin OIDC RS256 + Stateful Fuzzing (Customers Admin)
+        id: admin_customers_fuzz
         if: steps.target.outputs.admin_bearer != ''
         uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
         with:
@@ -643,6 +662,7 @@ jobs:
           args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-customers-admin.junit.xml --warnings off"
 
       - name: Schemathesis Authenticated Admin OIDC RS256 + Stateful Fuzzing (Products Catalog)
+        id: admin_products_fuzz
         if: steps.target.outputs.admin_bearer != ''
         uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
         with:
@@ -657,6 +677,7 @@ jobs:
           args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-products-admin.junit.xml --warnings off"
 
       - name: Schemathesis Authenticated Admin OIDC RS256 Fuzzing (Orders Admin)
+        id: admin_orders_fuzz
         if: steps.target.outputs.admin_bearer != ''
         uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
         with:
@@ -671,6 +692,7 @@ jobs:
           args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-orders-admin.junit.xml --warnings off"
 
       - name: Schemathesis Authenticated Admin OIDC RS256 Fuzzing (Payments Admin)
+        id: admin_payments_fuzz
         if: steps.target.outputs.admin_bearer != ''
         uses: schemathesis/action@b0cacf86f25caaa79ac110cc2077afd70fdd67ff # v3.1.0
         with:
@@ -685,6 +707,7 @@ jobs:
           args: "--report junit --report-junit-path ./Davids/TestResults/staging-nightly/schemathesis-auth-payments-admin.junit.xml --warnings off"
 
       - name: ProjectDiscovery Nuclei Posture Assertions & Vulnerability Regression
+        id: nuclei_scan
         shell: pwsh
         working-directory: ./Davids
         run: |
@@ -692,10 +715,57 @@ jobs:
 
       # Run digest-pinned Dastardly with ECR pull backoff via Scan-Dastardly.ps1 (replaces Docker-action setup build of PortSwigger/dastardly-github-action@be689170753f3243af6c7e87c1eaa5b89d91205d)
       - name: PortSwigger Dastardly Web & BFF DAST Scan
+        id: dastardly_scan
         shell: pwsh
         working-directory: ./Davids
         run: |
           ./scripts/security/staging-nightly/Scan-Dastardly.ps1 -GatewayUrl "${{ steps.target.outputs.gateway_url }}" -OutputDirectory "./TestResults/staging-nightly"
+
+      - name: Summarize target and scan coverage
+        if: always()
+        env:
+          TARGET_KIND: ${{ steps.target.outputs.target_kind }}
+          FIXTURE_STATUS: ${{ steps.target.outputs.fixture_status }}
+          WORKFLOW_REVISION: ${{ github.sha }}
+          STATUS_UNAUTH_FUZZ: ${{ steps.unauth_fuzz.outcome }}
+          STATUS_CUSTOMER_IDENTITY_FUZZ: ${{ steps.customer_identity_fuzz.outcome }}
+          STATUS_CUSTOMER_CUSTOMERS_FUZZ: ${{ steps.customer_customers_fuzz.outcome }}
+          STATUS_CUSTOMER_BASKETS_FUZZ: ${{ steps.customer_baskets_fuzz.outcome }}
+          STATUS_CUSTOMER_ORDERS_FUZZ: ${{ steps.customer_orders_fuzz.outcome }}
+          STATUS_CUSTOMER_PAYMENTS_FUZZ: ${{ steps.customer_payments_fuzz.outcome }}
+          STATUS_ADMIN_CUSTOMER_ACCOUNTS_FUZZ: ${{ steps.admin_customer_accounts_fuzz.outcome }}
+          STATUS_ADMIN_IDENTITY_FUZZ: ${{ steps.admin_identity_fuzz.outcome }}
+          STATUS_ADMIN_CUSTOMERS_FUZZ: ${{ steps.admin_customers_fuzz.outcome }}
+          STATUS_ADMIN_PRODUCTS_FUZZ: ${{ steps.admin_products_fuzz.outcome }}
+          STATUS_ADMIN_ORDERS_FUZZ: ${{ steps.admin_orders_fuzz.outcome }}
+          STATUS_ADMIN_PAYMENTS_FUZZ: ${{ steps.admin_payments_fuzz.outcome }}
+          STATUS_NUCLEI_SCAN: ${{ steps.nuclei_scan.outcome }}
+          STATUS_DASTARDLY_SCAN: ${{ steps.dastardly_scan.outcome }}
+        run: |
+          {
+            echo "## Nightly security scan summary"
+            echo "- Target: ${TARGET_KIND:-not resolved}"
+            echo "- Davids workflow revision: ${WORKFLOW_REVISION}"
+            echo "- Optional commerce fixture: ${FIXTURE_STATUS:-not attempted or target setup failed}"
+            echo "- Outcomes: success, failure, skipped, or not run (the latter can include jobs interrupted before this step)."
+            echo ""
+            echo "| Scan suite | Outcome |"
+            echo "|---|---|"
+            echo "| Unauthenticated API contracts | ${STATUS_UNAUTH_FUZZ:-not run} |"
+            echo "| Customer Identity | ${STATUS_CUSTOMER_IDENTITY_FUZZ:-not run} |"
+            echo "| Customer Customers | ${STATUS_CUSTOMER_CUSTOMERS_FUZZ:-not run} |"
+            echo "| Customer Baskets | ${STATUS_CUSTOMER_BASKETS_FUZZ:-not run} |"
+            echo "| Customer Orders | ${STATUS_CUSTOMER_ORDERS_FUZZ:-not run} |"
+            echo "| Customer Payments | ${STATUS_CUSTOMER_PAYMENTS_FUZZ:-not run} |"
+            echo "| Workforce Customer Accounts | ${STATUS_ADMIN_CUSTOMER_ACCOUNTS_FUZZ:-not run} |"
+            echo "| Workforce AdminIdentity | ${STATUS_ADMIN_IDENTITY_FUZZ:-not run} |"
+            echo "| Workforce Customers | ${STATUS_ADMIN_CUSTOMERS_FUZZ:-not run} |"
+            echo "| Workforce Products | ${STATUS_ADMIN_PRODUCTS_FUZZ:-not run} |"
+            echo "| Workforce Orders | ${STATUS_ADMIN_ORDERS_FUZZ:-not run} |"
+            echo "| Workforce Payments | ${STATUS_ADMIN_PAYMENTS_FUZZ:-not run} |"
+            echo "| Nuclei | ${STATUS_NUCLEI_SCAN:-not run} |"
+            echo "| Dastardly | ${STATUS_DASTARDLY_SCAN:-not run} |"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Dump ephemeral service logs on failure
         if: failure()
