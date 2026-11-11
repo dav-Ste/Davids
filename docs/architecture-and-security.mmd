@@ -1,144 +1,56 @@
-%% Davids Platform — .NET 10 Microservices, Infrastructure, Repository Relationships & Security Architecture
-%% Convert to high-DPI PNG:
-%%   npx -y @mermaid-js/mermaid-cli -i docs/architecture-and-security.mmd -o docs/architecture-and-security.png -w 2600 -s 2 -b "#0b1220"
-%% Convert to vector SVG:
-%%   npx -y @mermaid-js/mermaid-cli -i docs/architecture-and-security.mmd -o docs/architecture-and-security.svg -b "#0b1220"
-
+%% Davids platform: 12 repositories, seven separately owned SQL Server databases.
+%% View in Mermaid Live Editor or export with @mermaid-js/mermaid-cli.
 flowchart TB
-    %% ===================== ACTORS & EDGE =====================
-    subgraph Edge["External Clients & TLS 1.3 Ingress Perimeter"]
-        direction LR
-        CustClient["Customer Client ('davids-web')<br/>OAuth 2.1 Auth Code + PKCE S256<br/>Bearer RS256 JWT (role=user, aud=davids-services)"]
-        AdminBrowser["Administrator Browser<br/>Zero tokens in browser JavaScript<br/>Encrypted HttpOnly '__Host-Davids.Admin.Bff' cookie<br/>+ X-Requested-With: DavidsAdmin + Origin CSRF check"]
-        IstioEdge["Istio 1.31.3 IngressGateway<br/>TLS 1.3 minProtocolVersion · DENY /openapi & /admin-identity/sign-up"]
+    subgraph Clients["Gateway browser entry points"]
+        Web["Davids.Frontend.Web<br/>Customer storefront / and /login<br/>:17322 direct development host"]
+        Admin["Davids.Frontend.Admin<br/>Workforce portal /admin and /admin/login<br/>:17321 direct development host"]
     end
+    GW["Davids.APIGateway :17320<br/>YARP / dual OIDC BFF / authorization"]
+    Web -->|"Customer BFF"| GW
+    Admin -->|"Workforce BFF"| GW
 
-    %% ===================== ISTIO STRICT MTLS MESH =====================
-    subgraph Mesh["Kubernetes Namespace 'davids' — Istio STRICT mTLS (ISTIO_MUTUAL :8080) + Kyverno v1.19.2 + Cosign Signed Digests + Falco/Tetragon eBPF"]
-        direction TB
-
-        subgraph RepoGateway["Repo: Davids.APIGateway (:17320) — YARP 2.3.0 Edge & Confidential OIDC BFF (Zero Signing Keys)"]
-            GW["Davids.APIGateway.Api -> Davids.APIGateway.Infrastructure<br/>• Correlation ID & W3C TraceContext propagation<br/>• Dual-Authority RS256 JWT validation via public JWKS<br/>• Redis JTI revocation check & sliding-window rate limits<br/>• Confidential OIDC BFF (/admin/login, /signin-oidc, /auth/logout) + Workforce gate"]
-        end
-
-        subgraph RepoShared["Repo: Davids.Shared (NuGet / Project Reference)"]
-            Shared["Davids.ServiceDefaults<br/>OpenTelemetry (Traces, Metrics, 'Davids.Security.Audit' meter)<br/>Serilog -> Seq · Health/Readiness · Resilience"]
-        end
-
-        subgraph BackendRepos["Backend & Admin UI Repositories — Istio AuthorizationPolicy ALLOW ONLY Principal 'cluster.local/ns/davids/sa/davids-api-gateway'"]
-            direction LR
-            subgraph RepoId["Repo: Davids.Services.Identity (:5004)"]
-                IdSvc["Api -> Application + Infrastructure -> Core<br/>Customer OpenIddict 7.7.2 OIDC Provider<br/>Asymmetric RS256 signing + RSA-OAEP encryption<br/>PKCE S256 · Single-use refresh rotation · RFC 7009 revocation"]
-            end
-
-            subgraph RepoAdminId["Repo: Davids.Services.AdminIdentity (:17325)"]
-                AdminIdSvc["Api -> Application + Infrastructure -> Core<br/>Admin OpenIddict 7.7.2 OIDC Provider (role=admin)<br/>Separate RS256 keypair, issuer & 'davids-admin-bff' client<br/>Account lockout + AdminLoginAuditLogs"]
-            end
-
-            subgraph RepoCust["Repo: Davids.Services.Customers (:5002)"]
-                CustSvc["Api -> Application + Infrastructure -> Core<br/>Customer Profiles & Completed Orders<br/>Zero signing keys (validates public JWKS only)<br/>Self-service (/customers/me) vs AdminOnly search/edit"]
-            end
-
-            subgraph RepoFE["Repo: Davids.Frontend.Admin (:17321)"]
-                FESvc["Davids.Frontend.Admin<br/>Workforce Customer, CIAM, IAM & Audit UI<br/>Strict CSP (script-src 'self'), X-Frame-Options: DENY<br/>Reachable exclusively via Gateway Workforce BFF"]
-            end
-
-            subgraph RepoWeb["Repo: Davids.Frontend.Web (:17322)"]
-                WebSvc["Davids.Frontend.Web<br/>Customer Self-Service Web Portal (/)<br/>Profile, Password/Email Rotation & Personal Audits<br/>Reachable exclusively via Gateway Customer BFF"]
-            end
-        end
+    subgraph Services["Seven service repositories"]
+        ID["Davids.Services.Identity :5004<br/>Customer OIDC / identitydb"]
+        AID["Davids.Services.AdminIdentity :17325<br/>Workforce OIDC / adminidentitydb"]
+        CUST["Davids.Services.Customers :5002<br/>Profiles / customersdb"]
+        PROD["Davids.Services.Products :5006<br/>Catalog and stock / productsdb"]
+        BASK["Davids.Services.Baskets :5008<br/>Customer baskets / basketsdb"]
+        ORD["Davids.Services.Orders :5010<br/>Checkout and orders / ordersdb"]
+        PAY["Davids.Services.Payments :5012<br/>Simulated capture / paymentsdb"]
     end
+    GW --> ID & AID & CUST & PROD & BASK & ORD & PAY
+    BASK -. "catalog checks" .-> PROD
+    ORD -. "basket and catalog checks" .-> BASK
+    ORD -. "catalog checks" .-> PROD
 
-    %% ===================== DATA, SECRETS & MESSAGING =====================
-    subgraph Infra["Repo: Davids (Davids.AppHost + Davids.Bootstrap + deploy/k8s) — Physically Isolated Data, Secrets & Messaging"]
-        direction LR
-        subgraph SqlCluster["SQL Server (:1433, Encrypt=True) — Strict Physical Database Isolation"]
-            direction LR
-            DbId[("identitydb<br/>Customer Users &<br/>OpenIddict Grants")]
-            DbAdmin[("adminidentitydb<br/>Admin Users &<br/>OpenIddict Grants")]
-            DbCust[("customersdb<br/>Customer Profiles &<br/>Order Tracking")]
-        end
-        Redis[("Redis 7 (:6379)<br/>RFC 7009 Revoked<br/>Token JTI Store")]
-        Rabbit[["RabbitMQ 4.4 (:5672)<br/>SignedUp & Order<br/>Domain Events"]]
-        Vault["HashiCorp Vault 2.1.2 (:8200) + Davids.Bootstrap<br/>KV-v2 ('secret/data/davids/*')<br/>Per-authority RSA-2048 keys, BFF secret & DataProtection keys"]
+    subgraph Infra["Davids repository — Aspire development infrastructure"]
+        SQL[("SQL Server<br/>Seven separately owned databases")]
+        MQ[["RabbitMQ<br/>Domain event transport"]]
+        OPT["Optional integrations<br/>Redis, Vault, Jaeger, Seq,<br/>Prometheus and Grafana"]
     end
+    ID & AID & CUST & PROD & BASK & ORD & PAY --> SQL
+    ID -->|"signed_up / email_changed"| MQ
+    MQ -->|"identity events"| CUST
+    ORD -->|"order_placed / order_completed"| MQ
+    MQ -->|"order_placed"| PAY
+    PAY -->|"payment_captured / payment_failed"| MQ
+    MQ -->|"payment outcomes"| ORD
+    MQ -->|"order_completed"| CUST & PROD & BASK
 
-    %% ===================== OBSERVABILITY & SECURITY ALERTING =====================
-    subgraph Obs["Unified Observability & Security Audit Plane (Davids/src/Davids.AppHost/config/grafana + deploy/k8s/observability)"]
-        direction LR
-        Prom["Prometheus v3.15 (:9090)<br/>OTLP Metrics + 7 promtool-tested<br/>Security Alert Rules"]
-        Jaeger["Jaeger 2.22 (:16686 / :4318)<br/>Distributed OTLP Traces"]
-        Grafana["Grafana 13.2.4 (:3000)<br/>Cluster Prometheus + Jaeger Datasources<br/>Unified Alerting & Security Audit Dashboard"]
-        Seq["Seq 2026.1 (:80)<br/>Structured SecurityAuditEvent Logs,<br/>Falcosidekick CLEF & 6 Alert Signals"]
-    end
+    Shared["Davids.Shared<br/>ServiceDefaults: observability,<br/>security and resilience"]
+    Shared -. "shared defaults" .-> GW
+    Shared -. "shared defaults" .-> Services
 
-    %% ===================== LIFECYCLE SECURITY PIPELINE =====================
-    subgraph SecGates["Continuous 5-Stage Lifecycle Security Verification (Davids/security/* & .github/workflows/*.yml)"]
-        direction LR
-        S1["Local Dev / Commit<br/>Gitleaks pre-commit<br/>NuGetAudit (NU1900-1904)<br/>Roslyn AnalysisModeSecurity=All"]
-        S2["Pull Request CI<br/>CodeQL (C# + JS) · 10 Semgrep rules<br/>Checkov + istioctl analyze<br/>SHA-pinned Syft SBOM + Grype + Trivy"]
-        S3["Staging / Nightly<br/>Schemathesis 4.32.6 OpenAPI fuzzing<br/>Nuclei 3.11.1 posture & vulns<br/>PortSwigger Dastardly DAST"]
-        S4["Quarterly / Release<br/>31 Autorize BOLA/BFLA + 11 JWT crypto checks<br/>Microsoft RESTler stateful fuzzing<br/>OWASP ZAP 2.17.0 active/passive DAST"]
-        S5["Production Cluster<br/>Keyless Cosign OIDC signing<br/>Kyverno CEL/ClusterPolicies (18/18 tests)<br/>Istio STRICT mTLS · Falco + Tetragon Sigkill"]
-        S1 --> S2 --> S3 --> S4 --> S5
-    end
+    Deploy["Kubernetes / Istio manifests in Davids<br/>STRICT mTLS and authorization when deployed and enforced"]
+    Infra -. "separate deployment configuration" .-> Deploy
 
-    %% ===================== RELATIONSHIPS =====================
-    CustClient ==>|"HTTPS TLS 1.3<br/>Bearer RS256 JWT"| IstioEdge
-    AdminBrowser ==>|"HTTPS TLS 1.3<br/>HttpOnly BFF Cookie + CSRF"| IstioEdge
-    IstioEdge ==>|"mTLS"| GW
-
-    GW ==>|"/identity/* & /customer-accounts/* (mTLS)"| IdSvc
-    GW ==>|"/admin-identity/* & OIDC PKCE BFF (mTLS)"| AdminIdSvc
-    GW ==>|"/customers/* (mTLS)"| CustSvc
-    GW ==>|"Workforce BFF -> UI (mTLS)"| FESvc
-    GW ==>|"Customer BFF -> / UI (mTLS)"| WebSvc
-
-    CustSvc -.->|"Public JWKS (/.well-known/jwks)<br/>RS256 signature verification"| IdSvc
-    CustSvc -.->|"Public JWKS (/.well-known/jwks)<br/>RS256 signature verification"| AdminIdSvc
-    IdSvc -.->|"Public JWKS (/.well-known/jwks)<br/>AdminBearer verification"| AdminIdSvc
-
-    Shared -.->|"Referenced by all 6 services"| GW
-    Shared -.-> IdSvc
-    Shared -.-> AdminIdSvc
-    Shared -.-> CustSvc
-    Shared -.-> FESvc
-    Shared -.-> WebSvc
-
-    IdSvc -->|"EF Core (exclusive)"| DbId
-    AdminIdSvc -->|"EF Core (exclusive)"| DbAdmin
-    CustSvc -->|"EF Core (exclusive)"| DbCust
-
-    IdSvc <-->|"JTI revocation"| Redis
-    AdminIdSvc <-->|"JTI revocation"| Redis
-    GW <-->|"Revoked JTI lookup"| Redis
-
-    IdSvc -->|"Publish SignedUp"| Rabbit
-    Rabbit -->|"Consume SignedUp"| CustSvc
-
-    Vault -.->|"Signing/Encryption PEM + DP key"| IdSvc
-    Vault -.->|"Signing/Encryption PEM + BFF secret + DP key"| AdminIdSvc
-    Vault -.->|"BFF secret + DP key (NO signing keys)"| GW
-    Vault -.->|"KV config (NO signing keys)"| CustSvc
-
-    Shared -.->|"OTLP Metrics"| Prom
-    Shared -.->|"OTLP Traces"| Jaeger
-    Shared -.->|"CLEF Logs"| Seq
-    Prom --> Grafana
-    Jaeger --> Grafana
-
-    classDef edge fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc
-    classDef gateway fill:#172554,stroke:#60a5fa,stroke-width:2.5px,color:#f8fafc
-    classDef service fill:#0f172a,stroke:#34d399,stroke-width:2px,color:#f8fafc
-    classDef shared fill:#1e1b4b,stroke:#a78bfa,stroke-width:2px,color:#f8fafc
-    classDef data fill:#271a0c,stroke:#fbbf24,stroke-width:2px,color:#fef3c7
-    classDef obs fill:#042f2e,stroke:#2dd4bf,stroke-width:2px,color:#f0fdfa
-    classDef gate fill:#2e1065,stroke:#f472b6,stroke-width:2px,color:#fdf4ff
-
-    class CustClient,AdminBrowser,IstioEdge edge
+    classDef frontend fill:#eff6ff,stroke:#2563eb,color:#172554
+    classDef gateway fill:#ecfdf5,stroke:#059669,color:#064e3b
+    classDef service fill:#fff,stroke:#64748b,color:#0f172a
+    classDef data fill:#fffbeb,stroke:#d97706,color:#78350f
+    classDef shared fill:#f5f3ff,stroke:#7c3aed,color:#4c1d95
+    class Web,Admin frontend
     class GW gateway
-    class IdSvc,AdminIdSvc,CustSvc,FESvc,WebSvc service
-    class Shared shared
-    class DbId,DbAdmin,DbCust,Redis,Rabbit,Vault data
-    class Prom,Jaeger,Grafana,Seq obs
-    class S1,S2,S3,S4,S5 gate
+    class ID,AID,CUST,PROD,BASK,ORD,PAY service
+    class SQL,MQ,OPT data
+    class Shared,Deploy shared

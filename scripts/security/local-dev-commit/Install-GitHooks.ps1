@@ -150,7 +150,7 @@ $resolvedGitleaks = Resolve-GitleaksBinary
 if ($configuredCount -gt 0) {
     Write-Host "Configured git core.hooksPath=.githooks across $configuredCount git repository(ies)."
 } else {
-    Write-Host "Verified .githooks/pre-commit and .gitleaks.toml across Davids repositories (run again after 'git init' / 'git clone' to bind core.hooksPath)."
+    Write-Host "Verified hook files in available directories, but no Git checkouts were configured. Run again after 'git init' or 'git clone' to bind core.hooksPath."
 }
 if (-not $resolvedGitleaks) {
     Write-Host "Note: 'gitleaks' binary not yet found on PATH. Run './scripts/security/local-dev-commit/Install-GitHooks.ps1 -InstallGitleaks' (or 'winget install Gitleaks.Gitleaks') before committing."

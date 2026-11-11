@@ -1,386 +1,76 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1860" height="1372" viewBox="0 0 1860 1372" role="img" aria-labelledby="archTitle archDesc">
-  <title id="archTitle">Davids Platform — .NET 10 Microservices, Infrastructure, Repository Relationships and Security Architecture</title>
-  <desc id="archDesc">Architecture diagram showing all eight standalone .NET 10 Davids repositories, Clean Architecture project layers, Dual-Authority OpenIddict RS256 OIDC PKCE and YARP Admin/Customer BFF flows, Workforce RBAC, Transactional Change Audits, physically isolated SQL Server databases, Redis, RabbitMQ, HashiCorp Vault KV-v2 bootstrap, Prometheus/Jaeger/Grafana/Seq observability, Istio STRICT mTLS service mesh, and the five lifecycle security verification stages.</desc>
-  <defs>
-    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0b1120"/>
-      <stop offset="100%" stop-color="#090d16"/>
-    </linearGradient>
-    <linearGradient id="hdrGrad" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#0f172a"/>
-      <stop offset="50%" stop-color="#172554"/>
-      <stop offset="100%" stop-color="#0f172a"/>
-    </linearGradient>
-  </defs>
-  <rect x="0" y="0" width="1860" height="1372" rx="16" fill="url(#bgGrad)"/>
-  <rect x="1" y="1" width="1858" height="1370" rx="15" fill="none" stroke="#334155" stroke-width="1.5"/>
-  <rect x="24" y="16" width="1812" height="80" rx="12" fill="url(#hdrGrad)" stroke="#3b82f6" stroke-width="1.6"/>
-  <text x="44" y="47" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="20.5px" font-weight="700" fill="#f8fafc">Davids Platform — .NET 10 Microservices, Infrastructure &amp; Security Architecture</text>
-  <text x="44" y="74" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="11.8px" font-weight="500" fill="#94a3b8">8 Standalone Repositories (.slnx) · Dual OpenIddict RS256 OIDC (PKCE S256) · Dual Admin &amp; Customer BFFs · Workforce RBAC · 3 Isolated SQL DBs · Istio STRICT mTLS</text>
-  <rect x="1270" y="26" width="104" height="22" rx="11.0" fill="#0c2e24" stroke="#34d399" stroke-width="1.1"/>
-  <text x="1322.0" y="40.52" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.2px" font-weight="700" fill="#6ee7b7">Service Repo</text>
-  <rect x="1382" y="26" width="102" height="22" rx="11.0" fill="#1e1b4b" stroke="#a78bfa" stroke-width="1.1"/>
-  <text x="1433.0" y="40.52" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.2px" font-weight="700" fill="#ddd6fe">Shared Repo</text>
-  <rect x="1492" y="26" width="102" height="22" rx="11.0" fill="#2b1c0c" stroke="#fbbf24" stroke-width="1.1"/>
-  <text x="1543.0" y="40.52" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.2px" font-weight="700" fill="#fde68a">Data &amp; Vault</text>
-  <rect x="1602" y="26" width="106" height="22" rx="11.0" fill="#062c2b" stroke="#2dd4bf" stroke-width="1.1"/>
-  <text x="1655.0" y="40.52" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.2px" font-weight="700" fill="#99f6e4">Observability</text>
-  <rect x="1716" y="26" width="104" height="22" rx="11.0" fill="#32123c" stroke="#f472b6" stroke-width="1.1"/>
-  <text x="1768.0" y="40.52" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.2px" font-weight="700" fill="#fbcfe8">Security Gate</text>
-  <rect x="24" y="110" width="584" height="122" rx="10" fill="#0f172a" stroke="#38bdf8" stroke-width="1.6"/>
-  <text x="42" y="134" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14.0px" font-weight="700" fill="#f8fafc">Customer Portal Browser &amp; OIDC Client (davids-web)</text>
-  <rect x="438" y="118" width="154" height="20" rx="10.0" fill="#082f49" stroke="#38bdf8" stroke-width="1.1"/>
-  <text x="515.0" y="131.2" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#7dd3fc">Customer BFF + PKCE</text>
-  <circle cx="46" cy="156.4" r="2.4" fill="#38bdf8"/>
-  <text x="55" y="160" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.8px" font-weight="400" fill="#dbeafe">Self-service web portal (/) uses HttpOnly &#x27;davids_customer_bff&#x27; + CSRF</text>
-  <circle cx="46" cy="177.4" r="2.4" fill="#38bdf8"/>
-  <text x="55" y="181" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.8px" font-weight="400" fill="#dbeafe">Direct OIDC PKCE S256 clients receive RS256 JWT (role=user, aud=davids-services)</text>
-  <circle cx="46" cy="198.4" r="2.4" fill="#38bdf8"/>
-  <text x="55" y="202" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.8px" font-weight="400" fill="#dbeafe">Self-service profile (/customers/me), password/email rotation &amp; personal audits</text>
-  <rect x="626" y="110" width="606" height="122" rx="10" fill="#0f172a" stroke="#60a5fa" stroke-width="1.6"/>
-  <text x="644" y="134" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14.0px" font-weight="700" fill="#f8fafc">Workforce Browser (admin / support / auditor)</text>
-  <rect x="1062" y="118" width="154" height="20" rx="10.0" fill="#172554" stroke="#60a5fa" stroke-width="1.1"/>
-  <text x="1139.0" y="131.2" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#bfdbfe">HttpOnly BFF + RBAC</text>
-  <circle cx="648" cy="156.4" r="2.4" fill="#60a5fa"/>
-  <text x="657" y="160" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.8px" font-weight="400" fill="#dbeafe">Authenticates via Confidential OIDC BFF (client_id=davids-admin-bff, PKCE S256)</text>
-  <circle cx="648" cy="177.4" r="2.4" fill="#60a5fa"/>
-  <text x="657" y="181" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.8px" font-weight="400" fill="#dbeafe">Zero tokens in JS; holds DataProtection-encrypted HttpOnly &#x27;davids_admin_bff&#x27;</text>
-  <circle cx="648" cy="198.4" r="2.4" fill="#60a5fa"/>
-  <text x="657" y="202" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.8px" font-weight="400" fill="#dbeafe">Mutations require SameSite=Lax + X-Requested-With: DavidsAdmin + Origin check</text>
-  <rect x="1250" y="110" width="586" height="122" rx="10" fill="#161224" stroke="#f472b6" stroke-width="1.6"/>
-  <text x="1268" y="134" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14.0px" font-weight="700" fill="#f8fafc">Istio 1.31.3 Ingress Perimeter</text>
-  <rect x="1700" y="118" width="120" height="20" rx="10.0" fill="#3b0764" stroke="#f472b6" stroke-width="1.1"/>
-  <text x="1760.0" y="131.2" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#fbcfe8">TLS 1.3 ONLY</text>
-  <circle cx="1272" cy="156.4" r="2.4" fill="#f472b6"/>
-  <text x="1281" y="160" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.8px" font-weight="400" fill="#fce7f3">IngressGateway enforces minProtocolVersion: TLSV1_3 (istio-mesh-security.yaml)</text>
-  <circle cx="1272" cy="177.4" r="2.4" fill="#f472b6"/>
-  <text x="1281" y="181" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.8px" font-weight="400" fill="#fce7f3">Explicit L7 DENY blocks OpenAPI, debug routes &amp; /admin-identity/sign-up</text>
-  <circle cx="1272" cy="198.4" r="2.4" fill="#f472b6"/>
-  <text x="1281" y="202" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.8px" font-weight="400" fill="#fce7f3">Routes external HTTPS traffic exclusively into Davids.APIGateway (:17320)</text>
-  <rect x="24" y="268" width="1812" height="490" rx="14" fill="#091322" stroke="#10b981" stroke-width="1.8" stroke-dasharray="7,4"/>
-  <rect x="42" y="278" width="1776" height="24" rx="4" fill="#062e24" stroke="#059669" stroke-width="1"/>
-  <text x="930.0" y="293.6" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.5px" font-weight="600" fill="#6ee7b7">KUBERNETES NAMESPACE &#x27;davids&#x27;  —  Istio STRICT mTLS (ISTIO_MUTUAL :8080)  ·  Kyverno v1.19.2 Non-Root (&gt;=10000) &amp; Read-Only RootFS  ·  Keyless Cosign @sha256  ·  Falco + Cilium Tetragon eBPF Sigkill</text>
-  <rect x="42" y="312" width="1190" height="154" rx="10" fill="#101e38" stroke="#60a5fa" stroke-width="2.0"/>
-  <text x="60" y="337" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14.3px" font-weight="700" fill="#f8fafc">Repo: Davids.APIGateway (:17320)  —  YARP 2.3.0 Edge Proxy &amp; Dual Admin/Customer OIDC BFFs</text>
-  <rect x="1012" y="320" width="204" height="22" rx="11.0" fill="#3b0764" stroke="#f472b6" stroke-width="1.1"/>
-  <text x="1114.0" y="334.52" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.2px" font-weight="700" fill="#fbcfe8">HOLDS ZERO SIGNING KEYS</text>
-  <rect x="60" y="347" width="520" height="20" rx="4" fill="#1e293b" stroke="#475569" stroke-width="1"/>
-  <text x="68" y="360.6" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="10.4px" font-weight="600" fill="#e2e8f0">Layers: Davids.APIGateway.Api  -&gt;  Davids.APIGateway.Infrastructure</text>
-  <circle cx="64" cy="382.4" r="2.4" fill="#60a5fa"/>
-  <text x="73" y="386" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.8px" font-weight="400" fill="#e2e8f0">Stamps X-Correlation-Id, W3C traceparent &amp; verified X-Auth-User-Id/Role headers</text>
-  <circle cx="64" cy="404.4" r="2.4" fill="#60a5fa"/>
-  <text x="73" y="408" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.8px" font-weight="400" fill="#e2e8f0">Validates Customer &amp; Workforce RS256 JWTs via public JWKS (/.well-known/jwks)</text>
-  <circle cx="64" cy="426.4" r="2.4" fill="#60a5fa"/>
-  <text x="73" y="430" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.8px" font-weight="400" fill="#e2e8f0">Checks Redis for RFC 7009 revoked JTIs &amp; enforces sliding-window rate limits</text>
-  <circle cx="634" cy="382.4" r="2.4" fill="#34d399"/>
-  <text x="643" y="386" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.8px" font-weight="400" fill="#e2e8f0">Isolated Admin BFF (&#x27;davids_admin_bff&#x27;) &amp; Customer BFF (&#x27;davids_customer_bff&#x27;)</text>
-  <circle cx="634" cy="404.4" r="2.4" fill="#34d399"/>
-  <text x="643" y="408" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.8px" font-weight="400" fill="#e2e8f0">Enforces Workforce RBAC (admin/support/auditor) &amp; /customer-accounts routing</text>
-  <circle cx="634" cy="426.4" r="2.4" fill="#34d399"/>
-  <text x="643" y="430" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.8px" font-weight="400" fill="#e2e8f0">Routes directly to all 5 backend &amp; web hosts via YARP over Istio STRICT mTLS</text>
-  <rect x="1256" y="312" width="562" height="154" rx="10" fill="#191636" stroke="#a78bfa" stroke-width="1.8"/>
-  <text x="1274" y="337" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14.3px" font-weight="700" fill="#f8fafc">Repo: Davids.Shared  —  Host Defaults</text>
-  <rect x="1640" y="320" width="162" height="22" rx="11.0" fill="#2e1065" stroke="#a78bfa" stroke-width="1.1"/>
-  <text x="1721.0" y="334.52" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.2px" font-weight="700" fill="#ddd6fe">NuGet / Project Ref</text>
-  <rect x="1274" y="347" width="526" height="20" rx="4" fill="#26214a" stroke="#6d28d9" stroke-width="1"/>
-  <text x="1282" y="360.6" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="10.4px" font-weight="600" fill="#ede9fe">Project: Davids.ServiceDefaults  (UseSharedPackageReference CI toggle)</text>
-  <circle cx="1278" cy="382.4" r="2.4" fill="#a78bfa"/>
-  <text x="1287" y="386" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#ede9fe">Referenced by APIGateway, Identity, AdminIdentity, Customers, Admin &amp; Web UIs</text>
-  <circle cx="1278" cy="404.4" r="2.4" fill="#a78bfa"/>
-  <text x="1287" y="408" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#ede9fe">WorkforceRoles, VerifiedActorHeaders &amp; zero-secret ChangeAuditDiffBuilder</text>
-  <circle cx="1278" cy="426.4" r="2.4" fill="#a78bfa"/>
-  <text x="1287" y="430" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#ede9fe">OpenTelemetry OTLP (Jaeger, Prometheus + change_audit) &amp; Serilog CLEF -&gt; Seq</text>
-  <rect x="42" y="474" width="1360" height="22" rx="4" fill="#082f49" stroke="#38bdf8" stroke-width="1"/>
-  <text x="722.0" y="488.6" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.3px" font-weight="600" fill="#7dd3fc">Istio L7 AuthorizationPolicy: default-deny + ALLOW Backend &amp; Web UI Traffic ONLY From Principal &#x27;cluster.local/ns/davids/sa/davids-api-gateway&#x27;</text>
-  <text x="1790" y="489" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.3px" font-weight="600" fill="#ddd6fe">Davids.ServiceDefaults ref (all 6 hosts)</text>
-  <rect x="42" y="530" width="344" height="216" rx="10" fill="#0f172a" stroke="#34d399" stroke-width="1.7"/>
-  <text x="54" y="552" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="13.0px" font-weight="700" fill="#f8fafc">Davids.Services.Identity (:5004)</text>
-  <rect x="54" y="561" width="320" height="19" rx="9.5" fill="#064e3b" stroke="#34d399" stroke-width="1.1"/>
-  <text x="214.0" y="573.54" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="9.7px" font-weight="700" fill="#6ee7b7">Repo · Customer OIDC &amp; CIAM (RS256)</text>
-  <rect x="54" y="586" width="320" height="19" rx="4" fill="#1e293b" stroke="#334155" stroke-width="1"/>
-  <text x="60" y="599.1" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="9.6px" font-weight="600" fill="#e2e8f0">Api -&gt; Application + Infrastructure -&gt; Core</text>
-  <circle cx="58" cy="619.4" r="2.4" fill="#34d399"/>
-  <text x="67" y="623" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">OpenIddict 7.7.2 OIDC authority (customer realm)</text>
-  <circle cx="58" cy="640.4" r="2.4" fill="#34d399"/>
-  <text x="67" y="644" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">Mandatory PKCE S256 + request_token on /authorize</text>
-  <circle cx="58" cy="661.4" r="2.4" fill="#34d399"/>
-  <text x="67" y="665" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">Self-service PUT /me/password &amp; PUT /me/email</text>
-  <circle cx="58" cy="682.4" r="2.4" fill="#34d399"/>
-  <text x="67" y="686" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">AdminBearer customer unlock &amp; email recovery</text>
-  <circle cx="58" cy="703.4" r="2.4" fill="#34d399"/>
-  <text x="67" y="707" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">Outbox email_changed + CustomerChangeAuditLogs</text>
-  <rect x="126.0" y="512" width="176" height="18" rx="4" fill="#064e3b" stroke="#10b981" stroke-width="1"/>
-  <text x="214.0" y="524.6" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="9.5px" font-weight="600" fill="#a7f3d0">/identity + /customer-accounts</text>
-  <rect x="400" y="530" width="344" height="216" rx="10" fill="#0f172a" stroke="#34d399" stroke-width="1.7"/>
-  <text x="412" y="552" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="13.0px" font-weight="700" fill="#f8fafc">Davids.Services.AdminIdentity (:17325)</text>
-  <rect x="412" y="561" width="320" height="19" rx="9.5" fill="#1e3a8a" stroke="#60a5fa" stroke-width="1.1"/>
-  <text x="572.0" y="573.54" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="9.7px" font-weight="700" fill="#bfdbfe">Repo · Workforce OIDC &amp; RBAC (RS256)</text>
-  <rect x="412" y="586" width="320" height="19" rx="4" fill="#1e293b" stroke="#334155" stroke-width="1"/>
-  <text x="418" y="599.1" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="9.6px" font-weight="600" fill="#e2e8f0">Api -&gt; Application + Infrastructure -&gt; Core</text>
-  <circle cx="416" cy="619.4" r="2.4" fill="#34d399"/>
-  <text x="425" y="623" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">Workforce RBAC roles: admin, support &amp; auditor</text>
-  <circle cx="416" cy="640.4" r="2.4" fill="#34d399"/>
-  <text x="425" y="644" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">Confidential client &#x27;davids-admin-bff&#x27; (PKCE S256)</text>
-  <circle cx="416" cy="661.4" r="2.4" fill="#34d399"/>
-  <text x="425" y="665" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">PUT /me/password with token &amp; JTI revocation</text>
-  <circle cx="416" cy="682.4" r="2.4" fill="#34d399"/>
-  <text x="425" y="686" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">PUT /users/{id} with last-active-admin safeguard</text>
-  <circle cx="416" cy="703.4" r="2.4" fill="#34d399"/>
-  <text x="425" y="707" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">Account unlock + AdminChangeAuditLogs</text>
-  <rect x="484.0" y="512" width="176" height="18" rx="4" fill="#064e3b" stroke="#10b981" stroke-width="1"/>
-  <text x="572.0" y="524.6" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="9.5px" font-weight="600" fill="#a7f3d0">/admin-identity + Admin BFF</text>
-  <rect x="758" y="530" width="344" height="216" rx="10" fill="#0f172a" stroke="#34d399" stroke-width="1.7"/>
-  <text x="770" y="552" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="13.0px" font-weight="700" fill="#f8fafc">Davids.Services.Customers (:5002)</text>
-  <rect x="770" y="561" width="320" height="19" rx="9.5" fill="#3b0764" stroke="#f472b6" stroke-width="1.1"/>
-  <text x="930.0" y="573.54" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="9.7px" font-weight="700" fill="#fbcfe8">Repo · Zero Signing Keys (Public JWKS)</text>
-  <rect x="770" y="586" width="320" height="19" rx="4" fill="#1e293b" stroke="#334155" stroke-width="1"/>
-  <text x="776" y="599.1" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="9.6px" font-weight="600" fill="#e2e8f0">Api -&gt; Application + Infrastructure -&gt; Core</text>
-  <circle cx="774" cy="619.4" r="2.4" fill="#34d399"/>
-  <text x="783" y="623" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">Customer self-service GET/PUT /customers/me</text>
-  <circle cx="774" cy="640.4" r="2.4" fill="#34d399"/>
-  <text x="783" y="644" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">WorkforceRead (auditor) vs WorkforceMutate RBAC</text>
-  <circle cx="774" cy="661.4" r="2.4" fill="#34d399"/>
-  <text x="783" y="665" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">Validates Identity &amp; AdminIdentity public JWKS</text>
-  <circle cx="774" cy="682.4" r="2.4" fill="#34d399"/>
-  <text x="783" y="686" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">SQL Inbox consumer for identity.email_changed</text>
-  <circle cx="774" cy="703.4" r="2.4" fill="#34d399"/>
-  <text x="783" y="707" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">Transactional CustomerProfileChangeAuditLogs</text>
-  <rect x="842.0" y="512" width="176" height="18" rx="4" fill="#064e3b" stroke="#10b981" stroke-width="1"/>
-  <text x="930.0" y="524.6" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="9.5px" font-weight="600" fill="#a7f3d0">/customers routes</text>
-  <rect x="1116" y="530" width="344" height="216" rx="10" fill="#0f172a" stroke="#34d399" stroke-width="1.7"/>
-  <text x="1128" y="552" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="13.0px" font-weight="700" fill="#f8fafc">Davids.Frontend.Admin (:17321)</text>
-  <rect x="1128" y="561" width="320" height="19" rx="9.5" fill="#082f49" stroke="#38bdf8" stroke-width="1.1"/>
-  <text x="1288.0" y="573.54" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="9.7px" font-weight="700" fill="#7dd3fc">Repo · Workforce BFF Protected UI</text>
-  <rect x="1128" y="586" width="320" height="19" rx="4" fill="#1e293b" stroke="#334155" stroke-width="1"/>
-  <text x="1134" y="599.1" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="9.6px" font-weight="600" fill="#e2e8f0">Project: Davids.Frontend.Admin</text>
-  <circle cx="1132" cy="619.4" r="2.4" fill="#34d399"/>
-  <text x="1141" y="623" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">Role-aware UI for admin, support &amp; auditor</text>
-  <circle cx="1132" cy="640.4" r="2.4" fill="#34d399"/>
-  <text x="1141" y="644" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">Customer search/edit + CIAM unlock/email recovery</text>
-  <circle cx="1132" cy="661.4" r="2.4" fill="#34d399"/>
-  <text x="1141" y="665" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">Workforce IAM role management &amp; password change</text>
-  <circle cx="1132" cy="682.4" r="2.4" fill="#34d399"/>
-  <text x="1141" y="686" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">Unified Workforce, Profile &amp; CIAM Change Audits</text>
-  <circle cx="1132" cy="703.4" r="2.4" fill="#34d399"/>
-  <text x="1141" y="707" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">Strict CSP (script-src &#x27;self&#x27;) &amp; zero JS tokens</text>
-  <rect x="1200.0" y="512" width="176" height="18" rx="4" fill="#064e3b" stroke="#10b981" stroke-width="1"/>
-  <text x="1288.0" y="524.6" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="9.5px" font-weight="600" fill="#a7f3d0">Workforce UI routes</text>
-  <rect x="1474" y="530" width="344" height="216" rx="10" fill="#0f172a" stroke="#34d399" stroke-width="1.7"/>
-  <text x="1486" y="552" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="13.0px" font-weight="700" fill="#f8fafc">Davids.Frontend.Web (:17322)</text>
-  <rect x="1486" y="561" width="320" height="19" rx="9.5" fill="#064e3b" stroke="#2dd4bf" stroke-width="1.1"/>
-  <text x="1646.0" y="573.54" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="9.7px" font-weight="700" fill="#99f6e4">Repo · Customer Self-Service Portal</text>
-  <rect x="1486" y="586" width="320" height="19" rx="4" fill="#1e293b" stroke="#334155" stroke-width="1"/>
-  <text x="1492" y="599.1" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="9.6px" font-weight="600" fill="#e2e8f0">Project: Davids.Frontend.Web</text>
-  <circle cx="1490" cy="619.4" r="2.4" fill="#34d399"/>
-  <text x="1499" y="623" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">Customer portal at / &amp; /login</text>
-  <circle cx="1490" cy="640.4" r="2.4" fill="#34d399"/>
-  <text x="1499" y="644" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">Protected by HttpOnly &#x27;davids_customer_bff&#x27; cookie</text>
-  <circle cx="1490" cy="661.4" r="2.4" fill="#34d399"/>
-  <text x="1499" y="665" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">Self-service sign-up &amp; PKCE S256 Single Sign-On</text>
-  <circle cx="1490" cy="682.4" r="2.4" fill="#34d399"/>
-  <text x="1499" y="686" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">Profile editor, password &amp; email rotation forms</text>
-  <circle cx="1490" cy="703.4" r="2.4" fill="#34d399"/>
-  <text x="1499" y="707" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="400" fill="#e2e8f0">Personal login &amp; account change-audit activity</text>
-  <rect x="1558.0" y="512" width="176" height="18" rx="4" fill="#064e3b" stroke="#10b981" stroke-width="1"/>
-  <text x="1646.0" y="524.6" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="9.5px" font-weight="600" fill="#a7f3d0">/ + Customer BFF</text>
-  <rect x="24" y="812" width="1124" height="266" rx="12" fill="#161310" stroke="#fbbf24" stroke-width="1.8"/>
-  <text x="42" y="837" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14.2px" font-weight="700" fill="#f8fafc">Repo: Davids  (src/Davids.AppHost + src/Davids.Bootstrap)  —  Isolated Persistence, Messaging &amp; Vault Secrets</text>
-  <rect x="42" y="850" width="660" height="124" rx="8" fill="#22190f" stroke="#f59e0b" stroke-width="1.4"/>
-  <text x="56" y="871" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="11.3px" font-weight="700" fill="#fde68a">SQL Server (:1433 · Encrypt=True)  —  Strict Physical Database Isolation + Transactional Change Audits</text>
-  <rect x="56" y="881" width="200" height="82" rx="7" fill="#14100b" stroke="#fbbf24" stroke-width="1.3"/>
-  <text x="156" y="901" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="11.3px" font-weight="700" fill="#fef08a">identitydb</text>
-  <text x="156" y="920" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.3px" font-weight="400" fill="#e2e8f0">Customer users, grants</text>
-  <text x="156" y="936" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.3px" font-weight="400" fill="#e2e8f0">&amp; CustomerChangeAuditLogs</text>
-  <text x="156" y="954" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="9.8px" font-weight="700" fill="#fbbf24">(Identity ONLY)</text>
-  <rect x="268" y="881" width="200" height="82" rx="7" fill="#14100b" stroke="#fbbf24" stroke-width="1.3"/>
-  <text x="368" y="901" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="11.3px" font-weight="700" fill="#fef08a">adminidentitydb</text>
-  <text x="368" y="920" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.3px" font-weight="400" fill="#e2e8f0">Workforce RBAC users</text>
-  <text x="368" y="936" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.3px" font-weight="400" fill="#e2e8f0">&amp; AdminChangeAuditLogs</text>
-  <text x="368" y="954" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="9.8px" font-weight="700" fill="#fbbf24">(AdminIdentity ONLY)</text>
-  <rect x="480" y="881" width="200" height="82" rx="7" fill="#14100b" stroke="#fbbf24" stroke-width="1.3"/>
-  <text x="580" y="901" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="11.3px" font-weight="700" fill="#fef08a">customersdb</text>
-  <text x="580" y="920" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.3px" font-weight="400" fill="#e2e8f0">Profiles, Inbox/Outbox</text>
-  <text x="580" y="936" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.3px" font-weight="400" fill="#e2e8f0">&amp; ProfileChangeAuditLogs</text>
-  <text x="580" y="954" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="9.8px" font-weight="700" fill="#fbbf24">(Customers ONLY)</text>
-  <rect x="716" y="850" width="200" height="124" rx="8" fill="#22190f" stroke="#f59e0b" stroke-width="1.4"/>
-  <text x="816" y="872" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="13.2px" font-weight="700" fill="#fde68a">Redis 7 (:6379)</text>
-  <circle cx="730" cy="894.4" r="2.4" fill="#fbbf24"/>
-  <text x="739" y="898" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.5px" font-weight="400" fill="#e2e8f0">RFC 7009 revoked JTIs</text>
-  <circle cx="730" cy="916.4" r="2.4" fill="#fbbf24"/>
-  <text x="739" y="920" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.5px" font-weight="400" fill="#e2e8f0">Password-change revokes</text>
-  <circle cx="730" cy="938.4" r="2.4" fill="#fbbf24"/>
-  <text x="739" y="942" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.5px" font-weight="400" fill="#e2e8f0">Checked by APIGateway</text>
-  <rect x="930" y="850" width="200" height="124" rx="8" fill="#22190f" stroke="#f59e0b" stroke-width="1.4"/>
-  <text x="1030" y="872" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="13.2px" font-weight="700" fill="#fde68a">RabbitMQ 4.4 (:5672)</text>
-  <circle cx="944" cy="894.4" r="2.4" fill="#fbbf24"/>
-  <text x="953" y="898" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.5px" font-weight="400" fill="#e2e8f0">Transactional Outbox/Inbox</text>
-  <circle cx="944" cy="916.4" r="2.4" fill="#fbbf24"/>
-  <text x="953" y="920" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.5px" font-weight="400" fill="#e2e8f0">identity.signed_up</text>
-  <circle cx="944" cy="938.4" r="2.4" fill="#fbbf24"/>
-  <text x="953" y="942" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.5px" font-weight="400" fill="#e2e8f0">identity.email_changed</text>
-  <rect x="42" y="986" width="1088" height="78" rx="8" fill="#1c1427" stroke="#c084fc" stroke-width="1.5"/>
-  <text x="58" y="1008" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="13.0px" font-weight="700" fill="#f3e8ff">HashiCorp Vault 2.1.2 (:8200)  +  Davids.Bootstrap  (KV-v2: secret/data/davids/{identity,admin-identity,customers,gateway})</text>
-  <circle cx="62" cy="1026.4" r="2.4" fill="#c084fc"/>
-  <text x="71" y="1030" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.6px" font-weight="400" fill="#e9d5ff">Seeds separate RSA-2048 OIDC signing &amp; encryption PEMs per authority + davids-admin-bff secret + per-service DataProtection master keys</text>
-  <circle cx="62" cy="1046.4" r="2.4" fill="#c084fc"/>
-  <text x="71" y="1050" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.6px" font-weight="400" fill="#e9d5ff">Least-privilege secret distribution: Davids.APIGateway &amp; Davids.Services.Customers never receive private OIDC signing keys</text>
-  <rect x="1166" y="812" width="670" height="266" rx="12" fill="#071f22" stroke="#2dd4bf" stroke-width="1.8"/>
-  <text x="1184" y="837" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14.2px" font-weight="700" fill="#f8fafc">Unified Observability &amp; Security Alerting  (Davids + Cluster)</text>
-  <rect x="1184" y="850" width="310" height="102" rx="8" fill="#0b292d" stroke="#14b8a6" stroke-width="1.2"/>
-  <text x="1196" y="872" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#99f6e4">Prometheus v3.15 (:9090)</text>
-  <circle cx="1200" cy="890.4" r="2.4" fill="#2dd4bf"/>
-  <text x="1209" y="894" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.4px" font-weight="400" fill="#e2e8f0">OTLP metrics receiver (enable-otlp-receiver)</text>
-  <circle cx="1200" cy="909.4" r="2.4" fill="#2dd4bf"/>
-  <text x="1209" y="913" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.4px" font-weight="400" fill="#e2e8f0">8 Davids.Security.Audit + change_audit rules</text>
-  <circle cx="1200" cy="928.4" r="2.4" fill="#2dd4bf"/>
-  <text x="1209" y="932" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.4px" font-weight="400" fill="#e2e8f0">Kubernetes PrometheusRule CRD alerts</text>
-  <rect x="1510" y="850" width="310" height="102" rx="8" fill="#0b292d" stroke="#14b8a6" stroke-width="1.2"/>
-  <text x="1522" y="872" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#99f6e4">Jaeger 2.22 (:16686 / :4318)</text>
-  <circle cx="1526" cy="890.4" r="2.4" fill="#2dd4bf"/>
-  <text x="1535" y="894" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.4px" font-weight="400" fill="#e2e8f0">End-to-end OTLP distributed trace collector</text>
-  <circle cx="1526" cy="909.4" r="2.4" fill="#2dd4bf"/>
-  <text x="1535" y="913" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.4px" font-weight="400" fill="#e2e8f0">Correlates Gateway -&gt; Services -&gt; SQL/RabbitMQ</text>
-  <circle cx="1526" cy="928.4" r="2.4" fill="#2dd4bf"/>
-  <text x="1535" y="932" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.4px" font-weight="400" fill="#e2e8f0">Queried directly by Grafana trace datasource</text>
-  <rect x="1184" y="962" width="310" height="102" rx="8" fill="#0b292d" stroke="#14b8a6" stroke-width="1.2"/>
-  <text x="1196" y="984" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#99f6e4">Grafana 13.2.4 (:3000)</text>
-  <circle cx="1200" cy="1002.4" r="2.4" fill="#2dd4bf"/>
-  <text x="1209" y="1006" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.4px" font-weight="400" fill="#e2e8f0">Points at cluster Prometheus &amp; Jaeger instances</text>
-  <circle cx="1200" cy="1021.4" r="2.4" fill="#2dd4bf"/>
-  <text x="1209" y="1025" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.4px" font-weight="400" fill="#e2e8f0">Unified Alerting rules + overview dashboards</text>
-  <circle cx="1200" cy="1040.4" r="2.4" fill="#2dd4bf"/>
-  <text x="1209" y="1044" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.4px" font-weight="400" fill="#e2e8f0">Security, Login &amp; Change Audit dashboards</text>
-  <rect x="1510" y="962" width="310" height="102" rx="8" fill="#0b292d" stroke="#14b8a6" stroke-width="1.2"/>
-  <text x="1522" y="984" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#99f6e4">Seq 2026.1 (:80)  (+ Opt-in Sinks)</text>
-  <circle cx="1526" cy="1002.4" r="2.4" fill="#2dd4bf"/>
-  <text x="1535" y="1006" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.4px" font-weight="400" fill="#e2e8f0">Structured SecurityAuditEvent CLEF logs</text>
-  <circle cx="1526" cy="1021.4" r="2.4" fill="#2dd4bf"/>
-  <text x="1535" y="1025" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.4px" font-weight="400" fill="#e2e8f0">6 login-audit &amp; Falco runtime alert signals</text>
-  <circle cx="1526" cy="1040.4" r="2.4" fill="#2dd4bf"/>
-  <text x="1535" y="1044" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.4px" font-weight="400" fill="#e2e8f0">Opt-in InfluxDB (:8181) &amp; Elasticsearch (:9200)</text>
-  <rect x="24" y="1098" width="1812" height="254" rx="12" fill="#140d24" stroke="#f472b6" stroke-width="1.8"/>
-  <text x="42" y="1125" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14.2px" font-weight="700" fill="#f8fafc">Continuous Defense-in-Depth Lifecycle Security Gates  (Davids/security/&lt;lifecycle&gt;  ·  Davids/scripts/security/&lt;lifecycle&gt;  ·  19 GitHub Actions Workflows)</text>
-  <rect x="42" y="1140" width="336" height="194" rx="9" fill="#1f1333" stroke="#e879f9" stroke-width="1.4"/>
-  <text x="56" y="1165" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14.0px" font-weight="700" fill="#f8fafc">Local Dev / Commit</text>
-  <rect x="56" y="1174" width="308" height="20" rx="4" fill="#2e1065" stroke="#a855f7" stroke-width="1"/>
-  <text x="64" y="1187.6" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="10.2px" font-weight="600" fill="#f5d0fe">security/local-dev-commit</text>
-  <circle cx="60" cy="1210.4" r="2.4" fill="#f472b6"/>
-  <text x="69" y="1214" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">Gitleaks .githooks/pre-commit</text>
-  <circle cx="60" cy="1231.4" r="2.4" fill="#f472b6"/>
-  <text x="69" y="1235" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">Blocks .pfx/.key/.env &amp; secrets</text>
-  <circle cx="60" cy="1252.4" r="2.4" fill="#f472b6"/>
-  <text x="69" y="1256" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">Locked packages.lock.json (8 repos)</text>
-  <circle cx="60" cy="1273.4" r="2.4" fill="#f472b6"/>
-  <text x="69" y="1277" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">NuGetAudit NU1900-1904 errors</text>
-  <circle cx="60" cy="1294.4" r="2.4" fill="#f472b6"/>
-  <text x="69" y="1298" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">Roslyn AnalysisModeSecurity=All</text>
-  <line x1="380" y1="1237" x2="395.5" y2="1237" stroke="#f472b6" stroke-width="2.4" stroke-linecap="round"/>
-  <polygon points="400.0,1237 392.8,1233.4 392.8,1240.6" fill="#f472b6"/>
-  <rect x="402" y="1140" width="336" height="194" rx="9" fill="#1f1333" stroke="#e879f9" stroke-width="1.4"/>
-  <text x="416" y="1165" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14.0px" font-weight="700" fill="#f8fafc">Pull Request CI</text>
-  <rect x="416" y="1174" width="308" height="20" rx="4" fill="#2e1065" stroke="#a855f7" stroke-width="1"/>
-  <text x="424" y="1187.6" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="10.2px" font-weight="600" fill="#f5d0fe">pull-request-ci.yml + codeql.yml</text>
-  <circle cx="420" cy="1210.4" r="2.4" fill="#f472b6"/>
-  <text x="429" y="1214" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">Runs across all 8 repositories</text>
-  <circle cx="420" cy="1231.4" r="2.4" fill="#f472b6"/>
-  <text x="429" y="1235" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">CodeQL SAST (C# + JavaScript)</text>
-  <circle cx="420" cy="1252.4" r="2.4" fill="#f472b6"/>
-  <text x="429" y="1256" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">10 custom Davids Semgrep rules</text>
-  <circle cx="420" cy="1273.4" r="2.4" fill="#f472b6"/>
-  <text x="429" y="1277" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">Checkov IaC + istioctl analyze</text>
-  <circle cx="420" cy="1294.4" r="2.4" fill="#f472b6"/>
-  <text x="429" y="1298" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">40-char SHA Syft + Grype + Trivy</text>
-  <line x1="740" y1="1237" x2="755.5" y2="1237" stroke="#f472b6" stroke-width="2.4" stroke-linecap="round"/>
-  <polygon points="760.0,1237 752.8,1233.4 752.8,1240.6" fill="#f472b6"/>
-  <rect x="762" y="1140" width="336" height="194" rx="9" fill="#1f1333" stroke="#e879f9" stroke-width="1.4"/>
-  <text x="776" y="1165" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14.0px" font-weight="700" fill="#f8fafc">Staging / Nightly</text>
-  <rect x="776" y="1174" width="308" height="20" rx="4" fill="#2e1065" stroke="#a855f7" stroke-width="1"/>
-  <text x="784" y="1187.6" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="10.2px" font-weight="600" fill="#f5d0fe">staging-nightly.yml</text>
-  <circle cx="780" cy="1210.4" r="2.4" fill="#f472b6"/>
-  <text x="789" y="1214" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">Ephemeral 6-service stack + PKCE</text>
-  <circle cx="780" cy="1231.4" r="2.4" fill="#f472b6"/>
-  <text x="789" y="1235" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">Schemathesis 4.32.6 OpenAPI 3.1</text>
-  <circle cx="780" cy="1252.4" r="2.4" fill="#f472b6"/>
-  <text x="789" y="1256" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">Stateful API property fuzzing</text>
-  <circle cx="780" cy="1273.4" r="2.4" fill="#f472b6"/>
-  <text x="789" y="1277" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">Nuclei 3.11.1 posture &amp; vulns</text>
-  <circle cx="780" cy="1294.4" r="2.4" fill="#f472b6"/>
-  <text x="789" y="1298" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">PortSwigger Dastardly BFF DAST</text>
-  <line x1="1100" y1="1237" x2="1115.5" y2="1237" stroke="#f472b6" stroke-width="2.4" stroke-linecap="round"/>
-  <polygon points="1120.0,1237 1112.8,1233.4 1112.8,1240.6" fill="#f472b6"/>
-  <rect x="1122" y="1140" width="336" height="194" rx="9" fill="#1f1333" stroke="#e879f9" stroke-width="1.4"/>
-  <text x="1136" y="1165" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14.0px" font-weight="700" fill="#f8fafc">Quarterly / Release</text>
-  <rect x="1136" y="1174" width="308" height="20" rx="4" fill="#2e1065" stroke="#a855f7" stroke-width="1"/>
-  <text x="1144" y="1187.6" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="10.2px" font-weight="600" fill="#f5d0fe">quarterly-release.yml</text>
-  <circle cx="1140" cy="1210.4" r="2.4" fill="#f472b6"/>
-  <text x="1149" y="1214" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">45 Autorize RBAC/BOLA/BFLA checks</text>
-  <circle cx="1140" cy="1231.4" r="2.4" fill="#f472b6"/>
-  <text x="1149" y="1235" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">11 JWT Editor/OIDC crypto attacks</text>
-  <circle cx="1140" cy="1252.4" r="2.4" fill="#f472b6"/>
-  <text x="1149" y="1256" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">Microsoft RESTler stateful fuzzer</text>
-  <circle cx="1140" cy="1273.4" r="2.4" fill="#f472b6"/>
-  <text x="1149" y="1277" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">OWASP ZAP 2.17.0 active DAST</text>
-  <circle cx="1140" cy="1294.4" r="2.4" fill="#f472b6"/>
-  <text x="1149" y="1298" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">Burp Community exploratory config</text>
-  <line x1="1460" y1="1237" x2="1475.5" y2="1237" stroke="#f472b6" stroke-width="2.4" stroke-linecap="round"/>
-  <polygon points="1480.0,1237 1472.8,1233.4 1472.8,1240.6" fill="#f472b6"/>
-  <rect x="1482" y="1140" width="336" height="194" rx="9" fill="#1f1333" stroke="#e879f9" stroke-width="1.4"/>
-  <text x="1496" y="1165" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14.0px" font-weight="700" fill="#f8fafc">Production Cluster</text>
-  <rect x="1496" y="1174" width="308" height="20" rx="4" fill="#2e1065" stroke="#a855f7" stroke-width="1"/>
-  <text x="1504" y="1187.6" text-anchor="start" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace" font-size="10.2px" font-weight="600" fill="#f5d0fe">production-cluster.yml + deploy/k8s</text>
-  <circle cx="1500" cy="1210.4" r="2.4" fill="#f472b6"/>
-  <text x="1509" y="1214" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">Keyless Sigstore Cosign + SBOM</text>
-  <circle cx="1500" cy="1231.4" r="2.4" fill="#f472b6"/>
-  <text x="1509" y="1235" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">Kyverno v1.19.2 CEL &amp; Policies</text>
-  <circle cx="1500" cy="1252.4" r="2.4" fill="#f472b6"/>
-  <text x="1509" y="1256" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">Istio 1.31.3 STRICT mTLS + DENY</text>
-  <circle cx="1500" cy="1273.4" r="2.4" fill="#f472b6"/>
-  <text x="1509" y="1277" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">Falco 0.45.1 + Tetragon Sigkill</text>
-  <circle cx="1500" cy="1294.4" r="2.4" fill="#f472b6"/>
-  <text x="1509" y="1298" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="400" fill="#f3e8ff">Prometheus/Grafana/Seq alerts</text>
-  <line x1="316" y1="232" x2="316" y2="305.5" stroke="#38bdf8" stroke-width="2.4" stroke-linecap="round"/>
-  <polygon points="316,310.0 312.2,302.8 319.8,302.8" fill="#38bdf8"/>
-  <rect x="160" y="240" width="312" height="20" rx="4" fill="#082f49" stroke="#0284c7" stroke-width="1"/>
-  <text x="316.0" y="253.6" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="600" fill="#bae6fd">HTTPS TLS 1.3 · Customer BFF Cookie or Bearer RS256</text>
-  <line x1="929" y1="232" x2="929" y2="305.5" stroke="#60a5fa" stroke-width="2.4" stroke-linecap="round"/>
-  <polygon points="929,310.0 925.2,302.8 932.8,302.8" fill="#60a5fa"/>
-  <rect x="767" y="240" width="324" height="20" rx="4" fill="#172554" stroke="#3b82f6" stroke-width="1"/>
-  <text x="929.0" y="253.6" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="600" fill="#dbeafe">HTTPS TLS 1.3 · Workforce BFF Cookie + CSRF Header</text>
-  <line x1="1250" y1="171" x2="1232" y2="171" stroke="#f472b6" stroke-width="2.0" stroke-linecap="round" stroke-dasharray="4,3"/>
-  <line x1="1256" y1="389" x2="1238.5" y2="389" stroke="#a78bfa" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="4,3"/>
-  <polygon points="1234.0,389 1241.2,385.4 1241.2,392.6" fill="#a78bfa"/>
-  <line x1="1800" y1="466" x2="1800" y2="523.5" stroke="#a78bfa" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="4,3"/>
-  <polygon points="1800,528.0 1796.2,520.8 1803.8,520.8" fill="#a78bfa"/>
-  <line x1="637" y1="466" x2="637" y2="503" stroke="#34d399" stroke-width="2.4" stroke-linecap="round"/>
-  <line x1="214.0" y1="503" x2="1646.0" y2="503" stroke="#34d399" stroke-width="2.4" stroke-linecap="round"/>
-  <line x1="214.0" y1="503" x2="214.0" y2="507.5" stroke="#34d399" stroke-width="2.4" stroke-linecap="round"/>
-  <polygon points="214.0,512.0 210.2,504.8 217.8,504.8" fill="#34d399"/>
-  <line x1="572.0" y1="503" x2="572.0" y2="507.5" stroke="#34d399" stroke-width="2.4" stroke-linecap="round"/>
-  <polygon points="572.0,512.0 568.2,504.8 575.8,504.8" fill="#34d399"/>
-  <line x1="930.0" y1="503" x2="930.0" y2="507.5" stroke="#34d399" stroke-width="2.4" stroke-linecap="round"/>
-  <polygon points="930.0,512.0 926.2,504.8 933.8,504.8" fill="#34d399"/>
-  <line x1="1288.0" y1="503" x2="1288.0" y2="507.5" stroke="#34d399" stroke-width="2.4" stroke-linecap="round"/>
-  <polygon points="1288.0,512.0 1284.2,504.8 1291.8,504.8" fill="#34d399"/>
-  <line x1="1646.0" y1="503" x2="1646.0" y2="507.5" stroke="#34d399" stroke-width="2.4" stroke-linecap="round"/>
-  <polygon points="1646.0,512.0 1642.2,504.8 1649.8,504.8" fill="#34d399"/>
-  <line x1="386" y1="650" x2="395.5" y2="650" stroke="#38bdf8" stroke-width="2.0" stroke-linecap="round"/>
-  <polygon points="400.0,650 392.8,646.4 392.8,653.6" fill="#38bdf8"/>
-  <line x1="758" y1="650" x2="748.5" y2="650" stroke="#38bdf8" stroke-width="2.0" stroke-linecap="round" stroke-dasharray="4,3"/>
-  <polygon points="744.0,650 751.2,646.4 751.2,653.6" fill="#38bdf8"/>
-  <line x1="214.0" y1="746" x2="214.0" y2="805.5" stroke="#fbbf24" stroke-width="2.3" stroke-linecap="round"/>
-  <polygon points="214.0,810.0 210.2,802.8 217.8,802.8" fill="#fbbf24"/>
-  <rect x="126.0" y="769" width="176" height="19" rx="4" fill="#22190f" stroke="#f59e0b" stroke-width="1"/>
-  <text x="214.0" y="782.1" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="9.8px" font-weight="600" fill="#fde68a">EF Core -&gt; identitydb</text>
-  <line x1="572.0" y1="746" x2="572.0" y2="805.5" stroke="#fbbf24" stroke-width="2.3" stroke-linecap="round"/>
-  <polygon points="572.0,810.0 568.2,802.8 575.8,802.8" fill="#fbbf24"/>
-  <rect x="454.0" y="769" width="236" height="19" rx="4" fill="#22190f" stroke="#f59e0b" stroke-width="1"/>
-  <text x="572.0" y="782.1" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="9.8px" font-weight="600" fill="#fde68a">EF Core -&gt; adminidentitydb + Redis</text>
-  <line x1="930.0" y1="746" x2="930.0" y2="805.5" stroke="#fbbf24" stroke-width="2.3" stroke-linecap="round"/>
-  <polygon points="930.0,810.0 926.2,802.8 933.8,802.8" fill="#fbbf24"/>
-  <rect x="814.0" y="769" width="232" height="19" rx="4" fill="#22190f" stroke="#f59e0b" stroke-width="1"/>
-  <text x="930.0" y="782.1" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="9.8px" font-weight="600" fill="#fde68a">EF Core -&gt; customersdb + RabbitMQ</text>
-  <line x1="1500" y1="758" x2="1500" y2="805.5" stroke="#2dd4bf" stroke-width="2.4" stroke-linecap="round"/>
-  <polygon points="1500,810.0 1496.2,802.8 1503.8,802.8" fill="#2dd4bf"/>
-  <rect x="1362" y="769" width="276" height="19" rx="4" fill="#062c2b" stroke="#14b8a6" stroke-width="1"/>
-  <text x="1500.0" y="782.1" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="9.8px" font-weight="600" fill="#99f6e4">OTLP Traces/Metrics + CLEF Audit Logs</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1330" viewBox="0 0 1600 1330" role="img" aria-labelledby="title desc">
+<title id="title">Davids platform: twelve repositories and seven service databases</title>
+<desc id="desc">Two browser portals connect through the gateway to seven backend services. Each service owns a database. RabbitMQ supports asynchronous checkout and the infrastructure repository provides Aspire and deployment configuration.</desc>
+<rect width="1600" height="1330" fill="#f8fafc"/>
+<style>text {font-family:Segoe UI,Arial,sans-serif;fill:#0f172a} .title{font-size:35px;font-weight:700} .sub{font-size:17px;fill:#475569} .section{font-size:14px;letter-spacing:2px;font-weight:700;fill:#64748b} .head{font-size:22px;font-weight:700} .cardhead{font-size:18px;font-weight:700} .body{font-size:16px;fill:#475569} .small{font-size:14px;fill:#475569} .mono{font-family:Consolas,monospace;font-size:15px;fill:#1d4ed8} .tag{font-size:13px;font-weight:700;letter-spacing:.3px;fill:#059669} </style>
+<text x="48" y="66" class="title">Davids Platform — 12 Repositories</text>
+<text x="48" y="98" class="sub">Customer and workforce portals • Seven service-owned databases • Aspire development orchestration</text>
+<text x="48" y="146" class="section">BROWSER ENTRY POINTS THROUGH THE API GATEWAY</text>
+<rect x="48" y="163" width="738" height="103" rx="14" fill="#eff6ff" stroke="#93c5fd" stroke-width="2"/>
+<text x="70" y="196" class="head">Davids.Frontend.Web</text>
+<text x="70" y="224" class="mono">/  ·  /login</text>
+<text x="333" y="224" class="body">Storefront, basket, checkout and orders</text>
+<rect x="814" y="163" width="738" height="103" rx="14" fill="#eff6ff" stroke="#93c5fd" stroke-width="2"/>
+<text x="836" y="196" class="head">Davids.Frontend.Admin</text>
+<text x="836" y="224" class="mono">/admin  ·  /admin/login</text>
+<text x="1099" y="224" class="body">Workforce customer, catalog and order views</text>
+<path d="M417 266 V294 H800 M1183 266 V294 H800 M800 294 V314" fill="none" stroke="#94a3b8" stroke-width="2"/>
+<rect x="48" y="314" width="1504" height="84" rx="14" fill="#ecfdf5" stroke="#34d399" stroke-width="2"/>
+<text x="72" y="348" class="head">Davids.APIGateway  ·  :17320</text>
+<text x="72" y="374" class="body">YARP routes • Customer and workforce OIDC BFFs • Authentication, authorization and request propagation</text>
+<text x="48" y="438" class="section">SEVEN BACKEND REPOSITORIES — EACH OWNS ITS SQL SERVER DATABASE</text>
+<rect x="48" y="458" width="352" height="140" rx="14" fill="#fff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="64" y="488" class="cardhead">Davids.Services.Identity</text>
+<text x="64" y="515" class="small">:5004  ·  Customer OIDC</text>
+<rect x="64" y="536" width="320" height="40" rx="8" fill="#fffbeb" stroke="#fcd34d" stroke-width="2"/>
+<text x="77" y="562" class="mono">identitydb</text>
+<rect x="432" y="458" width="352" height="140" rx="14" fill="#fff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="448" y="488" class="cardhead">Davids.Services.AdminIdentity</text>
+<text x="448" y="515" class="small">:17325  ·  Workforce OIDC</text>
+<rect x="448" y="536" width="320" height="40" rx="8" fill="#fffbeb" stroke="#fcd34d" stroke-width="2"/>
+<text x="461" y="562" class="mono">adminidentitydb</text>
+<rect x="816" y="458" width="352" height="140" rx="14" fill="#fff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="832" y="488" class="cardhead">Davids.Services.Customers</text>
+<text x="832" y="515" class="small">:5002  ·  Customer profiles</text>
+<rect x="832" y="536" width="320" height="40" rx="8" fill="#fffbeb" stroke="#fcd34d" stroke-width="2"/>
+<text x="845" y="562" class="mono">customersdb</text>
+<rect x="1200" y="458" width="352" height="140" rx="14" fill="#fff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="1216" y="488" class="cardhead">Davids.Services.Products</text>
+<text x="1216" y="515" class="small">:5006  ·  Catalog and stock</text>
+<rect x="1216" y="536" width="320" height="40" rx="8" fill="#fffbeb" stroke="#fcd34d" stroke-width="2"/>
+<text x="1229" y="562" class="mono">productsdb</text>
+<rect x="48" y="618" width="352" height="140" rx="14" fill="#fff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="64" y="648" class="cardhead">Davids.Services.Baskets</text>
+<text x="64" y="675" class="small">:5008  ·  Customer shopping baskets</text>
+<rect x="64" y="696" width="320" height="40" rx="8" fill="#fffbeb" stroke="#fcd34d" stroke-width="2"/>
+<text x="77" y="722" class="mono">basketsdb</text>
+<rect x="432" y="618" width="352" height="140" rx="14" fill="#fff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="448" y="648" class="cardhead">Davids.Services.Orders</text>
+<text x="448" y="675" class="small">:5010  ·  Checkout and order lifecycle</text>
+<rect x="448" y="696" width="320" height="40" rx="8" fill="#fffbeb" stroke="#fcd34d" stroke-width="2"/>
+<text x="461" y="722" class="mono">ordersdb</text>
+<rect x="816" y="618" width="352" height="140" rx="14" fill="#fff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="832" y="648" class="cardhead">Davids.Services.Payments</text>
+<text x="832" y="675" class="small">:5012  ·  Simulated payment capture</text>
+<rect x="832" y="696" width="320" height="40" rx="8" fill="#fffbeb" stroke="#fcd34d" stroke-width="2"/>
+<text x="845" y="722" class="mono">paymentsdb</text>
+<rect x="1200" y="618" width="352" height="140" rx="14" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="2"/>
+<text x="1216" y="648" class="head">Davids.Shared</text>
+<text x="1216" y="676" class="small">ServiceDefaults: observability,</text>
+<text x="1216" y="698" class="small">security and resilience</text>
+<text x="48" y="802" class="section">ASYNCHRONOUS CHECKOUT AND SHARED INFRASTRUCTURE</text>
+<rect x="48" y="820" width="1504" height="115" rx="14" fill="#fff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="70" y="856" class="head">RabbitMQ event flow</text>
+<text x="70" y="887" class="body">Orders: order_placed   →   Payments: simulated capture / failure   →   Orders: outcome</text>
+<text x="70" y="913" class="small">order_completed is consumed by Customers, Products and Baskets; delivery relies on configured messaging.</text>
+<rect x="48" y="957" width="1504" height="150" rx="14" fill="#f0fdfa" stroke="#99f6e4" stroke-width="2"/>
+<text x="70" y="992" class="head">Davids  ·  Aspire AppHost, bootstrap and deployment manifests</text>
+<text x="70" y="1022" class="body">SQL Server hosts the seven distinct databases; the development AppHost also provisions RabbitMQ.</text>
+<text x="70" y="1048" class="body">Redis, Vault, Jaeger, Seq, Prometheus and Grafana are configuration-dependent integrations.</text>
+<text x="70" y="1074" class="small">Kubernetes / Istio policies apply when deployed and enforced; local Aspire is not an Istio mesh.</text>
+<rect x="48" y="1130" width="1504" height="133" rx="14" fill="#fff" stroke="#cbd5e1" stroke-width="2"/>
+<text x="70" y="1165" class="head">Security boundaries</text>
+<text x="70" y="1195" class="body">Customer and workforce accounts use separate identity databases, OIDC schemes and authorization policies.</text>
+<text x="70" y="1222" class="body">The portals share an origin: paths alone do not isolate them from same-origin XSS.</text>
+<text x="70" y="1247" class="small">Use the configured gateway endpoint for browser access; direct service ports are local development defaults.</text>
 </svg>

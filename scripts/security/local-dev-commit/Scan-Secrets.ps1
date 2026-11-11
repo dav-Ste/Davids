@@ -55,4 +55,4 @@ foreach ($repoName in $repos) {
     }
 }
 
-Write-Host 'All 8 Davids repositories passed Gitleaks secret scanning with zero findings.'
+Write-Host "All $($repos.Count) Davids repositories passed Gitleaks secret scanning with zero findings."

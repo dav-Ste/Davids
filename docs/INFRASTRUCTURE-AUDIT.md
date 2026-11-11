@@ -1,45 +1,53 @@
 # Infrastructure audit and architecture notes
 
-## Scope and architecture summary
+## Purpose and scope
 
-This document covers Customer Identity (`Davids.Services.Identity`), Admin Identity (`Davids.Services.AdminIdentity`), Customers (`Davids.Services.Customers`), the separate Admin Web frontend (`Davids.Frontend.Admin`), and the direct YARP API Gateway & OIDC BFF (`Davids.APIGateway`) on `.NET 10`.
+This document describes the **configured** Davids .NET 10 platform and identifies important verification boundaries. It is not evidence that every service, security control or test is currently running or passing. See the [infrastructure README](../README.md) for setup, endpoints, credentials and security commands, and the [architecture diagram](ARCHITECTURE-AND-SECURITY-DIAGRAM.md) for the full topology.
 
-All .NET calls use built-in ASP.NET Core / EF Core APIs, `OpenIddict` (`7.7.2`), `Yarp.ReverseProxy` (`2.3.0`), and direct supported client packages. NuGet versions are pinned centrally and transitive graphs locked (`RestorePackagesWithLockFile`). Container versions in `Davids.AppHost` are pinned for local development.
+The workspace contains 12 repositories: `Davids` and the 11 sibling repositories below. Each component retains its own repository and standalone solution; `Davids.slnx` is the aggregate solution.
 
-## Capability matrix
-
-| Capability | Implementation | Default |
+| Repository | Responsibility | Database where applicable |
 |---|---|---|
-| Service discovery & internal LB | **Direct YARP clusters + Kubernetes/Istio ready** (`identity`, `admin-identity`, `customers`, `frontend-admin`); Aspire injects service endpoints locally, and Kubernetes `Service` DNS + Istio Envoy sidecars handle discovery, load balancing, and mTLS in cluster deployments | Direct |
-| Authentication & OIDC | **Self-Hosted .NET OIDC (`OpenIddict` `7.7.2`)** across two physically & cryptographically isolated authorities (`Davids.Services.Identity` on `identitydb` and `Davids.Services.AdminIdentity` on `adminidentitydb`), issuing asymmetric `RS256` JWTs with OAuth 2.1 `Authorization Code + PKCE (S256)`, public `/.well-known/jwks`, single-use rotating refresh tokens (`SetRefreshTokenReuseLeeway(TimeSpan.Zero)`), RFC 7009 revocation, and append-only zero-secret SQL login attempt auditing (`CustomerLoginAuditLogs` + `AdminLoginAuditLogs`) | On |
-| API Gateway & Admin BFF | .NET 10 YARP edge validating `CustomerBearer` and `AdminBearer` `RS256` tokens via JWKS discovery (**zero signing keys on the gateway**), terminating confidential PKCE BFF sessions (`davids_admin_bff` encrypted `HttpOnly` cookie) for `Davids.Frontend.Admin`, enforcing `X-Requested-With: DavidsAdmin` + `Origin` CSRF checks, stripping cookies downstream, and injecting verified `Authorization: Bearer` + `X-Auth-*` headers | On |
-| RabbitMQ | Aspire resource; direct RabbitMQ workers with publisher confirmations and durable SQL inbox/outbox; Customers consumes `identity.signed_up` and `orders.order_completed` | On |
-| Persistence | **Three isolated SQL Server/EF Core databases** (`identitydb` for customer accounts & OpenIddict grants, `adminidentitydb` for administrator accounts & OpenIddict grants, `customersdb` for customer profiles) | On |
-| Redis | Aspire Redis; caches confirmed revoked JWT `jti`s across Customer Identity (`davids:identity:revoked:<jti>`), Admin Identity (`davids:admin-identity:revoked:<jti>`), and the API Gateway | On |
-| Vault | Aspire development Vault and one-shot `Davids.Bootstrap` seeding isolated KV-v2 paths (`secret/data/davids/identity`, `secret/data/davids/admin-identity`, `secret/data/davids/customers`, `secret/data/davids/gateway`) | On |
-| Jaeger | Jaeger v2 container; direct OTLP trace exporter alongside Aspire tracing | On |
-| Prometheus | Prometheus OTLP receiver and direct .NET OTLP metric exporter; runtime/ASP.NET/HTTP metrics | On |
-| Grafana | `grafana/grafana:13.2.4` with pre-provisioned Prometheus + Jaeger datasources (exemplar trace jump & service node graph), home dashboard, configurable cluster `Grafana:PrometheusUrl` / `Grafana:JaegerUrl` overrides, and `deploy/k8s/grafana.yaml` | On |
-| Seq & File logs | Seq container + direct Serilog Seq and rolling file sinks | On |
-| InfluxDB | InfluxDB 3 Core plus OpenTelemetry Collector Contrib InfluxDB exporter | Opt-in |
-| Elasticsearch & Kibana | Official Elastic Serilog sink, Elasticsearch, and Kibana | Opt-in |
-| OpenAPI / Swagger | ASP.NET Core OpenAPI generation and direct Swagger UI package | On in Development |
+| `Davids` | Aspire AppHost, infrastructure, deployment manifests and security tooling | — |
+| `Davids.Shared` | Shared `Davids.ServiceDefaults` | — |
+| `Davids.Services.Identity` | Customer accounts and customer OIDC authority | `identitydb` |
+| `Davids.Services.AdminIdentity` | Workforce accounts and workforce OIDC authority | `adminidentitydb` |
+| `Davids.Services.Customers` | Customer profiles | `customersdb` |
+| `Davids.Services.Products` | Product catalog and stock | `productsdb` |
+| `Davids.Services.Baskets` | Customer baskets | `basketsdb` |
+| `Davids.Services.Orders` | Orders and checkout | `ordersdb` |
+| `Davids.Services.Payments` | Simulated payment capture | `paymentsdb` |
+| `Davids.APIGateway` | YARP edge, customer and workforce OIDC BFFs | — |
+| `Davids.Frontend.Admin` | Workforce portal | — |
+| `Davids.Frontend.Web` | Customer storefront | — |
 
-## Vault scope and zero-shared-secret boundary
+The seven SQL Server databases have separate owners and EF Core contexts; they are typically hosted on the same SQL Server instance, not necessarily on separate servers. Customer and workforce accounts remain in distinct databases and authorities. Products, Baskets, Orders and Payments retain their own data ownership.
 
-`Davids.Bootstrap` validates that all four 2048-bit+ RSA private keys have distinct SPKI fingerprints before seeding isolated KV-v2 documents. Services load only their allowlisted keys before registering authentication and fail closed if Vault is unreachable or returns unsupported keys:
+## Architecture and security boundaries
 
-- `Davids.Services.Identity` (`secret/data/davids/identity`): allowlists `Oidc:SigningKeyPem`, `Oidc:EncryptionKeyPem`, `DataProtection:MasterKey`, `ConnectionStrings:identitydb`, `ConnectionStrings:messaging`, `ConnectionStrings:cache`, `LoggingSinks:Seq:ApiKey`, and `LoggingSinks:Elasticsearch:ApiKey`.
-- `Davids.Services.AdminIdentity` (`secret/data/davids/admin-identity`): allowlists `Oidc:SigningKeyPem`, `Oidc:EncryptionKeyPem`, `Oidc:BffClientSecret`, `DataProtection:MasterKey`, `ConnectionStrings:adminidentitydb`, `ConnectionStrings:cache`, `LoggingSinks:Seq:ApiKey`, and `LoggingSinks:Elasticsearch:ApiKey`.
-- `Davids.Services.Customers` (`secret/data/davids/customers`): allowlists `ConnectionStrings:customersdb`, `ConnectionStrings:messaging`, `LoggingSinks:Seq:ApiKey`, and `LoggingSinks:Elasticsearch:ApiKey` (**zero signing keys or client secrets**).
-- `Davids.APIGateway` (`secret/data/davids/gateway`): allowlists `AdminOidc:BffClientSecret`, `DataProtection:MasterKey`, `ConnectionStrings:cache`, `LoggingSinks:Seq:ApiKey`, and `LoggingSinks:Elasticsearch:ApiKey` (**zero signing keys**).
+| Concern | Configuration and limitations |
+|---|---|
+| Routing | The YARP gateway routes directly to services. The customer storefront is served at `/` with login at `/login`; the workforce portal is at `/admin` with login at `/admin/login`. |
+| Identity and access | Customer Identity and AdminIdentity are separate self-hosted OpenIddict authorities. The gateway uses separate OIDC BFF schemes and cookies; workforce roles include `admin`, `support` and `auditor`, while customers use `user`. Resource APIs apply their own authorization policies. |
+| Keys and secrets | Identity providers own their respective signing and encryption keys. Gateway and resource servers validate tokens using public keys rather than receiving identity signing keys. Development Vault/bootstrap configuration is optional and environment-dependent; see the README for credential locations and access. |
+| Messaging | RabbitMQ supports asynchronous communication, including payment capture before order completion. Services use outbox/inbox patterns where implemented. Publisher confirmations alone do not guarantee a publication was routed; review unrouted-message handling for stronger delivery assurances. |
+| Payments | Payment capture is simulated. There is no real payment-provider integration in the current implementation. |
+| Observability | Aspire can provision Redis, Vault, Jaeger, Seq, Prometheus and Grafana according to configuration. Grafana can use configured cluster Prometheus and Jaeger URLs. InfluxDB and Elasticsearch are optional integrations. |
+| Kubernetes and Istio | Deployment manifests define mesh, authorization, network, admission and runtime security controls. These controls are effective only when deployed and correctly enforced in the target cluster; local Aspire does not automatically establish the production mesh. |
+| Revocation | Redis-based revocation is configuration-dependent. The gateway can use a no-op store and can defer downstream if Redis fails; do not assume immediate or fail-closed revocation in every deployment. |
 
-## Validation summary (106 automated tests)
+The gateway stores OIDC tokens in its protected authentication ticket when `SaveTokens` is enabled. An `HttpOnly` cookie prevents direct JavaScript access to the cookie, but it does not stop same-origin script from making authenticated requests. Cookie renewal on token refresh also means the configured ticket lifetime is not necessarily an absolute session cap.
 
-- **7 Shared Host Defaults tests** (`Davids.ServiceDefaults.Tests`) verify health probes, OpenTelemetry exporters, fail-closed sink validation, trusted `ForwardedHeaders` CIDR/proxy allowlisting, and AES-256-GCM / X.509 Data Protection key-ring encryption with service-bound AEAD `AAD` isolation and `Production` fail-closed checks.
-- **23 Customer Identity OIDC tests** (`Davids.Services.Identity.Tests`) verify OIDC discovery & RSA JWKS, Authorization Code + PKCE (`S256`), `S256` verifier enforcement, single-use refresh rotation + replay revocation, OAuth 2.1 authorization-code replay cascade revocation (`RFC 6749 §10.5`), RFC 7009 SQL/Redis `jti` revocation, `Davids.Security.Audit` OpenTelemetry counters, per-client-IP rate limiting + per-account failed-login lockout across rotating client IPs, zero-secret SQL login attempt auditing (`CustomerLoginAuditLogs` + owner-scoped `GET /me/login-audits`), persistent AES-256-GCM encrypted Data Protection keys in `identitydb`, rejection of admin role escalation, transactional `signed_up` outbox events, OpenAPI 3.1.1 contract & `%00` form fuzzing boundaries, and Vault fail-closed behavior.
-- **13 Admin Identity OIDC tests** (`Davids.Services.AdminIdentity.Tests`) verify absence of public `/sign-up`, confidential PKCE BFF client (`davids-admin-bff`) enforcement, cross-scheme customer token rejection, single-use refresh rotation + replay revocation, authorization-code replay cascade revocation, RFC 7009 revocation caching, `Davids.Security.Audit` OpenTelemetry counters, per-client-IP rate limiting behind YARP + per-account failed-login lockout across distributed brute-force IPs, zero-secret SQL login attempt auditing (`AdminLoginAuditLogs` + `AdminOnly` `GET /login-audits`), persistent AES-256-GCM encrypted Data Protection keys in `adminidentitydb`, graceful handling of client-aborted requests/health checks (`499`), OpenAPI 3.1.1 contract & `%00` form fuzzing boundaries, and Vault/dev-seed safety.
-- **10 Customers tests** (`Davids.Services.Customers.Tests`) verify zero-secret dual-authority RS256 JWKS validation (`CustomerBearer` vs. `AdminBearer`), customer directory search/filtering, admin customer profile editing, state changes, VIP qualification, path-only query-parameter injection rejection & `customer_id_mismatch` guards, OpenAPI 3.1.1 query-vs-path `state` enum & stateful link invariants, and Vault rejection of signing keys.
-- **34 API Gateway & OIDC BFF tests** (`Davids.APIGateway.Tests`) verify direct YARP routing, edge HTTP method allowlisting (`405` on `TRACE`/`QUERY`) + public `/identity/sign-up` method routing, edge rate-limit isolation per client IP (`gateway-admin-auth`, `gateway-customer-auth`, `gateway-api`), structured `Davids.Security.Audit` BFF/rate-limit events & OpenTelemetry metrics + `customers-admin` protection on `/admin-identity/login-audits`, `X-Forwarded-For` overwrite anti-spoofing, persistent AES-256-GCM encrypted Redis Data Protection key rings surviving multi-replica restarts, full OIDC Authorization Code + PKCE BFF login/callback/refresh/logout, `HttpOnly` `davids_admin_bff` cookie encryption, CSRF protection (`403 csrf_rejected`), admin-only frontend gating (`302 /login` vs `401` vs `403`), dual-authority RS256 JWKS validation, Redis revocation, anti-spoofing headers, correlation IDs, W3C trace propagation, and CSP headers.
-- **8 Admin Frontend tests** (`Davids.Frontend.Admin.Tests`) verify passwordless SSO `/login` shell, zero inline scripts/secrets, workspace & administrator login audit UI assets (`/admin-identity/login-audits`), hardened CSP/cache headers, and `/health`.
-- **11 Aspire resource-graph & security-gate tests** (`Davids.AppHost.Tests`) verify embedded NuGet DCP (`dcpclipath`) and Aspire Dashboard (`aspiredashboardpath`) binaries on disk (`AspireUseCliBundle=false`), full and minimal AppHost resource graphs, persisted `ParameterDefault` generation for all OIDC RSA keys and secrets (zero unresolved parameters), isolated OIDC/Vault environment wiring with zero shared signing keys, external cluster Prometheus/Jaeger Grafana URL wiring without starting containers, **Local Dev / Commit** gates (`NuGetAudit` `NU1900`–`NU1904` as errors, `AnalysisModeSecurity=All`, `.gitleaks.toml`, `.githooks/pre-commit`), **Pull Request CI** gates (40-char SHA-pinned `CodeQL`, `Semgrep`, `Checkov`, `istioctl analyze`, `Grype`, `Trivy`, hardened `Dockerfile`s, and Istio `STRICT` mTLS manifests), **Staging / Nightly** DAST gates (`Schemathesis` OpenAPI 3.1 contracts & stateful links, `Nuclei` posture assertions & vulnerability templates, and `PortSwigger Dastardly` / `Burp Suite DAST` configurations), **Quarterly / Release** gates (`Microsoft RESTler`, `OWASP ZAP 2.17.0`, and cross-role PowerShell authorization matrix + cryptographic JWT/OIDC boundary checks), and **Production Cluster** runtime/mesh/supply-chain/alerting gates (`Kyverno` + `Cosign`, `Istio STRICT mTLS`, `Falco` + `Cilium Tetragon`, and `Prometheus` / `Grafana` / `Seq` login-audit alerts).
+## Configuration and deployment checks
+
+- **Database migrations:** `scripts/Update-Database.ps1` handles seven service contexts sequentially. It may update earlier databases before a later context fails; review migrations, back up data and plan recovery before running it. The checked-in SQL baseline files cover Identity, AdminIdentity and Customers; the other four baseline SQL files are not currently checked in.
+- **Local development:** AppHost resource and integration choices depend on configuration. See `src/Davids.AppHost/appsettings.json` and the README; do not infer the live deployment from defaults.
+- **Local commit security:** Repository hooks require explicit installation/configuration. See [`security/local-dev-commit/README.md`](../security/local-dev-commit/README.md).
+- **CI and scanning:** Repository CI and CodeQL, nightly dynamic checks, quarterly/post-publication checks and offline production-policy verification have different triggers and scopes. See [`SECURITY-SCAN-WORKFLOW-UPDATE.md`](SECURITY-SCAN-WORKFLOW-UPDATE.md). The nightly target may be configured externally or ephemeral, and some authenticated suites can be skipped.
+- **Production verification:** `Verify-ProductionClusterGates.ps1` tests policy fixtures and checks configuration offline. It does not inspect actual Kubernetes state, prove runtime enforcement or verify alert delivery.
+
+## Validation and evidence
+
+The repositories include unit, integration, architecture and security configuration tests. Exact test counts and results change over time; consult the relevant GitHub Actions run or execute the documented scripts for the commit being assessed. A configured test is not a successful run, and a successful offline configuration test is not evidence of a healthy deployed system.
+
+A full assessment requires, as appropriate, running the services and databases, exercising both OIDC sign-in flows and end-to-end order/payment messaging, testing backup/restore, running scans against an authorised non-production target, and verifying the deployed Kubernetes/Istio controls. Do not include credentials, cookies, tokens or personal data in shared evidence.
