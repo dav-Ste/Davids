@@ -230,7 +230,7 @@ try {
     }
 
     # Restore Davids.slnx (Davids.AppHost resolves host-OS RID packages Aspire.Hosting.Orchestration.<rid>
-    # and Aspire.Dashboard.Sdk.<rid> pinned to 13.6.1 in Directory.Packages.props).
+    # and Aspire.Dashboard.Sdk.<rid> pinned to 13.6.5 in Directory.Packages.props).
     & $dotnet restore 'Davids.slnx' -m:1 -nr:false --tl:off
     if ($LASTEXITCODE) { throw 'Solution restore failed for Davids.slnx.' }
 
